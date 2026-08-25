@@ -1,6 +1,7 @@
+const path = require('path');
 const dotenv = require('dotenv');
-dotenv.config(); // Must be first — loads env vars before any other module reads them
-
+dotenv.config({ path: path.join(__dirname, '../.env') }); // Explicit path to backend/.env
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -20,11 +21,29 @@ const initCronJobs = require('./config/cronJobs');
 
 const app = express();
 
-app.use(helmet());
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+  process.env.CLIENT_URL
+].filter(Boolean);
+
+app.use(helmet({
+  contentSecurityPolicy: false
+}));
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
+
 app.use(compression());
 app.use(morgan('dev'));
 app.use(express.json());
@@ -51,21 +70,41 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Trading Platform API', 
-    version: '1.0.0',
-    status: 'active'
-  });
-});
+// Serve frontend static build files if dist folder exists
+const frontendDistPath = path.join(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+  console.log('Serving frontend static files from:', frontendDistPath);
+  app.use(express.static(frontendDistPath));
 
+  // Express 5 compatible SPA fallback
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.json({ 
+      message: 'Trading Platform API', 
+      version: '1.0.0',
+      status: 'active'
+    });
+  });
+}
+
+// 404 handler for unmatched API routes
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({
+      success: false,
+      message: 'API route not found'
+    });
+  }
+  res.status(404).send('Page not found');
 });
 
+// Global Error Handler
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
   res.status(err.status || 500).json({
@@ -83,7 +122,7 @@ const startServer = async () => {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);
-    console.log(`API URL: http://localhost:${PORT}`);
+    console.log(`API URL: http://localhost:${PORT}/api`);
   });
 };
 
