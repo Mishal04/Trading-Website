@@ -65,6 +65,42 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
+/**
+  GET /api/transactions
+  Get logged-in user's full transaction history
+ */
+const getUserTransactions = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const skip = (page - 1) * limit;
+
+    const query = { userId: req.user._id };
+    if (req.query.type) query.type = req.query.type;
+
+    const total = await Transaction.countDocuments(query);
+    const transactions = await Transaction.find(query)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return res.json({
+      success: true,
+      data: {
+        transactions,
+        pagination: { total, page, pages: Math.ceil(total / limit), limit }
+      }
+    });
+  } catch (error) {
+    console.error('Get user transactions error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching transactions'
+    });
+  }
+};
+
 module.exports = {
-  getDashboardStats
+  getDashboardStats,
+  getUserTransactions
 };

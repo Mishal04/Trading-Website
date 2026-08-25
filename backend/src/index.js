@@ -30,6 +30,9 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const { getUserTransactions } = require('./controllers/dashboardController');
+const { protect } = require('./middleware/auth');
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/investments', investmentRoutes);
@@ -38,6 +41,7 @@ app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/transactions', protect, getUserTransactions);
 
 app.get('/health', (req, res) => {
   res.json({ 
