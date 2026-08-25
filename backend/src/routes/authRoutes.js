@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const { 
@@ -12,7 +12,13 @@ const {
 const { protect } = require('../middleware/auth');
 
 const validateRegister = [
-  body('name').trim().notEmpty().withMessage('Name is required'),
+  body().custom((value, { req }) => {
+    const name = req.body.name || req.body.fullName;
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      throw new Error('Name is required');
+    }
+    return true;
+  }),
   body('email').isEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
 ];

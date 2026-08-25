@@ -21,8 +21,8 @@ const register = async (req, res) => {
     });
   }
 
-  try {
-    const { name, email, password, referralCode } = req.body;
+    const { email, password, referralCode } = req.body;
+    const name = req.body.name || req.body.fullName;
     
     const userExists = await User.findOne({ email });
     if (userExists) {

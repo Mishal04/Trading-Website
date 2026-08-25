@@ -38,6 +38,7 @@ export default function Register() {
     setLoading(true);
     try {
       await register({
+        name: form.fullName,
         fullName: form.fullName,
         email: form.email,
         phone: form.phone,
@@ -46,7 +47,8 @@ export default function Register() {
       });
       navigate('/login');
     } catch (err) {
-      const msg = err.response?.data?.message || 'Registration failed';
+      const firstErr = err.response?.data?.errors?.[0]?.msg;
+      const msg = firstErr || err.response?.data?.message || 'Registration failed';
       toast.error(msg);
     } finally {
       setLoading(false);
