@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const { validationResult } = require('express-validator'); // Bug fix #5
+const { validationResult } = require('express-validator');
 const { 
   generateToken, 
   generateVerificationToken,
@@ -11,7 +11,6 @@ const {
 } = require('../services/emailService');
 
 const register = async (req, res) => {
-  // Bug fix #5: check validation errors collected by express-validator middleware
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
@@ -21,6 +20,7 @@ const register = async (req, res) => {
     });
   }
 
+  try {
     const { email, password, referralCode } = req.body;
     const name = req.body.name || req.body.fullName;
     
@@ -59,11 +59,16 @@ const register = async (req, res) => {
     
     await user.save();
     
-    await sendVerificationEmail(user.email, user.name, verificationToken);
+    // Safely attempt email sending (do not fail registration if SMTP fails)
+    try {
+      await sendVerificationEmail(user.email, user.name, verificationToken);
+    } catch (emailErr) {
+      console.warn('Verification email could not be sent (SMTP warning):', emailErr.message);
+    }
     
     const token = generateToken(user._id);
     
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: {
         user: {
@@ -75,13 +80,13 @@ const register = async (req, res) => {
         },
         token
       },
-      message: 'Registration successful. Please verify your email.'
+      message: 'Registration successful. Account created!'
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: 'Server error during registration'
+      message: error.message || 'Server error during registration'
     });
   }
 };
@@ -121,7 +126,7 @@ const login = async (req, res) => {
     
     const token = generateToken(user._id);
     
-    res.json({
+    return res.json({
       success: true,
       data: {
         user: {
@@ -130,14 +135,15 @@ const login = async (req, res) => {
           email: user.email,
           referralCode: user.referralCode,
           isVerified: user.isVerified,
-          accountType: user.accountType
+          accountType: user.accountType,
+          wallet: user.wallet || { capital: 0, profit: 0, commission: 0 }
         },
         token
       }
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server error during login'
     });
@@ -167,7 +173,7 @@ const verifyEmail = async (req, res) => {
     
     const jwtToken = generateToken(user._id);
     
-    res.json({
+    return res.json({
       success: true,
       data: {
         user: {
@@ -182,7 +188,7 @@ const verifyEmail = async (req, res) => {
     });
   } catch (error) {
     console.error('Verification error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server error during verification'
     });
@@ -215,13 +221,13 @@ const resendVerification = async (req, res) => {
     
     await sendVerificationEmail(user.email, user.name, verificationToken);
     
-    res.json({
+    return res.json({
       success: true,
       message: 'Verification email sent successfully'
     });
   } catch (error) {
     console.error('Resend verification error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server error'
     });
@@ -247,13 +253,13 @@ const forgotPassword = async (req, res) => {
     
     await sendPasswordResetEmail(user.email, user.name, resetToken);
     
-    res.json({
+    return res.json({
       success: true,
       message: 'Password reset email sent'
     });
   } catch (error) {
     console.error('Forgot password error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server error'
     });
@@ -281,13 +287,13 @@ const resetPassword = async (req, res) => {
     user.resetPasswordExpires = undefined;
     await user.save();
     
-    res.json({
+    return res.json({
       success: true,
       message: 'Password reset successfully'
     });
   } catch (error) {
     console.error('Reset password error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server error'
     });

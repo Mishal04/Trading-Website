@@ -14,11 +14,11 @@ export function AuthProvider({ children }) {
     if (token && savedUser) {
       try {
         setUser(JSON.parse(savedUser));
-        // Optionally refresh user data
         authAPI.me()
           .then((res) => {
-            setUser(res.data.user || res.data);
-            localStorage.setItem('user', JSON.stringify(res.data.user || res.data));
+            const u = res.data?.data?.user || res.data?.user || res.data;
+            setUser(u);
+            localStorage.setItem('user', JSON.stringify(u));
           })
           .catch(() => {
             localStorage.removeItem('token');
@@ -36,7 +36,8 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const res = await authAPI.login({ email, password });
-    const { token, user: userData } = res.data;
+    const token = res.data?.data?.token || res.data?.token;
+    const userData = res.data?.data?.user || res.data?.user;
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
@@ -46,7 +47,14 @@ export function AuthProvider({ children }) {
 
   const register = async (formData) => {
     const res = await authAPI.register(formData);
-    toast.success(res.data.message || 'Registration successful! Please check your email.');
+    const token = res.data?.data?.token || res.data?.token;
+    const userData = res.data?.data?.user || res.data?.user;
+    if (token && userData) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+    }
+    toast.success(res.data.message || 'Registration successful!');
     return res.data;
   };
 
