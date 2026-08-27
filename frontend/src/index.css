@@ -2,25 +2,21 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-
-  /* ── Tronex cyan/teal accent (replaces gold) ── */
-  --color-gold-50:  #e6fdfb;
-  --color-gold-100: #b3f7f2;
-  --color-gold-200: #66efe5;
-  --color-gold-300: #33e7da;
-  --color-gold-400: #19E6D2;   /* primary CTA / highlight */
-  --color-gold-500: #13c9b7;
-  --color-gold-600: #0ea899;
-  --color-gold-700: #0a8078;
-  --color-gold-800: #065851;
-  --color-gold-900: #03302d;
-
-  /* ── Tronex navy backgrounds (replaces dark) ── */
-  --color-dark-900: #050B1F;   /* main page background  */
-  --color-dark-800: #0A1330;   /* section background     */
-  --color-dark-700: #101B3D;   /* card background        */
-  --color-dark-600: #162248;   /* slightly lighter card  */
-  --color-dark-500: #1E2E58;   /* borders / dividers     */
+  --color-gold-50: #fbf8ef;
+  --color-gold-100: #f5edcc;
+  --color-gold-200: #ebda99;
+  --color-gold-300: #e0c466;
+  --color-gold-400: #d4af37;
+  --color-gold-500: #c9a227;
+  --color-gold-600: #a07e1c;
+  --color-gold-700: #785e16;
+  --color-gold-800: #503e0f;
+  --color-gold-900: #282007;
+  --color-dark-900: #0a0a0f;
+  --color-dark-800: #12121a;
+  --color-dark-700: #1a1a24;
+  --color-dark-600: #22222e;
+  --color-dark-500: #2e2e3c;
 }
 
 * {
@@ -34,55 +30,38 @@ html {
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background-color: #050B1F;
-  color: #F8FAFF;
+  background-color: #0a0a0f;
+  color: #f5f5f5;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Override Tailwind's default text colors to match Tronex palette ── */
-.text-gray-100 { color: #F8FAFF !important; }
-.text-gray-200 { color: #dce4f5 !important; }
-.text-gray-300 { color: #c4d0ea !important; }
-.text-gray-400 { color: #AAB6D3 !important; }
-.text-gray-500 { color: #7a8daf !important; }
-.text-gray-600 { color: #556180 !important; }
-.text-white    { color: #F8FAFF !important; }
-
-/* ── Custom scrollbar ── */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0A1330;
+  background: #12121a;
 }
 ::-webkit-scrollbar-thumb {
-  background: #19E6D2;
+  background: #d4af37;
   border-radius: 4px;
 }
 
-/* ── Gradient text: cyan → light-cyan → cyan ── */
 .gradient-text {
-  background: linear-gradient(135deg, #19E6D2 0%, #22B8FF 50%, #19E6D2 100%);
+  background: linear-gradient(135deg, #d4af37 0%, #f5edcc 50%, #d4af37 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* ── Glow: tronex teal ── */
 .gold-glow {
-  box-shadow: 0 0 40px rgba(25, 230, 210, 0.18);
+  box-shadow: 0 0 40px rgba(212, 175, 55, 0.15);
 }
 
-/* ── Card hover: tronex teal shadow ── */
 .card-hover {
   transition: all 0.3s ease;
 }
 .card-hover:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(25, 230, 210, 0.18);
+  box-shadow: 0 12px 40px rgba(212, 175, 55, 0.2);
 }
-
-/* ── Tronex blue secondary accent utility ── */
-.text-tronex-blue  { color: #22B8FF; }
-.border-tronex-blue { border-color: #22B8FF; }
-.bg-tronex-blue    { background-color: #22B8FF; }

@@ -85,6 +85,8 @@ export default function App() {
           path="/dashboard/*"
           element={<PrivateRoute><Dashboard /></PrivateRoute>}
         />
+        {/* Catch-all for unknown public routes */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
 
       {/* ── Admin panel — no Navbar/Footer, uses AdminLayout sidebar ── */}
@@ -99,9 +101,6 @@ export default function App() {
         <Route path="profit"      element={<ProfitInject />} />
         <Route path="*"           element={<Navigate to="/admin" replace />} />
       </Route>
-
-      {/* ── Global catch-all — must be last ── */}
-      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

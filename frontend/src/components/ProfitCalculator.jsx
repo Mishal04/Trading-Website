@@ -71,7 +71,7 @@ function Slider({ id, label, min, max, step, value, onChange, format }) {
           className="absolute top-0 left-0 h-2 rounded-full pointer-events-none"
           style={{
             width: `${pct}%`,
-            background: 'linear-gradient(90deg, #0a8078 0%, #19E6D2 100%)',
+            background: 'linear-gradient(90deg, #785e16 0%, #d4af37 100%)',
           }}
         />
         {/* Native input — invisible but functional */}
@@ -150,7 +150,7 @@ function GrowthChart({ series, months }) {
               className="w-full rounded-t-sm transition-all duration-500"
               style={{
                 height: `${heightPct}%`,
-                background: `linear-gradient(180deg, #19E6D2 0%, #065851 100%)`,
+                background: `linear-gradient(180deg, #d4af37 0%, #503e0f 100%)`,
                 opacity: 0.7 + 0.3 * (heightPct / 100),
               }}
             />
