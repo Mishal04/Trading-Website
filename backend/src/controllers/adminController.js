@@ -645,31 +645,40 @@ const injectRealizedProfit = async (req, res) => {
 // ─── POST /api/admin/commission/adjust ───────────────────────────────────────
 
 const manualCommissionAdjustment = async (req, res) => {
+  // Respect express-validator errors wired up in adminRoutes
+  const { validationResult } = require('express-validator');
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: errors.array()[0].msg });
+  }
+
   try {
     const { userId, amount, walletType, description } = req.body;
-    if (!userId || !amount || !walletType) {
-      return res.status(400).json({ success: false, message: 'userId, amount, and walletType are required' });
-    }
+
+    // Sanitize description — strip any HTML/script tags
+    const safeDescription = description
+      ? String(description).replace(/<[^>]*>/g, '').trim().slice(0, 200)
+      : null;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    await User.findByIdAndUpdate(userId, { $inc: { [`wallet.${walletType}`]: amount } });
+    await User.findByIdAndUpdate(userId, { $inc: { [`wallet.${walletType}`]: Number(amount) } });
 
     await CommissionLog.create({
       recipientId:      userId,
       commissionType:   'manual_adjustment',
-      baseAmount:       amount,
-      commissionAmount: amount,
-      description:      description || 'Admin manual wallet adjustment'
+      baseAmount:       Number(amount),
+      commissionAmount: Number(amount),
+      description:      safeDescription || 'Admin manual wallet adjustment'
     });
 
     await Transaction.create({
       userId,
       type:        'adjustment',
-      amount,
+      amount:      Number(amount),
       status:      'completed',
-      description: description || `Admin adjustment to ${walletType} wallet`
+      description: safeDescription || `Admin adjustment to ${walletType} wallet`
     });
 
     return res.json({ success: true, message: `Successfully adjusted ${walletType} wallet by $${amount}` });

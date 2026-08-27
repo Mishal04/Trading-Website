@@ -53,6 +53,21 @@ const validateProfitInject = [
 router.post('/profit/inject', validateProfitInject, injectRealizedProfit);
 
 // ── Manual Wallet Adjustment ─────────────────────────────────────────────────
-router.post('/commission/adjust', manualCommissionAdjustment);
+const validateWalletAdjust = [
+  body('userId')
+    .notEmpty().withMessage('userId is required')
+    .isMongoId().withMessage('Invalid userId format'),
+  body('amount')
+    .isNumeric().withMessage('Amount must be a number')
+    .custom(val => val !== 0).withMessage('Amount cannot be zero'),
+  body('walletType')
+    .isIn(['capital', 'profit', 'commission']).withMessage('walletType must be capital, profit, or commission'),
+  body('description')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ max: 200 }).withMessage('Description must be 200 characters or less'),
+];
+router.post('/commission/adjust', validateWalletAdjust, manualCommissionAdjustment);
 
 module.exports = router;

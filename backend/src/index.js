@@ -1,73 +1,150 @@
 const path = require('path');
 const dotenv = require('dotenv');
-dotenv.config({ path: path.join(__dirname, '../.env') }); // Explicit path to backend/.env
+dotenv.config({ path: path.join(__dirname, '../.env') });
 const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const hpp = require('hpp');
 const connectDB = require('./config/database');
 
-const authRoutes = require('./routes/authRoutes');
+const authRoutes       = require('./routes/authRoutes');
 const investmentRoutes = require('./routes/investmentRoutes');
 const commissionRoutes = require('./routes/commissionRoutes');
 const withdrawalRoutes = require('./routes/withdrawalRoutes');
-const teamRoutes = require('./routes/teamRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
-
-const initCronJobs = require('./config/cronJobs');
+const teamRoutes       = require('./routes/teamRoutes');
+const adminRoutes      = require('./routes/adminRoutes');
+const dashboardRoutes  = require('./routes/dashboardRoutes');
+const initCronJobs     = require('./config/cronJobs');
 
 const app = express();
 
+// ── Trusted origins ───────────────────────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
-  'http://localhost:5000',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:3000',
-  process.env.CLIENT_URL
+  process.env.CLIENT_URL,
 ].filter(Boolean);
 
-app.use(helmet({
-  contentSecurityPolicy: false
-}));
+// ── Security headers (Helmet) ─────────────────────────────────────────────────
+app.use(
+  helmet({
+    // Content-Security-Policy — tight whitelist
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc:     ["'self'"],
+        scriptSrc:      ["'self'"],
+        styleSrc:       ["'self'", "'unsafe-inline'"],   // inline styles needed by Vite
+        imgSrc:         ["'self'", 'data:', 'https:'],
+        connectSrc:     ["'self'", ...allowedOrigins],
+        fontSrc:        ["'self'", 'https:', 'data:'],
+        objectSrc:      ["'none'"],
+        frameAncestors: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    // HTTP Strict Transport Security — 1 year in production
+    hsts: process.env.NODE_ENV === 'production'
+      ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+      : false,
+    referrerPolicy:  { policy: 'strict-origin-when-cross-origin' },
+    frameguard:      { action: 'deny' },
+    noSniff:         true,
+    xssFilter:       true,
+  })
+);
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
-      return callback(null, true);
-    }
-    return callback(null, true);
-  },
-  credentials: true
-}));
+// ── CORS ──────────────────────────────────────────────────────────────────────
+// Only allow listed origins — no wildcard fallback.
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow same-origin requests (no Origin header) and listed origins only
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS: origin '${origin}' not allowed`), false);
+    },
+    credentials: true,
+    methods:     ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
+// ── Rate limiters ─────────────────────────────────────────────────────────────
+// Strict limiter for auth endpoints that are brute-force targets
+const authLimiter = rateLimit({
+  windowMs:         15 * 60 * 1000,   // 15 minutes
+  max:              20,                // 20 attempts per window
+  standardHeaders:  true,
+  legacyHeaders:    false,
+  message: { success: false, message: 'Too many requests, please try again in 15 minutes.' },
+});
+
+// Very tight limiter for password-reset — avoids enumeration timing attacks
+const passwordLimiter = rateLimit({
+  windowMs:         60 * 60 * 1000,   // 1 hour
+  max:              5,
+  standardHeaders:  true,
+  legacyHeaders:    false,
+  message: { success: false, message: 'Too many password reset attempts, please try again in 1 hour.' },
+});
+
+// General API limiter — prevents DoS across all other endpoints
+const generalLimiter = rateLimit({
+  windowMs:         15 * 60 * 1000,
+  max:              200,
+  standardHeaders:  true,
+  legacyHeaders:    false,
+  message: { success: false, message: 'Too many requests, please slow down.' },
+});
+
+app.use('/api/auth/login',            authLimiter);
+app.use('/api/auth/register',         authLimiter);
+app.use('/api/auth/forgot-password',  passwordLimiter);
+app.use('/api/auth/reset-password',   passwordLimiter);
+app.use('/api',                       generalLimiter);
+
+// ── Body parsing — explicit size limit to prevent payload flooding ─────────────
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// ── NoSQL injection sanitization ──────────────────────────────────────────────
+// Strips $ and . from req.body, req.params, req.query
+app.use(mongoSanitize({ replaceWith: '_' }));
+
+// ── HTTP Parameter Pollution protection ───────────────────────────────────────
+app.use(hpp());
+
+// ── Compression & logging ─────────────────────────────────────────────────────
 app.use(compression());
-app.use(morgan('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Only log in development — avoid leaking request details in production logs
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
 
+// ── API routes ────────────────────────────────────────────────────────────────
 const { getUserTransactions } = require('./controllers/dashboardController');
 const { protect } = require('./middleware/auth');
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/investments', investmentRoutes);
-app.use('/api/commissions', commissionRoutes);
-app.use('/api/withdrawals', withdrawalRoutes);
-app.use('/api/team', teamRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/transactions', protect, getUserTransactions);
+app.use('/api/auth',         authRoutes);
+app.use('/api/investments',  investmentRoutes);
+app.use('/api/commissions',  commissionRoutes);
+app.use('/api/withdrawals',  withdrawalRoutes);
+app.use('/api/team',         teamRoutes);
+app.use('/api/admin',        adminRoutes);
+app.use('/api/dashboard',    dashboardRoutes);
+app.use('/api/transactions',  protect, getUserTransactions);
 
+// Health check — no sensitive info exposed
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK',
-    uptime: process.uptime(),
-    timestamp: Date.now()
-  });
+  res.json({ status: 'OK', timestamp: Date.now() });
 });
 
 // Serve frontend static build files if dist folder exists
