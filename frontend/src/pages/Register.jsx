@@ -151,8 +151,8 @@ export default function Register() {
               type="text"
               name="referralCode"
               value={form.referralCode}
-              onChange={handleChange}
-              className="w-full px-4 py-2.5 rounded-lg bg-dark-900 border border-dark-500 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors uppercase"
+              onChange={(e) => setForm((prev) => ({ ...prev, referralCode: e.target.value.toUpperCase() }))}
+              className="w-full px-4 py-2.5 rounded-lg bg-dark-900 border border-dark-500 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors uppercase font-mono tracking-widest"
               placeholder="ABC12345"
             />
           </div>

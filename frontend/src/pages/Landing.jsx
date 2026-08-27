@@ -10,6 +10,7 @@ import {
   Wallet,
   Clock,
 } from 'lucide-react';
+import ProfitCalculator from '../components/ProfitCalculator';
 
 const packages = [
   {
@@ -344,6 +345,9 @@ export default function Landing() {
           <p className="text-center text-sm text-gray-500 mt-6">No fixed lock-in period</p>
         </div>
       </section>
+
+      {/* Profit Projection Calculator */}
+      <ProfitCalculator />
 
       {/* Disclaimer + CTA */}
       <section className="py-20">

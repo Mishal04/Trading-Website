@@ -32,7 +32,9 @@ const createInvestment = async (req, res) => {
 
     const { tier, packageName, dailyRate } = commissionService.getInvestmentPackage(amount);
     const dailyProfit = Number(((amount * dailyRate) / 100).toFixed(4));
+    const { paymentProof } = req.body;
 
+    // New investments start as 'pending' — admin must approve before they go active
     const investment = new Investment({
       userId,
       amount,
@@ -40,71 +42,35 @@ const createInvestment = async (req, res) => {
       packageName,
       dailyRate,
       dailyProfit,
-      startDate: new Date(),
-      lastProfitDate: new Date(),
-      isActive: true,
-      status: 'active'
+      isActive: false,
+      status: 'pending',
+      paymentProof: paymentProof || ''
     });
 
     await investment.save();
 
-    // Update user stats
-    let newLevel = 'basic';
-    if (amount >= 7500) newLevel = 'premium';
-    else if (amount >= 1000) newLevel = 'standard';
-
-    await User.findByIdAndUpdate(userId, {
-      $inc: {
-        totalInvestment: amount,
-        'wallet.capital': amount
-      },
-      investmentLevel: newLevel
-    });
-
-    // Update team business for uplines
-    const user = await User.findById(userId);
-    if (user.ancestorPath && user.ancestorPath.length > 0) {
-      // Direct referrer leg
-      const directReferrerId = user.ancestorPath[0];
-      await User.findByIdAndUpdate(directReferrerId, {
-        $inc: {
-          'teamBusiness.total': amount,
-          'referrals.totalBusiness': amount
-        }
-      });
-
-      // Update team business hierarchy
-      for (let i = 0; i < user.ancestorPath.length; i++) {
-        const ancestorId = user.ancestorPath[i];
-        if (i === 0) continue; // direct handled
-        await User.findByIdAndUpdate(ancestorId, {
-          $inc: { 'teamBusiness.total': amount }
-        });
-      }
-    }
-
-    // Record Transaction
+    // Record Transaction (pending until admin approves)
     await Transaction.create({
       userId,
       type: 'investment',
       amount,
-      status: 'completed',
-      description: `Invested $${amount} in ${packageName} (${dailyRate}% daily)`,
+      status: 'pending',
+      description: `Investment of $${amount} in ${packageName} — awaiting admin approval`,
       referenceId: investment._id,
       referenceModel: 'Investment'
     });
 
-    // Record Notification
+    // Notify user their submission is under review
     await Notification.create({
       userId,
-      title: 'Investment Active',
-      message: `Your investment of $${amount} in ${packageName} is now active!`,
-      type: 'success'
+      title: 'Investment Submitted',
+      message: `Your investment of $${amount} in ${packageName} is under review. You will be notified once approved.`,
+      type: 'info'
     });
 
     return res.status(201).json({
       success: true,
-      message: 'Investment created successfully',
+      message: 'Investment submitted successfully. Awaiting admin approval.',
       data: { investment }
     });
   } catch (error) {

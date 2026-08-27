@@ -48,9 +48,25 @@ const investmentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'completed', 'withdrawn', 'cancelled'],
-    default: 'active',
+    enum: ['pending', 'active', 'completed', 'withdrawn', 'cancelled', 'rejected'],
+    default: 'pending',
     index: true
+  },
+  // Payment proof: TXID string or image URL submitted by the user
+  paymentProof: {
+    type: String,
+    default: ''
+  },
+  adminNote: {
+    type: String,
+    default: ''
+  },
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  approvedAt: {
+    type: Date
   }
 }, { timestamps: true });
 

@@ -24,10 +24,9 @@ export default function OverviewTab({ stats, user, onRefresh }) {
   const recentTransactions = stats?.recentTransactions || [];
 
   const copyReferral = () => {
-    const link = `${window.location.origin}/register?ref=${referralCode}`;
-    navigator.clipboard.writeText(link);
+    navigator.clipboard.writeText(referralCode);
     setCopied(true);
-    toast.success('Referral link copied to clipboard!');
+    toast.success('Referral code copied!');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -123,8 +122,8 @@ export default function OverviewTab({ stats, user, onRefresh }) {
           <div className="flex items-center gap-2 max-w-lg w-full md:w-auto">
             <input
               readOnly
-              value={`${window.location.origin}/register?ref=${referralCode}`}
-              className="flex-1 bg-dark-900/90 rounded-xl px-4 py-2.5 text-xs text-gray-300 border border-dark-500 font-mono truncate focus:outline-none"
+              value={referralCode}
+              className="flex-1 bg-dark-900/90 rounded-xl px-4 py-2.5 text-sm text-gold-400 border border-dark-500 font-mono font-bold tracking-widest text-center focus:outline-none"
             />
             <button
               onClick={copyReferral}

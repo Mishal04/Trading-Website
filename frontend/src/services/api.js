@@ -77,3 +77,36 @@ export const commissionAPI = {
 export const dashboardAPI = {
   getStats: () => api.get('/dashboard/stats'),
 };
+
+// Admin endpoints
+export const adminAPI = {
+  // Stats & Pools
+  getStats:  ()       => api.get('/admin/stats'),
+  getPools:  ()       => api.get('/admin/pools'),
+
+  // Users
+  getUsers:       (params) => api.get('/admin/users', { params }),
+  toggleUser:     (id)     => api.patch(`/admin/users/${id}/toggle`),
+
+  // Investments
+  getInvestments:     (params) => api.get('/admin/investments', { params }),
+  approveInvestment:  (id)     => api.patch(`/admin/investments/${id}/approve`),
+  rejectInvestment:   (id, adminNote) =>
+    api.patch(`/admin/investments/${id}/reject`, { adminNote }),
+
+  // Withdrawals
+  getWithdrawals:     (params) => api.get('/admin/withdrawals', { params }),
+  approveWithdrawal:  (id, adminNote) =>
+    api.patch(`/admin/withdrawals/${id}/approve`, { adminNote }),
+  rejectWithdrawal:   (id, adminNote) =>
+    api.patch(`/admin/withdrawals/${id}/reject`,  { adminNote }),
+  completeWithdrawal: (id, adminNote) =>
+    api.patch(`/admin/withdrawals/${id}/complete`, { adminNote }),
+
+  // Profit injection
+  injectProfit: (amount, note) =>
+    api.post('/admin/profit/inject', { amount, note }),
+
+  // Manual wallet adjustment
+  adjustWallet: (data) => api.post('/admin/commission/adjust', data),
+};
