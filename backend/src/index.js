@@ -115,8 +115,41 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // ── NoSQL injection sanitization ──────────────────────────────────────────────
-// Strips $ and . from req.body, req.params, req.query
-app.use(mongoSanitize({ replaceWith: '_' }));
+// express-mongo-sanitize v2.2.0 does `req.query = target` which throws in
+// Express 5 because req.query is a read-only getter. We replace it with a
+// custom middleware that:
+//   • sanitizes req.body and req.params normally (they are writable)
+//   • sanitizes req.query by mutating the object in-place (no reassignment)
+const { sanitize: mongoSanitizeValue } = mongoSanitize;
+
+app.use((req, res, next) => {
+  // Sanitize body and params — safe to reassign in Express 5
+  if (req.body)   req.body   = mongoSanitizeValue(req.body,   { replaceWith: '_' });
+  if (req.params) req.params = mongoSanitizeValue(req.params, { replaceWith: '_' });
+
+  // Sanitize query by mutating keys in-place — never reassign req.query
+  if (req.query && typeof req.query === 'object') {
+    const PROHIBITED = /^\$|\./;
+    const REPLACE    = /^\$|\./g;
+    const sanitizeObj = (obj) => {
+      Object.keys(obj).forEach((key) => {
+        if (PROHIBITED.test(key)) {
+          const val = obj[key];
+          delete obj[key];
+          const safeKey = key.replace(REPLACE, '_');
+          if (safeKey !== '__proto__' && safeKey !== 'constructor' && safeKey !== 'prototype') {
+            obj[safeKey] = val;
+          }
+        } else if (obj[key] && typeof obj[key] === 'object') {
+          sanitizeObj(obj[key]);
+        }
+      });
+    };
+    sanitizeObj(req.query);
+  }
+
+  next();
+});
 
 // ── HTTP Parameter Pollution protection ───────────────────────────────────────
 // NOTE: hpp 0.2.3 is incompatible with Express 5 (req.query is read-only).
