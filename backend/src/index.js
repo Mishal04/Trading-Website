@@ -9,7 +9,6 @@ const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
-const hpp = require('hpp');
 const connectDB = require('./config/database');
 
 const authRoutes       = require('./routes/authRoutes');
@@ -120,7 +119,9 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(mongoSanitize({ replaceWith: '_' }));
 
 // ── HTTP Parameter Pollution protection ───────────────────────────────────────
-app.use(hpp());
+// NOTE: hpp 0.2.3 is incompatible with Express 5 (req.query is read-only).
+// Express 5's query parser already returns arrays for duplicate params, so
+// hpp is not needed — duplicate params are handled at the route/controller level.
 
 // ── Compression & logging ─────────────────────────────────────────────────────
 app.use(compression());
