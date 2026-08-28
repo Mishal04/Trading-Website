@@ -88,9 +88,9 @@ const createInvestment = async (req, res) => {
  */
 const getMyInvestments = async (req, res) => {
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
-    const skip = (page - 1) * limit;
+    const page  = Math.max(1, parseInt(req.query.page,  10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10)); // cap at 100
+    const skip  = (page - 1) * limit;
 
     const query = { userId: req.user._id };
     if (req.query.status) query.status = req.query.status;

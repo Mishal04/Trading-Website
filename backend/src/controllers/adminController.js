@@ -113,8 +113,8 @@ const getSystemPools = async (req, res) => {
  */
 const getAllUsers = async (req, res) => {
   try {
-    const page  = parseInt(req.query.page,  10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
+    const page  = Math.max(1, parseInt(req.query.page,  10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20)); // cap at 100
     const skip  = (page - 1) * limit;
 
     const query = {};
@@ -189,8 +189,8 @@ const toggleUserActive = async (req, res) => {
  */
 const getAllInvestments = async (req, res) => {
   try {
-    const page  = parseInt(req.query.page,  10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
+    const page  = Math.max(1, parseInt(req.query.page,  10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20)); // cap at 100
     const skip  = (page - 1) * limit;
 
     const query = {};
@@ -358,8 +358,8 @@ const rejectInvestment = async (req, res) => {
  */
 const getAllWithdrawals = async (req, res) => {
   try {
-    const page  = parseInt(req.query.page,  10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
+    const page  = Math.max(1, parseInt(req.query.page,  10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20)); // cap at 100
     const skip  = (page - 1) * limit;
 
     const query = {};

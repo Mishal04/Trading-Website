@@ -71,9 +71,9 @@ const getDashboardStats = async (req, res) => {
  */
 const getUserTransactions = async (req, res) => {
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 50;
-    const skip = (page - 1) * limit;
+    const page  = Math.max(1, parseInt(req.query.page,  10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50)); // cap at 100
+    const skip  = (page - 1) * limit;
 
     const query = { userId: req.user._id };
     if (req.query.type) query.type = req.query.type;
