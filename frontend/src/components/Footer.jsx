@@ -11,7 +11,7 @@ export default function Footer() {
                 GT
               </div>
               <span className="font-bold">
-                Group <span className="text-gold-400">Tradingg</span>
+                Group <span className="text-gold-400">Trading</span>
               </span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
