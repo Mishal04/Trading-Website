@@ -15,7 +15,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
-              Transparent profit sharing with 25-level commissions, leadership salary and performance rewards.
+              Transparent profit sharing with 25-level commissions, leadership, salary and performance rewards.
             </p>
           </div>
 
