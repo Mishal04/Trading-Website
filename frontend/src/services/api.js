@@ -46,9 +46,9 @@ export const authAPI = {
 
 // Investment endpoints
 export const investmentAPI = {
-  create: (amount) => api.post('/investments/create', { amount }),
-  getMy: (params) => api.get('/investments/my', { params }),
-  getById: (id) => api.get(`/investments/${id}`),
+  create: (payload) => api.post('/investments/create', payload),
+  getMy:  (params)  => api.get('/investments/my', { params }),
+  getById: (id)     => api.get(`/investments/${id}`),
   withdraw: (investmentId) => api.post('/investments/withdraw', { investmentId }),
 };
 

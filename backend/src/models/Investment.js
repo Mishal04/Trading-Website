@@ -57,6 +57,18 @@ const investmentSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  // Transaction / reference ID from the payment method (JazzCash, bank, crypto etc.)
+  transactionId: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  // Optional message from user to admin
+  paymentNote: {
+    type: String,
+    default: '',
+    trim: true
+  },
   adminNote: {
     type: String,
     default: ''

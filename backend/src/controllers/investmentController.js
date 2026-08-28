@@ -32,7 +32,9 @@ const createInvestment = async (req, res) => {
 
     const { tier, packageName, dailyRate } = commissionService.getInvestmentPackage(amount);
     const dailyProfit = Number(((amount * dailyRate) / 100).toFixed(4));
-    const { paymentProof } = req.body;
+
+    // Extract all payment proof fields
+    const { paymentProof, transactionId, paymentNote } = req.body;
 
     // New investments start as 'pending' — admin must approve before they go active
     const investment = new Investment({
@@ -42,9 +44,11 @@ const createInvestment = async (req, res) => {
       packageName,
       dailyRate,
       dailyProfit,
-      isActive: false,
-      status: 'pending',
-      paymentProof: paymentProof || ''
+      isActive:      false,
+      status:        'pending',
+      transactionId: (transactionId || '').trim(),
+      paymentProof:  (paymentProof  || '').trim(),
+      paymentNote:   (paymentNote   || '').trim(),
     });
 
     await investment.save();
