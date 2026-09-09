@@ -46,10 +46,7 @@ const userSchema = new mongoose.Schema({
     enum: ['none', 'basic', 'standard', 'premium'],
     default: 'none'
   },
-  totalInvestment: {
-    type: Number,
-    default: 0
-  },
+
   totalProfitEarned: {
     type: Number,
     default: 0
@@ -80,6 +77,22 @@ const userSchema = new mongoose.Schema({
   },
   lastLogin: Date,
   isActive: { type: Boolean, default: true },
+  // Role determines income cap multiplier
+  role: {
+    type: String,
+    enum: ['investor', 'working_leader'],
+    default: 'investor'
+  },
+  // Total amount the user has invested (sum of active investments)
+  totalInvested: { type: Number, default: 0 },
+  // Total earned from ROI and level income (excludes achievement rewards)
+  totalEarned: { type: Number, default: 0 },
+  // Number of direct referrals
+  directCount: { type: Number, default: 0 },
+  // Unlocked referral levels based on directCount
+  unlockedLevels: { type: Number, default: 0 },
+  // Achievements already claimed (tier names)
+  achievementsClaimed: { type: [String], default: [] },
   accountType: {
     type: String,
     enum: ['user', 'admin'],
@@ -108,6 +121,27 @@ userSchema.methods.generateReferralCode = function() {
   }
   return code;
 };
+
+// Helper methods for income cap and level unlocking
+userSchema.methods.getIncomeCap = function() {
+  const caps = require('../../config/constants').INCOME_CAPS;
+  return this.totalInvested * (this.role === 'working_leader' ? caps.working_leader : caps.investor);
+};
+
+userSchema.methods.hasReachedIncomeCap = function() {
+  return this.totalEarned >= this.getIncomeCap();
+};
+
+userSchema.methods.recomputeUnlockedLevels = function() {
+  const rules = require('../../config/constants').LEVEL_UNLOCK_RULES;
+  const direct = this.directCount || 0;
+  if (direct >= 10) {
+    this.unlockedLevels = 21;
+  } else {
+    this.unlockedLevels = rules[direct] || 0;
+  }
+};
+
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;

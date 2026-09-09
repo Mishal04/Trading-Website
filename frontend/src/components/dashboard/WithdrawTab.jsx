@@ -17,6 +17,7 @@ import {
 export default function WithdrawTab({ user, onRefresh }) {
   const [type, setType] = useState('profit');
   const [amount, setAmount] = useState('');
+  const [network, setNetwork] = useState('BEP20');
   const [walletAddress, setWalletAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
@@ -68,8 +69,18 @@ export default function WithdrawTab({ user, onRefresh }) {
       return;
     }
 
+    if (num < 10) {
+      toast.error('Minimum withdrawal amount is 10 USDT');
+      return;
+    }
+
     if (num > availableBalance) {
       toast.error(`Insufficient ${type} balance. Available: $${availableBalance}`);
+      return;
+    }
+
+    if (!walletAddress.trim()) {
+      toast.error(`Please provide your ${network} USDT wallet address`);
       return;
     }
 
@@ -83,6 +94,7 @@ export default function WithdrawTab({ user, onRefresh }) {
       const res = await withdrawalAPI.request({
         amount: num,
         type,
+        network,
         walletAddress: walletAddress.trim()
       });
       toast.success(res.data.message || 'Withdrawal request submitted successfully!');
@@ -188,37 +200,87 @@ export default function WithdrawTab({ user, onRefresh }) {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            {/* Network Selector */}
             <div>
-              <label className="text-xs font-semibold text-gray-400 mb-2 block">Withdrawal Amount ($)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="1"
-                max={availableBalance}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter amount"
-                className="w-full bg-dark-900 text-white rounded-xl px-4 py-3.5 border border-dark-500 focus:border-gold-400 focus:outline-none font-bold text-base"
-                required
-              />
+              <label className="text-xs font-semibold text-gray-400 mb-2 block">
+                Crypto Network <span className="text-red-400">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { id: 'BEP20', name: 'USDT (BEP20)', desc: 'BNB Smart Chain · Fast & Low Fee' },
+                  { id: 'TRC20', name: 'USDT (TRC20)', desc: 'TRON Network · Standard' }
+                ].map((net) => (
+                  <button
+                    key={net.id}
+                    type="button"
+                    onClick={() => setNetwork(net.id)}
+                    className={`py-3 px-4 rounded-xl text-left border transition-all ${
+                      network === net.id
+                        ? 'bg-gold-400/10 border-gold-400 ring-1 ring-gold-400/50 shadow-md'
+                        : 'bg-dark-900 border-dark-500 hover:border-dark-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-bold ${network === net.id ? 'text-gold-400' : 'text-white'}`}>
+                        {net.name}
+                      </span>
+                      {network === net.id && <CheckCircle2 size={14} className="text-gold-400" />}
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-0.5">{net.desc}</p>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-gray-400 mb-2 block">Destination Wallet Address (Crypto / USDT)</label>
-              <input
-                type="text"
-                value={walletAddress}
-                onChange={(e) => setWalletAddress(e.target.value)}
-                placeholder="TRC20 / ERC20 wallet address"
-                className="w-full bg-dark-900 text-white rounded-xl px-4 py-3.5 border border-dark-500 focus:border-gold-400 focus:outline-none text-xs font-mono"
-              />
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div>
+                <label className="text-xs font-semibold text-gray-400 mb-2 block">
+                  Withdrawal Amount (USDT) <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="10"
+                    max={availableBalance}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="Min 10.00"
+                    className="w-full bg-dark-900 text-white rounded-xl pl-4 pr-16 py-3.5 border border-dark-500 focus:border-gold-400 focus:outline-none font-bold text-base"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setAmount(availableBalance.toString())}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 text-[10px] font-black uppercase rounded-lg bg-gold-400/20 text-gold-400 hover:bg-gold-400/30 transition-colors"
+                  >
+                    MAX
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">Minimum payout is <strong>10 USDT</strong>.</p>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-400 mb-2 block">
+                  {network} Destination Address <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={walletAddress}
+                  onChange={(e) => setWalletAddress(e.target.value)}
+                  placeholder={`Enter your ${network} USDT wallet address`}
+                  className="w-full bg-dark-900 text-white rounded-xl px-4 py-3.5 border border-dark-500 focus:border-gold-400 focus:outline-none text-xs font-mono placeholder-gray-600"
+                  required
+                />
+                <p className="text-[11px] text-gray-500 mt-1">Double check your {network} address before submitting.</p>
+              </div>
             </div>
           </div>
 
           <button
             type="submit"
-            disabled={loading || !isOpen}
+            disabled={loading || !isOpen || parseFloat(amount) < 10 || !walletAddress.trim()}
             className="w-full py-4 rounded-xl bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 font-extrabold text-base hover:brightness-110 transition-all shadow-xl shadow-gold-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
@@ -231,7 +293,7 @@ export default function WithdrawTab({ user, onRefresh }) {
               </>
             ) : (
               <>
-                Confirm & Request Withdrawal
+                Confirm & Request Withdrawal ({network})
               </>
             )}
           </button>
@@ -265,6 +327,7 @@ export default function WithdrawTab({ user, onRefresh }) {
               <thead className="bg-dark-900/80 text-gray-400 uppercase tracking-wider">
                 <tr>
                   <th className="px-4 py-3 rounded-l-xl">Amount</th>
+                  <th className="px-4 py-3">Network</th>
                   <th className="px-4 py-3">Wallet Type</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Requested At</th>
@@ -275,6 +338,11 @@ export default function WithdrawTab({ user, onRefresh }) {
                 {history.map((item) => (
                   <tr key={item._id} className="hover:bg-dark-700/30">
                     <td className="px-4 py-3.5 font-extrabold text-gold-400">${Number(item.amount).toFixed(2)}</td>
+                    <td className="px-4 py-3.5 font-mono font-bold text-emerald-400">
+                      <span className="px-2 py-0.5 rounded bg-dark-900 border border-dark-500">
+                        {item.network || 'BEP20'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3.5 capitalize font-semibold">{item.type}</td>
                     <td className="px-4 py-3.5">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase ${

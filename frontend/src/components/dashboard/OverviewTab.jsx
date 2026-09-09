@@ -20,8 +20,21 @@ export default function OverviewTab({ stats, user, onRefresh }) {
   const wallet = stats?.wallet || user?.wallet || { capital: 0, profit: 0, commission: 0, totalBalance: 0 };
   const referralCode = user?.referralCode || stats?.user?.referralCode || '--------';
   const investments = stats?.investments || { totalInvested: 0, activeCount: 0, totalProfitEarned: 0 };
-  const team = stats?.team || { directCount: 0, teamBusiness: { total: 0 } };
+  const team = stats?.team || { directCount: 0, unlockedLevels: 0, teamBusiness: { total: 0 } };
   const recentTransactions = stats?.recentTransactions || [];
+
+  const role = stats?.user?.role || user?.role || 'investor';
+  const isWorkingLeader = role === 'working_leader';
+  const capMultiple = isWorkingLeader ? 4 : 2;
+  const totalInvested = stats?.user?.totalInvested ?? stats?.incomeCap?.totalInvested ?? investments.totalInvested ?? 0;
+  const totalEarned = stats?.user?.totalEarned ?? stats?.incomeCap?.totalEarned ?? 0;
+  const capAmount = stats?.incomeCap?.capAmount ?? (totalInvested * capMultiple);
+  const capProgressPercent = stats?.incomeCap?.progressPercent ?? (capAmount > 0 ? Math.min(100, Math.round((totalEarned / capAmount) * 100)) : 0);
+  const capRemaining = stats?.incomeCap?.remaining ?? Math.max(0, capAmount - totalEarned);
+  const isCapReached = capAmount > 0 && totalEarned >= capAmount;
+
+  const directCount = stats?.user?.directCount ?? stats?.team?.directCount ?? user?.directCount ?? 0;
+  const unlockedLevels = stats?.user?.unlockedLevels ?? stats?.team?.unlockedLevels ?? user?.unlockedLevels ?? 0;
 
   const copyReferral = () => {
     navigator.clipboard.writeText(referralCode);
@@ -38,7 +51,7 @@ export default function OverviewTab({ stats, user, onRefresh }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-400/10 border border-gold-400/20 text-gold-400 text-xs font-semibold mb-2">
-              <ShieldCheck size={14} /> Active Account ({user?.accountType || 'user'})
+              <ShieldCheck size={14} /> {isWorkingLeader ? 'Working Leader (4X Cap)' : 'Investor Account (2X Cap)'}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
               Welcome back, <span className="gradient-text">{user?.name || user?.fullName || 'Trader'}</span>!
@@ -61,6 +74,70 @@ export default function OverviewTab({ stats, user, onRefresh }) {
             >
               Withdraw <ArrowUpRight size={14} />
             </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Income Cap & Level Progress Banner */}
+      <div className="rounded-2xl border border-dark-500 bg-dark-800/80 p-6 backdrop-blur-xl shadow-xl">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          {/* Income Cap Details */}
+          <div className="flex-1 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-gold-400">
+                  Income Cap ({capMultiple}X {isWorkingLeader ? 'Working Leader' : 'Investor'})
+                </span>
+                {isCapReached && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-red-500/20 text-red-400 border border-red-500/30">
+                    Cap Reached
+                  </span>
+                )}
+              </div>
+              <span className="text-xs font-mono text-gray-400">
+                ${Number(totalEarned).toFixed(2)} / ${Number(capAmount).toFixed(2)} USDT
+              </span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-dark-900 rounded-full h-3.5 p-0.5 border border-dark-600 relative overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  isCapReached
+                    ? 'bg-red-500'
+                    : capProgressPercent > 80
+                    ? 'bg-gradient-to-r from-gold-500 to-amber-400'
+                    : 'bg-gradient-to-r from-gold-500 to-emerald-400'
+                }`}
+                style={{ width: `${Math.min(100, Math.max(capProgressPercent, capAmount > 0 ? 3 : 0))}%` }}
+              />
+            </div>
+
+            <div className="flex justify-between items-center text-[11px] text-gray-400">
+              <span>{capProgressPercent}% Capped</span>
+              <span>
+                {isCapReached ? (
+                  <strong className="text-red-400">Reinvest to continue earning</strong>
+                ) : (
+                  <span>Remaining headroom: <strong className="text-white">${Number(capRemaining).toFixed(2)} USDT</strong></span>
+                )}
+              </span>
+            </div>
+          </div>
+
+          {/* Level Unlocking & Directs Metric */}
+          <div className="flex sm:items-center gap-4 border-t lg:border-t-0 lg:border-l border-dark-600 pt-4 lg:pt-0 lg:pl-6 shrink-0">
+            <div className="p-3 rounded-xl bg-dark-900 border border-dark-600 text-center min-w-[110px]">
+              <span className="text-[10px] text-gray-400 uppercase font-semibold block">Direct Referrals</span>
+              <span className="text-2xl font-black text-white">{directCount}</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-dark-900 border border-dark-600 text-center min-w-[125px]">
+              <span className="text-[10px] text-gray-400 uppercase font-semibold block">Unlocked Levels</span>
+              <span className="text-2xl font-black text-gold-400">
+                {unlockedLevels}<span className="text-xs text-gray-500 font-normal"> / 21</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -220,7 +297,11 @@ export default function OverviewTab({ stats, user, onRefresh }) {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">Direct Referrals</span>
-                <span className="text-sm font-bold text-white">{team.directCount || 0}</span>
+                <span className="text-sm font-bold text-white">{directCount}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">Unlocked Generations</span>
+                <span className="text-sm font-bold text-gold-400">{unlockedLevels} / 21</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">Team Business Volume</span>

@@ -15,8 +15,19 @@ const {
   completeWithdrawal,
   updateWithdrawalStatus,
   injectRealizedProfit,
-  manualCommissionAdjustment
+  manualCommissionAdjustment,
+  creditRoi,
+  updateUserRole,
+  checkAchievements,
+  claimAchievements
 } = require('../controllers/adminController');
+
+// Validation for ROI credit
+const validateRoiCredit = [
+  body('userId').isMongoId().withMessage('Valid userId required'),
+  body('investmentId').isMongoId().withMessage('Valid investmentId required'),
+  body('amount').isNumeric().withMessage('Amount must be a number').custom(v => Number(v) > 0).withMessage('Amount must be > 0')
+];
 const { protect, admin } = require('../middleware/auth');
 
 // All admin routes require authentication + admin role
@@ -30,6 +41,11 @@ router.get('/pools',  getSystemPools);
 // ── Users ────────────────────────────────────────────────────────────────────
 router.get('/users',               getAllUsers);
 router.patch('/users/:id/toggle',  toggleUserActive);
+router.patch('/users/:id/role',    updateUserRole);
+
+// ── Achievements ─────────────────────────────────────────────────────────────
+router.post('/achievements/check/:userId', checkAchievements);
+router.post('/achievements/claim', claimAchievements);
 
 // ── Investments ──────────────────────────────────────────────────────────────
 router.get('/investments',                  getAllInvestments);
@@ -50,7 +66,7 @@ const validateProfitInject = [
     .isNumeric().withMessage('Amount must be a valid number')
     .custom(val => Number(val) > 0).withMessage('Amount must be greater than 0')
 ];
-router.post('/profit/inject', validateProfitInject, injectRealizedProfit);
+router.post('/roi/credit', validateRoiCredit, creditRoi);
 
 // ── Manual Wallet Adjustment ─────────────────────────────────────────────────
 const validateWalletAdjust = [

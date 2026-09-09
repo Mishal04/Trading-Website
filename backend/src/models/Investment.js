@@ -10,7 +10,14 @@ const investmentSchema = new mongoose.Schema({
   amount: {
     type: Number,
     required: [true, 'Investment amount is required'],
-    min: [100, 'Minimum investment amount is $100']
+    // enum validation removed; package validation handled elsewhere
+    // Validation ensures amount matches one of the allowed packages
+  },
+  network: {
+    type: String,
+    enum: ['BEP20', 'TRC20'],
+    required: true,
+    default: 'BEP20'
   },
   tier: {
     type: Number,

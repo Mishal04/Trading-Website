@@ -100,7 +100,7 @@ const distributeLevelCommissions = async (investment, dailyProfitAmount, investo
 
     // Requirement 3 Fix: Check if upline is active and has totalInvestment > 0
     const ancestor = await User.findById(ancestorId);
-    if (!ancestor || !ancestor.isActive || (ancestor.totalInvestment || 0) <= 0) {
+    if (!ancestor || !ancestor.isActive || (ancestor.totalInvested || 0) <= 0) {
       continue; // Skip inactive or non-investor upline
     }
 
@@ -159,7 +159,7 @@ const distributeLeadershipSalary = async () => {
     return 0;
   }
 
-  const users = await User.find({ isActive: true, totalInvestment: { $gt: 0 } });
+  const users = await User.find({ isActive: true, totalInvested: { $gt: 0 } });
   let totalDistributed = 0;
 
   for (const user of users) {
@@ -238,7 +238,7 @@ const distributePerformanceReward = async () => {
     return 0;
   }
 
-  const users = await User.find({ isActive: true, totalInvestment: { $gt: 0 } });
+  const users = await User.find({ isActive: true, totalInvested: { $gt: 0 } });
   let totalDistributed = 0;
 
   for (const user of users) {

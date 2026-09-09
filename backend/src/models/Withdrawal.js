@@ -17,6 +17,11 @@ const withdrawalSchema = new mongoose.Schema({
     enum: ['capital', 'profit', 'commission'],
     required: true
   },
+  network: {
+    type: String,
+    enum: ['BEP20', 'TRC20'],
+    required: true
+  },
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected', 'processing', 'completed'],

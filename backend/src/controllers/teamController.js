@@ -13,7 +13,7 @@ const getTeamBusiness = async (req, res) => {
 
     // Direct referrals: users whose referredBy === current user
     const directReferrals = await User.find({ referredBy: userId })
-      .select('name email referralCode totalInvestment teamBusiness isActive isVerified createdAt');
+      .select('name email referralCode totalInvested teamBusiness isActive isVerified createdAt');
 
     const legs = directReferrals.map((ref) => ({
       userId:          ref._id,
@@ -23,9 +23,9 @@ const getTeamBusiness = async (req, res) => {
       isActive:        ref.isActive,
       isVerified:      ref.isVerified,
       joinedAt:        ref.createdAt,
-      directInvestment: ref.totalInvestment || 0,
+      directInvestment: ref.totalInvested || 0,
       // Leg volume = this person's own investment + their entire team below them
-      teamVolume: (ref.teamBusiness?.total || 0) + (ref.totalInvestment || 0),
+      teamVolume: (ref.teamBusiness?.total || 0) + (ref.totalInvested || 0),
     }));
 
     // Sort descending to identify Strong vs Other legs
@@ -92,7 +92,7 @@ const getDownline = async (req, res) => {
 
     // ── PRIMARY: users who have current user in their ancestorPath ──────────
     const byAncestorPath = await User.find({ ancestorPath: userId })
-      .select('name email referralCode totalInvestment investmentLevel isVerified isActive createdAt ancestorPath referredBy')
+      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -104,7 +104,7 @@ const getDownline = async (req, res) => {
       referredBy: userId,
       _id: { $nin: Array.from(foundIds).map((id) => require('mongoose').Types.ObjectId.createFromHexString(id)) },
     })
-      .select('name email referralCode totalInvestment investmentLevel isVerified isActive createdAt ancestorPath referredBy')
+      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -130,7 +130,7 @@ const getDownline = async (req, res) => {
           name:            user.name,
           email:           user.email,
           referralCode:    user.referralCode,
-          totalInvestment: user.totalInvestment || 0,
+          totalInvested:   user.totalInvested || 0,
           investmentLevel: user.investmentLevel || 'none',
           isVerified:      user.isVerified,
           isActive:        user.isActive,
@@ -179,7 +179,7 @@ const getTeamStats = async (req, res) => {
 
     // Direct referral counts — referredBy is always set on registration
     const directCount       = await User.countDocuments({ referredBy: userId });
-    const activeDirectCount = await User.countDocuments({ referredBy: userId, totalInvestment: { $gt: 0 } });
+    const activeDirectCount = await User.countDocuments({ referredBy: userId, totalInvested: { $gt: 0 } });
 
     // Total team depth — union of ancestorPath + direct fallback
     const byAncestorCount = await User.countDocuments({ ancestorPath: userId });

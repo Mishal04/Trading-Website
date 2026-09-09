@@ -71,9 +71,11 @@ const register = async (req, res) => {
       if (referrer) {
         user.referredBy   = referrer._id;
         user.ancestorPath = [referrer._id, ...(referrer.ancestorPath || [])].slice(0, 25);
-        await User.findByIdAndUpdate(referrer._id, {
-          $inc: { 'referrals.count': 1, 'referrals.activeCount': 1 }
-        });
+        // Increment directCount and recompute unlocked levels
+        const referrerDoc = await User.findById(referrer._id);
+        referrerDoc.directCount = (referrerDoc.directCount || 0) + 1;
+        referrerDoc.recomputeUnlockedLevels();
+        await referrerDoc.save();
       }
     }
 

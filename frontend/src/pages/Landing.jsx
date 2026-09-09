@@ -9,169 +9,206 @@ import {
   Percent,
   Wallet,
   Clock,
+  Calendar,
+  Layers,
+  ArrowLeftRight,
+  ShieldAlert,
+  Zap
 } from 'lucide-react';
 import ProfitCalculator from '../components/ProfitCalculator';
 
-const packages = [
+const PACKAGES = [
+  { amount: 100, label: 'P-100', periodA: '1.0% / day', periodB: '0.5% / day', periodC: '8.0% / mo', badge: 'Starter' },
+  { amount: 300, label: 'P-300', periodA: '1.0% / day', periodB: '0.5% / day', periodC: '8.0% / mo' },
+  { amount: 500, label: 'P-500', periodA: '1.0% / day', periodB: '0.5% / day', periodC: '8.0% / mo' },
+  { amount: 1000, label: 'P-1000', periodA: '1.0% / day', periodB: '0.5% / day', periodC: '8.0% / mo', popular: true },
+  { amount: 2000, label: 'P-2000', periodA: '1.5% / day', periodB: '0.75% / day', periodC: '8.0% / mo' },
+  { amount: 5000, label: 'P-5000', periodA: '1.5% / day', periodB: '0.75% / day', periodC: '8.0% / mo' },
+  { amount: 7000, label: 'P-7000', periodA: '2.0% / day', periodB: '1.0% / day', periodC: '8.0% / mo', badge: 'VIP' },
+  { amount: 10000, label: 'P-10000', periodA: '2.0% / day', periodB: '1.0% / day', periodC: '8.0% / mo', badge: 'Elite' },
+];
+
+const ROI_PERIODS = [
   {
-    range: '$100 – $500',
-    profit: '0.35% – 0.50%',
-    label: 'Starter',
-    popular: false,
+    name: 'Period A',
+    dates: 'Sep 10, 2026 – Dec 31, 2026',
+    desc: 'High Growth Phase',
+    rates: [
+      { pkg: '$100 – $1,000', rate: '1.0% Daily' },
+      { pkg: '$2,000 – $5,000', rate: '1.5% Daily' },
+      { pkg: '$7,000 – $10,000', rate: '2.0% Daily' },
+    ],
+    highlight: true,
   },
   {
-    range: '$1,000 – $5,000',
-    profit: '1.00% – 1.25%',
-    label: 'Growth',
-    popular: true,
+    name: 'Period B',
+    dates: 'Jan 01, 2027 – Apr 30, 2027',
+    desc: 'Consolidation Phase',
+    rates: [
+      { pkg: '$100 – $1,000', rate: '0.5% Daily' },
+      { pkg: '$2,000 – $5,000', rate: '0.75% Daily' },
+      { pkg: '$7,000 – $10,000', rate: '1.0% Daily' },
+    ],
   },
   {
-    range: '$7,500 & Above',
-    profit: '1.50% – 2.00%',
-    label: 'Elite',
-    popular: false,
+    name: 'Period C',
+    dates: 'May 01, 2027 Onwards',
+    desc: 'Perpetual Yield Phase',
+    rates: [
+      { pkg: 'All Packages ($100+)', rate: '8.0% Monthly' },
+    ],
   },
 ];
 
-const profitShares = [
-  { label: 'Investor Share', value: '60%', color: 'text-gold-400' },
-  { label: '25-Level Commission', value: '10%', color: 'text-blue-400' },
-  { label: 'Leadership Salary Pool', value: '6%', color: 'text-emerald-400' },
-  { label: 'Performance Reward Pool', value: '4%', color: 'text-purple-400' },
-  { label: 'Trader Share', value: '20%', color: 'text-orange-400' },
+const LEVEL_DISTRIBUTION = [
+  { level: 'Level 1', rate: '25.0%' },
+  { level: 'Level 2', rate: '15.0%' },
+  { level: 'Level 3', rate: '10.0%' },
+  { level: 'Level 4', rate: '5.0%' },
+  { level: 'Level 5', rate: '5.0%' },
+  { level: 'Level 6–10', rate: '2.0% each (10%)' },
+  { level: 'Level 11–20', rate: '0.9% each (9%)' },
+  { level: 'Level 21', rate: '1.0%' },
 ];
 
-const levelRates = [
-  { levels: 'Level 1', rate: '1.50%' },
-  { levels: 'Level 2', rate: '1.00%' },
-  { levels: 'Level 3', rate: '0.75%' },
-  { levels: 'Level 4', rate: '0.50%' },
-  { levels: 'Level 5', rate: '0.50%' },
-  { levels: 'Level 6–10', rate: '0.35% each' },
-  { levels: 'Level 11–15', rate: '0.30% each' },
-  { levels: 'Level 16–20', rate: '0.25% each' },
-  { levels: 'Level 21–25', rate: '0.25% each' },
+const LEVEL_UNLOCK_RULES = [
+  { directs: '1 Direct Referral', unlocked: '2 Levels Unlocked' },
+  { directs: '2 Direct Referrals', unlocked: '4 Levels Unlocked' },
+  { directs: '3 Direct Referrals', unlocked: '6 Levels Unlocked' },
+  { directs: '4 Direct Referrals', unlocked: '8 Levels Unlocked' },
+  { directs: '5 Direct Referrals', unlocked: '10 Levels Unlocked' },
+  { directs: '6 Direct Referrals', unlocked: '12 Levels Unlocked' },
+  { directs: '7 Direct Referrals', unlocked: '14 Levels Unlocked' },
+  { directs: '8 Direct Referrals', unlocked: '16 Levels Unlocked' },
+  { directs: '9 Direct Referrals', unlocked: '18 Levels Unlocked' },
+  { directs: '10+ Direct Referrals', unlocked: 'All 21 Levels Unlocked (Full Tree)' },
 ];
 
-const salaryTiers = [
-  { business: '$10,000', reward: '$100' },
-  { business: '$25,000', reward: '$250' },
-  { business: '$50,000', reward: '$500' },
-  { business: '$100,000', reward: '$1,000' },
-  { business: '$250,000', reward: '$2,500' },
-  { business: '$500,000', reward: '$5,000' },
-  { business: '$1,000,000', reward: '$10,000' },
-];
-
-const rewardTiers = [
-  { business: '$10,000', reward: '$100' },
-  { business: '$25,000', reward: '$300' },
-  { business: '$50,000', reward: '$750' },
-  { business: '$100,000', reward: '$2,000' },
-  { business: '$250,000', reward: '$5,000' },
-  { business: '$500,000', reward: '$12,500' },
-  { business: '$1,000,000', reward: '$25,000' },
-  { business: '$2,500,000', reward: '$60,000' },
-  { business: '$5,000,000', reward: '$125,000' },
+const SAMPLE_ACHIEVEMENTS = [
+  { rank: 'Pioneer', bv: '$1,000', reward: '$20 USDT' },
+  { rank: 'Builder', bv: '$5,000', reward: '$100 USDT' },
+  { rank: 'Achiever', bv: '$7,500', reward: '$140 USDT' },
+  { rank: 'Influencer', bv: '$10,000', reward: '$200 USDT' },
+  { rank: 'Mentor', bv: '$15,000', reward: '$300 USDT' },
+  { rank: 'Captain', bv: '$20,000', reward: '$400 USDT' },
+  { rank: 'Champion', bv: '$25,000', reward: '$500 USDT' },
+  { rank: 'Elite', bv: '$35,000', reward: '$700 USDT' },
+  { rank: 'Innovator', bv: '$50,000', reward: '$1,000 USDT' },
+  { rank: 'Titan', bv: '$100,000', reward: '$2,000 USDT' },
+  { rank: 'Silver Elite', bv: '$250,000', reward: '$5,000 USDT' },
+  { rank: 'Platinum Elite', bv: '$500,000', reward: '$10,000 USDT' },
+  { rank: 'Ruby Elite', bv: '$1,000,000', reward: '$20,000 USDT' },
+  { rank: 'Legacy Founder', bv: '$100,000,000', reward: '$4,000,000 USDT' },
 ];
 
 export default function Landing() {
   return (
-    <div>
-      {/* Hero */}
-      <section id="home" className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-gold-900/10 via-transparent to-transparent pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 text-gold-400 text-xs font-medium mb-6">
-            <Shield size={14} />
-            Transparent Profit Sharing
+    <div className="space-y-16">
+      {/* Hero Section */}
+      <section id="home" className="relative overflow-hidden pt-12 pb-16">
+        <div className="absolute inset-0 bg-gradient-to-b from-gold-900/15 via-transparent to-transparent pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 text-gold-400 text-xs font-semibold mb-6">
+            <Zap size={14} />
+            Institutional Group Trading Plan · New Architecture
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
-            Group Trading Plan
+          <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-6">
+            Intelligent Trading Pools.
             <br />
-            <span className="gradient-text">Copy performance. Keep the gains.</span>
+            <span className="gradient-text">21 Levels. 2X & 4X Income Caps.</span>
           </h1>
-          <p className="max-w-2xl mx-auto text-gray-400 text-lg mb-10">
-            Invest with clear packages, 60% investor share, 25-level commissions,
-            leadership salary and performance rewards — all driven by actual realized profit.
+          <p className="max-w-3xl mx-auto text-gray-300 text-base sm:text-lg mb-10 leading-relaxed">
+            Choose your activation package from <strong>$100 to $10,000</strong>. Earn scheduled daily returns across
+            structured ROI periods, unlock up to <strong>21 affiliate levels</strong> (80% pool distribution), and claim
+            up to <strong>$4,000,000 in fixed achievement rewards</strong> with our transparent 60/40 BV system.
           </p>
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to="/register"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-semibold bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 hover:from-gold-400 hover:to-gold-300 transition-all gold-glow"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 hover:from-gold-400 hover:to-gold-300 transition-all gold-glow"
             >
-              Start Now <ArrowRight size={18} />
+              Start Investing Now <ArrowRight size={18} />
             </Link>
             <a
               href="#packages"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-semibold border border-dark-500 text-gray-300 hover:border-gold-400 hover:text-gold-400 transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-semibold border border-dark-500 text-gray-300 hover:border-gold-400 hover:text-gold-400 transition-all"
             >
-              View Packages
+              Explore Plan Details
             </a>
           </div>
 
-          {/* Stats strip */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+          {/* Quick Metrics Bar */}
+          <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
             {[
-              { icon: Percent, label: 'Investor Share', value: '60%' },
-              { icon: Users, label: 'Commission Levels', value: '25' },
-              { icon: Award, label: 'Salary + Reward Pool', value: '10%' },
-              { icon: Wallet, label: 'Withdrawal', value: 'Anytime' },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="rounded-xl border border-dark-500 bg-dark-800/60 p-4 text-center"
-              >
-                <s.icon className="mx-auto mb-2 text-gold-400" size={20} />
-                <div className="text-xl font-bold text-white">{s.value}</div>
-                <div className="text-xs text-gray-500 mt-1">{s.label}</div>
+              { icon: Percent, label: 'Level Pool Share', value: '80% Across 21L' },
+              { icon: Shield, label: 'Investor Income Cap', value: '2X Total Invested' },
+              { icon: Zap, label: 'Working Leader Cap', value: '4X Total Invested' },
+              { icon: ArrowLeftRight, label: 'Internal P2P', value: 'Instant · 0% Gas' },
+            ].map((m) => (
+              <div key={m.label} className="rounded-xl border border-dark-500 bg-dark-800/70 p-4 text-center backdrop-blur-xl">
+                <m.icon className="mx-auto mb-2 text-gold-400" size={20} />
+                <div className="text-base sm:text-lg font-bold text-white">{m.value}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{m.label}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Packages */}
-      <section id="packages" className="py-20 bg-dark-800/40">
+      {/* Packages Section */}
+      <section id="packages" className="py-16 bg-dark-800/40 border-y border-dark-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">
-              Investment <span className="gradient-text">Packages</span>
+            <h2 className="text-3xl font-extrabold text-white mb-2">
+              Activation <span className="gradient-text">Packages</span>
             </h2>
-            <p className="text-gray-400 max-w-xl mx-auto">
-              Indicative daily profit ranges. Actual profit depends on performance and market conditions.
-              These are not fixed or guaranteed returns.
+            <p className="text-gray-400 max-w-xl mx-auto text-sm">
+              Standardized investment packages with fixed denominations. Activate in USDT via BEP20 or TRC20.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {packages.map((pkg) => (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {PACKAGES.map((pkg) => (
               <div
-                key={pkg.label}
-                className={`relative rounded-2xl border p-6 card-hover ${
+                key={pkg.amount}
+                className={`rounded-2xl border p-5 relative transition-all ${
                   pkg.popular
-                    ? 'border-gold-400 bg-dark-700/80 gold-glow'
-                    : 'border-dark-500 bg-dark-800/60'
+                    ? 'border-gold-400 bg-dark-800 shadow-xl shadow-gold-500/10'
+                    : 'border-dark-500 bg-dark-800/60 hover:border-gold-400/40'
                 }`}
               >
                 {pkg.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-gold-400 text-dark-900 text-xs font-bold">
+                  <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full bg-gold-400 text-dark-900 text-[10px] font-black uppercase tracking-wider">
                     Popular
                   </span>
                 )}
-                <div className="text-sm text-gold-400 font-medium mb-1">{pkg.label}</div>
-                <div className="text-2xl font-bold mb-4">{pkg.range}</div>
-                <div className="text-sm text-gray-400 mb-1">Indicative Daily Profit</div>
-                <div className="text-xl font-semibold text-emerald-400 mb-6">{pkg.profit}</div>
+                {pkg.badge && !pkg.popular && (
+                  <span className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full bg-dark-700 border border-dark-500 text-gold-400 text-[10px] font-bold uppercase">
+                    {pkg.badge}
+                  </span>
+                )}
+                <div className="text-xs font-bold text-gray-400 uppercase">{pkg.label}</div>
+                <div className="text-2xl sm:text-3xl font-black text-white my-2">${pkg.amount.toLocaleString()}</div>
+                <div className="space-y-1.5 text-xs text-gray-300 border-t border-dark-600 pt-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Period A:</span>
+                    <span className="font-bold text-emerald-400">{pkg.periodA}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Period B:</span>
+                    <span className="font-semibold text-gray-300">{pkg.periodB}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Period C:</span>
+                    <span className="font-semibold text-gray-300">{pkg.periodC}</span>
+                  </div>
+                </div>
                 <Link
                   to="/register"
-                  className={`block text-center py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                    pkg.popular
-                      ? 'bg-gold-400 text-dark-900 hover:bg-gold-300'
-                      : 'border border-dark-500 text-gray-300 hover:border-gold-400 hover:text-gold-400'
-                  }`}
+                  className="mt-4 block text-center py-2 rounded-xl text-xs font-bold bg-dark-700 hover:bg-gold-400 hover:text-dark-900 text-white transition-colors border border-dark-500"
                 >
-                  Get Started
+                  Activate
                 </Link>
               </div>
             ))}
@@ -179,199 +216,236 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Profit Sharing */}
-      <section id="profit" className="py-20">
+      {/* ROI Date Periods */}
+      <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">
-              Actual Profit <span className="gradient-text">Sharing</span>
+            <h2 className="text-3xl font-extrabold text-white mb-2">
+              Structured <span className="gradient-text">ROI Date Periods</span>
             </h2>
-            <p className="text-gray-400">From 100% Actual Realized Profit</p>
+            <p className="text-gray-400 max-w-xl mx-auto text-sm">
+              Our trading schedule evolves over 3 distinct periods, balancing high aggressive early yields with long-term capital sustainability.
+            </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 max-w-5xl mx-auto">
-            {profitShares.map((s) => (
+          <div className="grid md:grid-cols-3 gap-6">
+            {ROI_PERIODS.map((period) => (
               <div
-                key={s.label}
-                className="rounded-xl border border-dark-500 bg-dark-800/60 p-5 text-center card-hover"
+                key={period.name}
+                className={`rounded-2xl border p-6 relative backdrop-blur-xl ${
+                  period.highlight
+                    ? 'border-gold-500/50 bg-gradient-to-b from-gold-500/10 to-dark-800 ring-1 ring-gold-400/30'
+                    : 'border-dark-500 bg-dark-800/60'
+                }`}
               >
-                <div className={`text-3xl font-extrabold mb-2 ${s.color}`}>{s.value}</div>
-                <div className="text-sm text-gray-400">{s.label}</div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-black uppercase text-gold-400 tracking-wider">{period.name}</span>
+                  <Calendar size={16} className="text-gold-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-1">{period.desc}</h3>
+                <p className="text-xs font-mono text-gray-400 mb-6">{period.dates}</p>
+
+                <div className="space-y-3">
+                  {period.rates.map((r) => (
+                    <div key={r.pkg} className="p-3 rounded-xl bg-dark-900/80 border border-dark-600 flex justify-between items-center text-xs">
+                      <span className="text-gray-300 font-medium">{r.pkg}</span>
+                      <span className="font-extrabold text-emerald-400 text-sm">{r.rate}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Level + Salary + Reward = 20% Maximum · TOTAL = 100%
-          </p>
         </div>
       </section>
 
-      {/* 25 Level Commission */}
-      <section id="levels" className="py-20 bg-dark-800/40">
+      {/* 21-Level Income & Unlocking Rules */}
+      <section className="py-16 bg-dark-800/40 border-y border-dark-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">
-              25-Level <span className="gradient-text">Commission</span>
+            <h2 className="text-3xl font-extrabold text-white mb-2">
+              21-Level <span className="gradient-text">Affiliate Distribution</span>
             </h2>
-            <p className="text-gray-400">Total Level Pool = 10% of Actual Profit</p>
-          </div>
-
-          <div className="max-w-3xl mx-auto">
-            <div className="rounded-2xl border border-dark-500 overflow-hidden">
-              <div className="bg-dark-700 px-6 py-3 flex justify-between text-sm font-semibold text-gold-400">
-                <span>Level</span>
-                <span>Rate</span>
-              </div>
-              {levelRates.map((row, i) => (
-                <div
-                  key={row.levels}
-                  className={`px-6 py-3 flex justify-between text-sm ${
-                    i % 2 === 0 ? 'bg-dark-800/40' : 'bg-dark-800/80'
-                  }`}
-                >
-                  <span className="text-gray-300">{row.levels}</span>
-                  <span className="font-medium text-white">{row.rate}</span>
-                </div>
-              ))}
-              <div className="bg-dark-700 px-6 py-3 flex justify-between text-sm font-bold">
-                <span className="text-gold-400">TOTAL 25 LEVEL</span>
-                <span className="text-gold-400">10%</span>
-              </div>
-            </div>
-            <p className="text-center text-xs text-gray-500 mt-4">
-              Top 5 levels receive stronger commission (L1–L5 = 4.25%)
+            <p className="text-gray-400 max-w-xl mx-auto text-sm">
+              Total 80% level commission pool distributed across 21 generations. Unlocking is strictly unlocked by active direct referrals.
             </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Leadership Salary + Performance Reward */}
-      <section id="rewards" className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">
-              Leadership Salary & <span className="gradient-text">Performance Rewards</span>
-            </h2>
-            <p className="text-gray-400">Subject to available pools · 60/40 Business Rule applies</p>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
-            {/* Salary */}
-            <div className="rounded-2xl border border-dark-500 bg-dark-800/60 overflow-hidden">
-              <div className="px-6 py-4 border-b border-dark-500 bg-dark-700/50">
-                <h3 className="font-bold text-lg flex items-center gap-2">
-                  <Award className="text-emerald-400" size={20} />
-                  Leadership Salary — 6% Pool
-                </h3>
-              </div>
-              <div className="divide-y divide-dark-500">
-                {salaryTiers.map((t) => (
-                  <div key={t.business} className="px-6 py-3 flex justify-between text-sm">
-                    <span className="text-gray-400">{t.business} Team Business</span>
-                    <span className="font-semibold text-emerald-400">{t.reward}</span>
+            {/* Rates Table */}
+            <div className="rounded-2xl border border-dark-500 bg-dark-800/70 p-6 backdrop-blur-xl">
+              <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2">
+                <Layers className="text-gold-400" size={18} /> Level Commission Rates (80% Total)
+              </h3>
+              <div className="divide-y divide-dark-600 text-xs">
+                {LEVEL_DISTRIBUTION.map((row) => (
+                  <div key={row.level} className="py-2.5 flex justify-between items-center">
+                    <span className="text-gray-300 font-medium">{row.level}</span>
+                    <span className="font-extrabold text-emerald-400">{row.rate}</span>
                   </div>
                 ))}
               </div>
+              <div className="mt-4 p-3 rounded-xl bg-gold-400/10 border border-gold-400/20 text-xs text-gold-300">
+                L1–L5 carry the highest incentive weights (25%, 15%, 10%, 5%, 5% = 60%).
+              </div>
             </div>
 
-            {/* Reward */}
-            <div className="rounded-2xl border border-dark-500 bg-dark-800/60 overflow-hidden">
-              <div className="px-6 py-4 border-b border-dark-500 bg-dark-700/50">
-                <h3 className="font-bold text-lg flex items-center gap-2">
-                  <TrendingUp className="text-purple-400" size={20} />
-                  Power Performance Reward — 4% Pool
-                </h3>
-              </div>
-              <div className="divide-y divide-dark-500">
-                {rewardTiers.map((t) => (
-                  <div key={t.business} className="px-6 py-3 flex justify-between text-sm">
-                    <span className="text-gray-400">{t.business} Team Business</span>
-                    <span className="font-semibold text-purple-400">{t.reward}</span>
+            {/* Unlocking Criteria */}
+            <div className="rounded-2xl border border-dark-500 bg-dark-800/70 p-6 backdrop-blur-xl">
+              <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2">
+                <Users className="text-gold-400" size={18} /> Level Opening Rules
+              </h3>
+              <div className="divide-y divide-dark-600 text-xs">
+                {LEVEL_UNLOCK_RULES.map((rule) => (
+                  <div key={rule.directs} className="py-2.5 flex justify-between items-center">
+                    <span className="text-gray-300 font-medium">{rule.directs}</span>
+                    <span className="font-bold text-gold-400">{rule.unlocked}</span>
                   </div>
                 ))}
               </div>
+              <div className="mt-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300">
+                10 direct referrals unlock all 21 generations across your entire organization.
+              </div>
             </div>
-          </div>
-
-          {/* 60/40 Rule */}
-          <div className="mt-10 max-w-2xl mx-auto rounded-xl border border-gold-500/30 bg-gold-500/5 p-6">
-            <h4 className="font-semibold text-gold-400 mb-2 flex items-center gap-2">
-              <CheckCircle2 size={18} /> 60/40 Business Rule
-            </h4>
-            <p className="text-sm text-gray-400 leading-relaxed">
-              For Salary and Reward qualification: Strong Team maximum 60%, Other Team minimum 40%.
-              Example: Target $100,000 → Strong Team $60,000 + Other Team $40,000 = Qualified.
-            </p>
           </div>
         </div>
       </section>
 
-      {/* Withdrawal */}
-      <section className="py-20 bg-dark-800/40">
+      {/* 2X vs 4X Income Caps */}
+      <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold mb-3">
-              <span className="gradient-text">Withdrawal</span> Rules
+            <h2 className="text-3xl font-extrabold text-white mb-2">
+              Account Types & <span className="gradient-text">Income Caps</span>
             </h2>
+            <p className="text-gray-400 text-sm">
+              Cap applies to the sum of ROI + Level Income (totalEarned). Achievement rewards do not count toward cap.
+            </p>
           </div>
-          <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {[
-              {
-                icon: Wallet,
-                title: 'Capital Withdrawal',
-                desc: 'Any time, subject to available/settled balance',
-              },
-              {
-                icon: TrendingUp,
-                title: 'Profit Withdrawal',
-                desc: 'Available profit can be withdrawn any time',
-              },
-              {
-                icon: Clock,
-                title: 'Request Window',
-                desc: '10:30 PM to 12:00 Midnight only',
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="rounded-xl border border-dark-500 bg-dark-800/60 p-6 text-center card-hover"
-              >
-                <item.icon className="mx-auto mb-3 text-gold-400" size={28} />
-                <h3 className="font-semibold mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-400">{item.desc}</p>
+
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <div className="rounded-2xl border border-blue-500/30 bg-dark-800/80 p-6 backdrop-blur-xl">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-black uppercase text-blue-400 tracking-wider">Passive Mode</span>
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  2X CAP
+                </span>
+              </div>
+              <h3 className="text-2xl font-black text-white mb-2">Investor Account</h3>
+              <p className="text-xs text-gray-300 mb-4 leading-relaxed">
+                Default account type for pure investors. Maximum cumulative earnings (ROI + commissions) is capped at <strong>200% (2 × Total Invested)</strong>.
+              </p>
+              <div className="p-3 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-400">
+                Example: $5,000 Investment → $10,000 Maximum Income Cap
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gold-500/40 bg-dark-800/80 p-6 backdrop-blur-xl shadow-xl shadow-gold-500/5">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-black uppercase text-gold-400 tracking-wider">Leadership Mode</span>
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-gold-400 text-dark-900 shadow-md">
+                  4X CAP
+                </span>
+              </div>
+              <h3 className="text-2xl font-black text-white mb-2">Working Leader Account</h3>
+              <p className="text-xs text-gray-300 mb-4 leading-relaxed">
+                Assigned by administration for community builders and active network leaders. Maximum earnings capped at <strong>400% (4 × Total Invested)</strong>.
+              </p>
+              <div className="p-3 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-400">
+                Example: $5,000 Investment → $20,000 Maximum Income Cap
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Achievements Summary with 60/40 BV Rule */}
+      <section className="py-16 bg-dark-800/40 border-y border-dark-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-extrabold text-white mb-2">
+              Fixed Achievement <span className="gradient-text">Cash Rewards</span>
+            </h2>
+            <p className="text-gray-400 text-sm max-w-xl mx-auto">
+              Earn fixed one-time cash rewards credited straight to your <strong>Profit wallet</strong>. 
+              Governed strictly by the <strong>60/40 Business Volume (BV)</strong> rule.
+            </p>
+          </div>
+
+          {/* 60/40 Rule Banner */}
+          <div className="mb-10 max-w-3xl mx-auto rounded-xl border border-gold-500/30 bg-gold-500/5 p-5 text-xs text-gray-300 leading-relaxed">
+            <h4 className="font-bold text-gold-400 mb-1 flex items-center gap-1.5 text-sm">
+              <CheckCircle2 size={16} /> The 60/40 BV Qualification Rule
+            </h4>
+            To qualify for any tier: Maximum 60% of required BV can come from your strongest direct referral leg; 
+            the remaining 40% minimum must come from all other referral legs combined. 
+            <strong> Rewards pay the full fixed cash amount</strong> upon meeting BV criteria.
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            {SAMPLE_ACHIEVEMENTS.map((t) => (
+              <div key={t.rank} className="p-3.5 rounded-xl border border-dark-500 bg-dark-800/80 text-center hover:border-gold-400/40 transition-all">
+                <div className="text-xs font-bold text-white truncate">{t.rank}</div>
+                <div className="text-[11px] text-gray-400 mt-0.5">{t.bv} BV</div>
+                <div className="text-xs font-extrabold text-emerald-400 mt-2">{t.reward}</div>
               </div>
             ))}
           </div>
-          <p className="text-center text-sm text-gray-500 mt-6">No fixed lock-in period</p>
+        </div>
+      </section>
+
+      {/* Withdrawal & P2P Section */}
+      <section className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-extrabold text-white mb-2">
+              Flexible <span className="gradient-text">Withdrawal & P2P</span>
+            </h2>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-6 text-center">
+              <Wallet className="mx-auto mb-3 text-gold-400" size={28} />
+              <h3 className="font-bold text-white mb-1">On-Chain Multi-Network</h3>
+              <p className="text-xs text-gray-400">
+                Deposit and withdraw directly in USDT via <strong>BEP20</strong> (BNB Smart Chain) and <strong>TRC20</strong> (TRON Network).
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-6 text-center">
+              <Clock className="mx-auto mb-3 text-emerald-400" size={28} />
+              <h3 className="font-bold text-white mb-1">Min $10 USDT Withdrawal</h3>
+              <p className="text-xs text-gray-400">
+                Low $10 minimum payout threshold. Regular daily withdrawal request window: <strong>10:30 PM to 12:00 Midnight</strong>.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-6 text-center">
+              <ArrowLeftRight className="mx-auto mb-3 text-blue-400" size={28} />
+              <h3 className="font-bold text-white mb-1">Member-to-Member P2P</h3>
+              <p className="text-xs text-gray-400">
+                Instant internal transfers between registered members using recipient email or referral ID with <strong>0% gas fees</strong>.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Profit Projection Calculator */}
       <ProfitCalculator />
 
-      {/* Disclaimer + CTA */}
-      <section className="py-20">
-        <div className="max-w-3xl mx-auto px-4 text-center">
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-6 mb-10 text-left">
-            <h4 className="font-semibold text-red-400 mb-2">⚠️ Important Disclaimer</h4>
-            <p className="text-sm text-gray-400 leading-relaxed">
-              No profit, Salary, Reward or Level Commission is guaranteed.
-              All distributions depend on actual realized profit and the available allocated pools.
-              Past performance does not guarantee future results. Trade only with funds you can afford to lose.
-            </p>
-          </div>
-
-          <h2 className="text-3xl font-bold mb-4">Ready to get started?</h2>
-          <p className="text-gray-400 mb-8">
-            Create your account, verify your email, and start building your team.
-          </p>
-          <Link
-            to="/register"
-            className="inline-flex items-center gap-2 px-10 py-4 rounded-xl font-semibold bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 hover:from-gold-400 hover:to-gold-300 transition-all gold-glow text-lg"
-          >
-            Start Now <ArrowRight size={20} />
-          </Link>
-        </div>
+      {/* CTA */}
+      <section className="py-16 text-center max-w-3xl mx-auto px-4">
+        <h2 className="text-3xl font-black text-white mb-4">Start Your Portfolio Today</h2>
+        <p className="text-gray-400 text-sm mb-8">
+          Join thousands of members earning structured daily returns and team commissions.
+        </p>
+        <Link
+          to="/register"
+          className="inline-flex items-center gap-2 px-10 py-4 rounded-xl font-extrabold bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 hover:brightness-110 transition-all gold-glow text-base"
+        >
+          Register Free Account <ArrowRight size={20} />
+        </Link>
       </section>
     </div>
   );

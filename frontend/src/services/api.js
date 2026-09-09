@@ -78,6 +78,12 @@ export const dashboardAPI = {
   getStats: () => api.get('/dashboard/stats'),
 };
 
+// Wallet / P2P endpoints
+export const walletAPI = {
+  transfer: (data) => api.post('/wallet/transfer', data),
+  getTransfers: (params) => api.get('/wallet/transfers', { params }),
+};
+
 // Admin endpoints
 export const adminAPI = {
   // Stats & Pools
@@ -87,6 +93,7 @@ export const adminAPI = {
   // Users
   getUsers:       (params) => api.get('/admin/users', { params }),
   toggleUser:     (id)     => api.patch(`/admin/users/${id}/toggle`),
+  updateUserRole: (id, data) => api.patch(`/admin/users/${id}/role`, data),
 
   // Investments
   getInvestments:     (params) => api.get('/admin/investments', { params }),
@@ -103,9 +110,17 @@ export const adminAPI = {
   completeWithdrawal: (id, adminNote) =>
     api.patch(`/admin/withdrawals/${id}/complete`, { adminNote }),
 
-  // Profit injection
+  // Profit injection & ROI credit
   injectProfit: (amount, note) =>
     api.post('/admin/profit/inject', { amount, note }),
+  creditRoi: (data) =>
+    api.post('/admin/roi/credit', data),
+
+  // Achievements
+  checkAchievements: (userId) =>
+    api.post(`/admin/achievements/check/${userId}`),
+  claimAchievements: (data) =>
+    api.post('/admin/achievements/claim', data),
 
   // Manual wallet adjustment
   adjustWallet: (data) => api.post('/admin/commission/adjust', data),

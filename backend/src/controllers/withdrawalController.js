@@ -77,6 +77,7 @@ const requestWithdrawal = async (req, res) => {
       amount,
       type,
       walletAddress: walletAddress || '',
+      network: req.body.network,
       status: 'pending',
       requestedAt: new Date()
     });

@@ -13,7 +13,7 @@ const getDashboardStats = async (req, res) => {
     const user = await User.findById(userId).select('-password');
 
     const activeInvestmentsCount = await Investment.countDocuments({ userId, status: 'active' });
-    const totalInvestments = user.totalInvestment || 0;
+    const totalInvestments = user.totalInvested || 0;
     const totalProfitEarned = user.totalProfitEarned || 0;
 
     const wallet = user.wallet || { capital: 0, profit: 0, commission: 0 };
@@ -25,6 +25,15 @@ const getDashboardStats = async (req, res) => {
 
     const unreadNotificationsCount = await Notification.countDocuments({ userId, isRead: false });
 
+    const role = user.role || 'investor';
+    const capMultiple = role === 'working_leader' ? 4 : 2;
+    const incomeCap = totalInvestments * capMultiple;
+    const totalEarned = user.totalEarned || 0;
+    const capProgressPercent = incomeCap > 0 ? Math.min(100, Math.round((totalEarned / incomeCap) * 100)) : 0;
+    const capRemaining = Math.max(0, incomeCap - totalEarned);
+    const directCount = user.directCount || (user.referrals ? user.referrals.count : 0);
+    const unlockedLevels = user.unlockedLevels || 0;
+
     return res.json({
       success: true,
       data: {
@@ -35,6 +44,11 @@ const getDashboardStats = async (req, res) => {
           referralCode: user.referralCode,
           investmentLevel: user.investmentLevel,
           accountType: user.accountType,
+          role,
+          directCount,
+          unlockedLevels,
+          totalInvested: totalInvestments,
+          totalEarned,
           isVerified: user.isVerified
         },
         wallet: {
@@ -49,8 +63,19 @@ const getDashboardStats = async (req, res) => {
           totalProfitEarned
         },
         team: {
-          directCount: user.referrals ? user.referrals.count : 0,
+          directCount,
+          unlockedLevels,
           teamBusiness: user.teamBusiness || { strongTeam: 0, otherTeam: 0, total: 0 }
+        },
+        incomeCap: {
+          role,
+          capMultiple,
+          totalInvested: totalInvestments,
+          totalEarned,
+          capAmount: incomeCap,
+          remaining: capRemaining,
+          progressPercent: capProgressPercent,
+          isCapReached: incomeCap > 0 && totalEarned >= incomeCap
         },
         unreadNotificationsCount,
         recentTransactions

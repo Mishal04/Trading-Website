@@ -78,6 +78,7 @@ const getPackagePreview = (val) => {
 // ─── main component ───────────────────────────────────────────────────────────
 export default function InvestTab({ onRefresh }) {
   const [amount, setAmount]             = useState('1000');
+  const [network, setNetwork]           = useState('BEP20');
   const [transactionId, setTransactionId] = useState('');
   const [paymentProof, setPaymentProof] = useState('');
   const [paymentNote, setPaymentNote]   = useState('');
@@ -116,13 +117,15 @@ export default function InvestTab({ onRefresh }) {
       return;
     }
 
+    const fullNote = [`[Network: ${network}]`, paymentNote.trim()].filter(Boolean).join(' ');
+
     try {
       setLoading(true);
       const res = await investmentAPI.create({
         amount:        numAmount,
         transactionId: transactionId.trim(),
         paymentProof:  paymentProof.trim(),
-        paymentNote:   paymentNote.trim(),
+        paymentNote:   fullNote,
       });
       toast.success(res.data.message || 'Investment submitted! Awaiting admin approval.');
       // Reset proof fields after submit
@@ -221,14 +224,14 @@ export default function InvestTab({ onRefresh }) {
 
           {/* Quick preset amounts */}
           <div>
-            <label className="text-xs font-semibold text-gray-400 mb-2 block">Quick Amounts</label>
+            <label className="text-xs font-semibold text-gray-400 mb-2 block">Package Amounts (USD)</label>
             <div className="flex flex-wrap gap-2">
-              {[100, 500, 1000, 2500, 5000, 7500, 10000].map((preset) => (
+              {[100, 300, 500, 1000, 2000, 5000, 7000, 10000].map((preset) => (
                 <button
                   key={preset}
                   type="button"
                   onClick={() => setAmount(preset.toString())}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
                     numAmount === preset
                       ? 'bg-gold-400 text-dark-900 border-gold-400 shadow-md'
                       : 'bg-dark-700 text-gray-300 border-dark-500 hover:border-gold-400/50'
@@ -282,8 +285,40 @@ export default function InvestTab({ onRefresh }) {
           <div className="rounded-xl border border-dark-500 bg-dark-900/50 p-5 space-y-5">
             <div className="flex items-center gap-2 pb-3 border-b border-dark-600">
               <FileText size={16} className="text-gold-400" />
-              <h4 className="text-sm font-bold text-white">Payment Proof</h4>
-              <span className="text-xs text-gray-500 ml-1">Admin will review this before activation</span>
+              <h4 className="text-sm font-bold text-white">Payment Proof & Network</h4>
+              <span className="text-xs text-gray-500 ml-1">Admin will verify on blockchain</span>
+            </div>
+
+            {/* Network Selector */}
+            <div>
+              <label className="text-xs font-semibold text-gray-300 mb-2 block">
+                Payment Network <span className="text-red-400">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { id: 'BEP20', label: 'USDT (BEP20)', sub: 'Binance Smart Chain' },
+                  { id: 'TRC20', label: 'USDT (TRC20)', sub: 'TRON Network' }
+                ].map((net) => (
+                  <button
+                    key={net.id}
+                    type="button"
+                    onClick={() => setNetwork(net.id)}
+                    className={`p-3 rounded-xl text-left border transition-all ${
+                      network === net.id
+                        ? 'bg-gold-400/10 border-gold-400 ring-1 ring-gold-400/50 shadow-md'
+                        : 'bg-dark-800 border-dark-500 hover:border-dark-400 text-gray-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-bold ${network === net.id ? 'text-gold-400' : 'text-white'}`}>
+                        {net.label}
+                      </span>
+                      {network === net.id && <CheckCircle2 size={14} className="text-gold-400" />}
+                    </div>
+                    <span className="text-[10px] text-gray-500">{net.sub}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Transaction ID — required */}

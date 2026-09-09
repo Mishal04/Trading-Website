@@ -8,6 +8,8 @@ const Notification = require('../models/Notification');
 const SystemPool = require('../models/SystemPool');
 const commissionService = require('../services/commissionService');
 const profitService = require('../services/profitService');
+const { creditRoiToInvestor, distributeLevelIncome } = require('../services/incomeService');
+const achievementService = require('../services/achievementService');
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -50,7 +52,7 @@ const getSystemStats = async (req, res) => {
       pool
     ] = await Promise.all([
       User.countDocuments(),
-      User.countDocuments({ totalInvestment: { $gt: 0 } }),
+      User.countDocuments({ totalInvested: { $gt: 0 } }),
       Investment.countDocuments(),
       Investment.countDocuments({ status: 'active' }),
       Investment.countDocuments({ status: 'pending' }),
@@ -261,7 +263,7 @@ const approveInvestment = async (req, res) => {
 
     await User.findByIdAndUpdate(investment.userId, {
       $inc: {
-        totalInvestment:    investment.amount,
+        totalInvested:      investment.amount,
         'wallet.capital':   investment.amount
       },
       investmentLevel: newLevel
@@ -538,7 +540,35 @@ const updateWithdrawalStatus = async (req, res) => {
   });
 };
 
-// ─── POST /api/admin/profit/inject ───────────────────────────────────────────
+/**
+ * POST /api/admin/roi/credit
+ * Credit ROI to a user's profit wallet, respecting income caps, and distribute level income.
+ */
+const creditRoi = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
+  }
+  const { userId, investmentId, amount } = req.body;
+  if (!userId || !investmentId || !amount) {
+    return res.status(400).json({ success: false, message: 'userId, investmentId and amount are required' });
+  }
+  try {
+    // Credit ROI to the investor's profit wallet (income cap enforced inside service)
+    const creditInfo = await creditRoiToInvestor(userId, investmentId, Number(amount));
+    // Distribute level income up the upline chain based on the credited amount
+    const levelResults = await distributeLevelIncome(userId, creditInfo.credited);
+    return res.json({
+      success: true,
+      message: `ROI credit processed (credited: $${creditInfo.credited})`,
+      data: { creditInfo, levelResults }
+    });
+  } catch (error) {
+    console.error('Admin ROI credit error:', error);
+    return res.status(500).json({ success: false, message: 'Server error processing ROI credit' });
+  }
+};
+
 
 /**
  * Inject gross realized trading profit, split into system pools, then
@@ -688,11 +718,100 @@ const manualCommissionAdjustment = async (req, res) => {
   }
 };
 
+/**
+ * PATCH /api/admin/users/:id/role
+ * Update user role: 'investor' | 'working_leader'
+ * Accepts { accountType: "investor" | "working_leader" } or { role: "..." }
+ */
+const updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const targetRole = req.body.accountType || req.body.role;
+
+    if (!targetRole || !['investor', 'working_leader'].includes(targetRole)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role. Must be either "investor" or "working_leader"'
+      });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.role = targetRole;
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: `User role successfully updated to ${targetRole}`,
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          accountType: user.accountType
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Admin update user role error:', error);
+    return res.status(500).json({ success: false, message: 'Server error updating user role' });
+  }
+};
+
+/**
+ * POST /api/admin/achievements/check/:userId
+ * Check achievement qualifications for a user based on 60/40 BV rule.
+ */
+const checkAchievements = async (req, res) => {
+  try {
+    const userId = req.params.userId || req.body.userId;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'userId is required' });
+    }
+    const data = await achievementService.checkUserAchievements(userId);
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('Admin check achievements error:', error);
+    return res.status(500).json({ success: false, message: error.message || 'Server error checking achievements' });
+  }
+};
+
+/**
+ * POST /api/admin/achievements/claim or POST /api/admin/achievements/check/:userId
+ * Claim qualified achievement rewards for a user:
+ * Fixed tier amounts from constants, credit wallet.profit, push to achievementsClaimed, do NOT increase totalEarned.
+ */
+const claimAchievements = async (req, res) => {
+  try {
+    const userId = req.params.userId || req.body.userId;
+    const tierName = req.body.tierName || null;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'userId is required' });
+    }
+    const result = await achievementService.claimUserAchievements(userId, tierName);
+    return res.json({
+      success: true,
+      message: result.claimedCount > 0
+        ? `Successfully claimed ${result.claimedCount} achievement reward(s) totalling $${result.totalRewarded} USDT`
+        : 'No new eligible achievements to claim',
+      data: result
+    });
+  } catch (error) {
+    console.error('Admin claim achievements error:', error);
+    return res.status(500).json({ success: false, message: error.message || 'Server error claiming achievements' });
+  }
+};
+
 module.exports = {
   getSystemStats,
   getSystemPools,
   getAllUsers,
   toggleUserActive,
+  updateUserRole,
   getAllInvestments,
   approveInvestment,
   rejectInvestment,
@@ -702,5 +821,8 @@ module.exports = {
   completeWithdrawal,
   updateWithdrawalStatus,
   injectRealizedProfit,
-  manualCommissionAdjustment
+  manualCommissionAdjustment,
+  creditRoi,
+  checkAchievements,
+  claimAchievements,
 };
