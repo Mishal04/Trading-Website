@@ -8,11 +8,15 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const ADMIN_EMAIL    = 'admin@tradingplan.com';   // change as needed
-const ADMIN_PASSWORD = 'Admin@123456';             // change to something strong
-const ADMIN_NAME     = 'Super Admin';
+const ADMIN_EMAIL    = process.env.ADMIN_EMAIL || 'info.solvex1@gmail.com';
+const ADMIN_PASSWORD = process.env.ADMIN_SEED_PASSWORD;
+const ADMIN_NAME     = process.env.ADMIN_NAME || 'Super Admin';
 
 async function main() {
+  if (!ADMIN_PASSWORD) {
+    console.error('Error: ADMIN_SEED_PASSWORD environment variable is required.');
+    process.exit(1);
+  }
   await mongoose.connect(process.env.MONGODB_URI);
   console.log('Connected to MongoDB');
 

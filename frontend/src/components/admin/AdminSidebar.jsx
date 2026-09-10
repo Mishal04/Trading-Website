@@ -10,14 +10,16 @@ import {
   LogOut,
   X,
   ShieldCheck,
+  BadgeDollarSign,
 } from 'lucide-react';
 
 const navItems = [
-  { path: '/admin',           label: 'Dashboard',        icon: LayoutDashboard, exact: true },
-  { path: '/admin/investments', label: 'Investments',    icon: PiggyBank },
-  { path: '/admin/withdrawals', label: 'Withdrawals',    icon: ArrowUpRight },
-  { path: '/admin/users',       label: 'Users',          icon: Users },
-  { path: '/admin/profit',      label: 'Profit Inject',  icon: TrendingUp },
+  { path: '/admin',             label: 'Dashboard',     icon: LayoutDashboard, exact: true },
+  { path: '/admin/investments', label: 'Investments',   icon: PiggyBank },
+  { path: '/admin/withdrawals', label: 'Withdrawals',   icon: ArrowUpRight },
+  { path: '/admin/users',       label: 'Users',         icon: Users },
+  { path: '/admin/profit',      label: 'Profit Inject', icon: TrendingUp },
+  { path: '/admin/investors',   label: 'Investors',     icon: BadgeDollarSign },
 ];
 
 /**
@@ -40,12 +42,10 @@ export default function AdminSidebar({ open, onClose }) {
       {/* Logo / Brand */}
       <div className="flex items-center justify-between px-5 py-5 border-b border-dark-500">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-500 to-gold-700 flex items-center justify-center">
-            <ShieldCheck size={16} className="text-dark-900" />
-          </div>
+          <img src="/logo.png" alt="Solvex Logo" className="w-8 h-8 object-contain drop-shadow-[0_2px_6px_rgba(212,175,55,0.35)]" />
           <div>
-            <div className="text-sm font-bold text-white leading-none">Admin Panel</div>
-            <div className="text-[10px] text-gold-400 mt-0.5">Group Trading Plan</div>
+            <div className="text-sm font-bold text-white leading-none tracking-wide">SOLVEX <span className="text-gold-400 font-semibold text-xs">Admin</span></div>
+            <div className="text-[10px] text-gray-400 mt-0.5">Control Panel</div>
           </div>
         </div>
         {/* Mobile close button */}

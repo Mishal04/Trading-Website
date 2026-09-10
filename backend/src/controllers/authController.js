@@ -100,10 +100,13 @@ const register = async (req, res) => {
       data: {
         user: {
           id:           user._id,
+          _id:          user._id,
           name:         user.name,
           email:        user.email,
           referralCode: user.referralCode,
-          isVerified:   user.isVerified
+          isVerified:   user.isVerified,
+          accountType:  user.accountType || 'user',
+          role:         user.role || 'investor'
         },
         token
       },
@@ -159,11 +162,13 @@ const login = async (req, res) => {
       data: {
         user: {
           id:           user._id,
+          _id:          user._id,
           name:         user.name,
           email:        user.email,
           referralCode: user.referralCode,
           isVerified:   user.isVerified,
-          accountType:  user.accountType,
+          accountType:  user.accountType || 'user',
+          role:         user.role || 'investor',
           wallet:       user.wallet || { capital: 0, profit: 0, commission: 0 }
         },
         token

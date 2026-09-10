@@ -11,25 +11,46 @@ const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./config/database');
 
-const authRoutes       = require('./routes/authRoutes');
-const investmentRoutes = require('./routes/investmentRoutes');
-const commissionRoutes = require('./routes/commissionRoutes');
-const withdrawalRoutes = require('./routes/withdrawalRoutes');
-const teamRoutes       = require('./routes/teamRoutes');
-const adminRoutes      = require('./routes/adminRoutes');
-const dashboardRoutes  = require('./routes/dashboardRoutes');
-const initCronJobs     = require('./config/cronJobs');
+const authRoutes          = require('./routes/authRoutes');
+const investmentRoutes    = require('./routes/investmentRoutes');
+const commissionRoutes    = require('./routes/commissionRoutes');
+const withdrawalRoutes    = require('./routes/withdrawalRoutes');
+const teamRoutes          = require('./routes/teamRoutes');
+const walletRoutes        = require('./routes/walletRoutes');
+const adminRoutes         = require('./routes/adminRoutes');
+const dashboardRoutes     = require('./routes/dashboardRoutes');
+const investorRoutes      = require('./routes/investorRoutes');
+const investorAdminRoutes = require('./routes/investorAdminRoutes');
+const initCronJobs        = require('./config/cronJobs');
 
 const app = express();
 
+// ── Trust Proxy (Required when deployed behind Railway, Render, Nginx, Cloudflare) ──
+app.set('trust proxy', 1);
+
 // ── Trusted origins ───────────────────────────────────────────────────────────
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Parse CLIENT_URL from process.env (supports single URL or comma-separated list)
+const envClientUrls = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((url) => url.trim().replace(/\/+$/, ''))
+  : [];
+
 const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:3000',
-  process.env.CLIENT_URL,
+  'https://solvextrade.com',
+  'https://www.solvextrade.com',
+  ...envClientUrls,
+  // Keep localhost only for development
+  ...(!isProduction ? [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+  ] : [])
 ].filter(Boolean);
+
+// Deduplicate origins
+const uniqueAllowedOrigins = Array.from(new Set(allowedOrigins));
 
 // ── Security headers (Helmet) ─────────────────────────────────────────────────
 app.use(
@@ -41,15 +62,15 @@ app.use(
         scriptSrc:      ["'self'"],
         styleSrc:       ["'self'", "'unsafe-inline'"],   // inline styles needed by Vite
         imgSrc:         ["'self'", 'data:', 'https:'],
-        connectSrc:     ["'self'", ...allowedOrigins],
+        connectSrc:     ["'self'", ...uniqueAllowedOrigins],
         fontSrc:        ["'self'", 'https:', 'data:'],
         objectSrc:      ["'none'"],
         frameAncestors: ["'none'"],
-        upgradeInsecureRequests: [],
+        upgradeInsecureRequests: isProduction ? [] : null,
       },
     },
     // HTTP Strict Transport Security — 1 year in production
-    hsts: process.env.NODE_ENV === 'production'
+    hsts: isProduction
       ? { maxAge: 31536000, includeSubDomains: true, preload: true }
       : false,
     referrerPolicy:  { policy: 'strict-origin-when-cross-origin' },
@@ -65,7 +86,7 @@ app.use(
   cors({
     origin: (origin, callback) => {
       // Allow same-origin requests (no Origin header) and listed origins only
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || uniqueAllowedOrigins.includes(origin)) {
         return callback(null, true);
       }
       return callback(new Error(`CORS: origin '${origin}' not allowed`), false);
@@ -167,14 +188,18 @@ if (process.env.NODE_ENV === 'development') {
 const { getUserTransactions } = require('./controllers/dashboardController');
 const { protect } = require('./middleware/auth');
 
-app.use('/api/auth',         authRoutes);
-app.use('/api/investments',  investmentRoutes);
-app.use('/api/commissions',  commissionRoutes);
-app.use('/api/withdrawals',  withdrawalRoutes);
-app.use('/api/team',         teamRoutes);
-app.use('/api/admin',        adminRoutes);
-app.use('/api/dashboard',    dashboardRoutes);
-app.use('/api/transactions',  protect, getUserTransactions);
+app.use('/api/auth',              authRoutes);
+app.use('/api/investments',       investmentRoutes);
+app.use('/api/commissions',       commissionRoutes);
+app.use('/api/withdrawals',       withdrawalRoutes);
+app.use('/api/team',              teamRoutes);
+app.use('/api/wallet',            walletRoutes);
+app.use('/api/admin',             adminRoutes);
+app.use('/api/dashboard',         dashboardRoutes);
+app.use('/api/transactions',      protect, getUserTransactions);
+// ── Investor system (completely separate) ────────────────────────────────────
+app.use('/api/investors',         investorRoutes);
+app.use('/api/admin/investors',   investorAdminRoutes);
 
 // Health check — no sensitive info exposed
 app.get('/health', (req, res) => {
@@ -215,12 +240,19 @@ app.use((req, res) => {
   res.status(404).send('Page not found');
 });
 
-// Global Error Handler
+// Global Error Handler — no internal stack traces leaked to client in production
 app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
-  res.status(err.status || 500).json({
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('Error:', err.stack);
+  } else {
+    console.error('Error:', err.message);
+  }
+  const statusCode = err.status || (res.statusCode && res.statusCode !== 200 ? res.statusCode : 500);
+  res.status(statusCode).json({
     success: false,
-    message: err.message || 'Internal Server Error',
+    message: process.env.NODE_ENV === 'production' && statusCode === 500
+      ? 'Internal Server Error'
+      : (err.message || 'Internal Server Error'),
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });

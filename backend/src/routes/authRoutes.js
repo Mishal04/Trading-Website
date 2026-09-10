@@ -36,10 +36,17 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 
 router.get('/me', protect, async (req, res) => {
+  const userObj = req.user.toObject ? req.user.toObject() : { ...req.user };
+  delete userObj.password;
   res.json({
     success: true,
     data: {
-      user: req.user
+      user: {
+        ...userObj,
+        id: req.user._id,
+        _id: req.user._id,
+        accountType: req.user.accountType || 'user'
+      }
     }
   });
 });

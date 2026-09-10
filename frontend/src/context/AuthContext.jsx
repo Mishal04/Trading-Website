@@ -13,12 +13,20 @@ export function AuthProvider({ children }) {
     const savedUser = localStorage.getItem('user');
     if (token && savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed);
         authAPI.me()
           .then((res) => {
             const u = res.data?.data?.user || res.data?.user || res.data;
-            setUser(u);
-            localStorage.setItem('user', JSON.stringify(u));
+            if (u) {
+              const fullUser = {
+                ...parsed,
+                ...u,
+                accountType: u.accountType || parsed.accountType || 'user'
+              };
+              setUser(fullUser);
+              localStorage.setItem('user', JSON.stringify(fullUser));
+            }
           })
           .catch(() => {
             localStorage.removeItem('token');
@@ -38,9 +46,17 @@ export function AuthProvider({ children }) {
     const res = await authAPI.login({ email, password });
     const token = res.data?.data?.token || res.data?.token;
     const userData = res.data?.data?.user || res.data?.user;
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
+    if (token && userData) {
+      const fullUser = {
+        ...userData,
+        accountType: userData.accountType || 'user'
+      };
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(fullUser));
+      setUser(fullUser);
+      toast.success('Login successful');
+      return fullUser;
+    }
     toast.success('Login successful');
     return userData;
   };

@@ -20,8 +20,12 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(form.email, form.password);
-      navigate('/dashboard');
+      const loggedInUser = await login(form.email, form.password);
+      if (loggedInUser?.accountType === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       const msg = err.response?.data?.message || 'Login failed';
       toast.error(msg);
@@ -34,11 +38,11 @@ export default function Login() {
     <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gold-500/10 border border-gold-500/30 mb-4">
-            <LogIn className="text-gold-400" size={28} />
-          </div>
+          <Link to="/" className="inline-block">
+            <img src="/logo.png" alt="Solvex Logo" className="w-24 h-24 object-contain mx-auto mb-3 drop-shadow-[0_0_30px_rgba(212,175,55,0.45)] hover:scale-105 transition-transform duration-300" />
+          </Link>
           <h1 className="text-2xl font-bold">Welcome Back</h1>
-          <p className="text-gray-400 text-sm mt-1">Login to your account</p>
+          <p className="text-gray-400 text-sm mt-1">Login to your SOLVEX account</p>
         </div>
 
         <form

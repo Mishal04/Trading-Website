@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, X, LogOut, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
@@ -12,23 +12,29 @@ export default function Navbar() {
   const navLinks = [
     { label: 'Home', href: '/#home' },
     { label: 'Packages', href: '/#packages' },
-    { label: 'Profit Sharing', href: '/#profit' },
-    { label: 'Levels', href: '/#levels' },
-    { label: 'Rewards', href: '/#rewards' },
+    { label: 'Investors', href: '/#investors' },
   ];
+
+  const handleNavClick = (e, href) => {
+    if (href.startsWith('/#') && location.pathname === '/') {
+      const targetId = href.replace('/#', '');
+      const element = document.getElementById(targetId);
+      if (element) {
+        e.preventDefault();
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-dark-900/90 backdrop-blur-md border-b border-dark-500">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center font-bold text-dark-900 text-sm">
-              GT
-            </div>
-            <span className="font-bold text-lg tracking-tight">
-              <span className="text-white">Group</span>{' '}
-              <span className="gradient-text">Trading</span>
+          <Link to="/" className="flex items-center gap-2.5">
+            <img src="/logo.png" alt="Solvex Logo" className="w-9 h-9 sm:w-10 sm:h-10 object-contain drop-shadow-[0_2px_8px_rgba(212,175,55,0.35)]" />
+            <span className="font-black text-xl tracking-wider">
+              <span className="text-white">SOLVE</span><span className="text-gold-400">X</span>
             </span>
           </Link>
 
@@ -39,7 +45,8 @@ export default function Navbar() {
                 <a
                   key={link.label}
                   href={link.href}
-                  className="text-sm text-gray-300 hover:text-gold-400 transition-colors"
+                  onClick={(e) => handleNavClick(e, link.href)}
+                  className="text-sm font-medium text-gray-300 hover:text-gold-400 transition-colors"
                 >
                   {link.label}
                 </a>
@@ -49,8 +56,23 @@ export default function Navbar() {
 
           {/* Auth buttons */}
           <div className="hidden md:flex items-center gap-3">
+            <Link
+              to="/investor/login"
+              className="text-xs font-semibold px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-all flex items-center gap-1.5"
+            >
+              Investor Portal
+            </Link>
             {user ? (
               <>
+                {user.accountType === 'admin' && (
+                  <Link
+                    to="/admin"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gold-400/15 border border-gold-400/30 text-xs font-semibold text-gold-400 hover:bg-gold-400/25 transition-all"
+                  >
+                    <ShieldCheck size={15} />
+                    Admin Panel
+                  </Link>
+                )}
                 <Link
                   to="/dashboard"
                   className="flex items-center gap-2 text-sm text-gray-300 hover:text-gold-400 transition-colors"
@@ -103,7 +125,10 @@ export default function Navbar() {
                 <a
                   key={link.label}
                   href={link.href}
-                  onClick={() => setOpen(false)}
+                  onClick={(e) => {
+                    handleNavClick(e, link.href);
+                    setOpen(false);
+                  }}
                   className="block text-sm text-gray-300 hover:text-gold-400"
                 >
                   {link.label}
@@ -111,6 +136,15 @@ export default function Navbar() {
               ))}
             {user ? (
               <>
+                {user.accountType === 'admin' && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setOpen(false)}
+                    className="block text-sm font-semibold text-gold-400 hover:text-gold-300"
+                  >
+                    Admin Panel
+                  </Link>
+                )}
                 <Link
                   to="/dashboard"
                   onClick={() => setOpen(false)}
@@ -130,6 +164,13 @@ export default function Navbar() {
               </>
             ) : (
               <>
+                <Link
+                  to="/investor/login"
+                  onClick={() => setOpen(false)}
+                  className="block text-sm font-semibold text-amber-400 py-1"
+                >
+                  ⚡ Investor Portal (Login / Register)
+                </Link>
                 <Link
                   to="/login"
                   onClick={() => setOpen(false)}

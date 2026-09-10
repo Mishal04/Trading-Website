@@ -33,7 +33,7 @@ export default function AdminLayout() {
           <div className="hidden lg:flex items-center gap-2 text-sm text-gray-500">
             <span className="text-gold-400 font-semibold">Admin</span>
             <span>/</span>
-            <span>Group Trading Plan</span>
+            <span>SOLVEX Platform</span>
           </div>
 
           {/* Right side */}

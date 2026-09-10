@@ -6,16 +6,14 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center font-bold text-dark-900 text-xs">
-                GT
-              </div>
-              <span className="font-bold">
-                Group <span className="text-gold-400">Trading</span>
+            <div className="flex items-center gap-2.5 mb-3">
+              <img src="/logo.png" alt="Solvex Logo" className="w-8 h-8 object-contain drop-shadow-[0_2px_6px_rgba(212,175,55,0.3)]" />
+              <span className="font-black text-lg tracking-wider">
+                <span className="text-white">SOLVE</span><span className="text-gold-400">X</span>
               </span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
-              Transparent profit sharing with 25-level commissions, leadership, salary and performance rewards.
+              Trade Smarter | Grow Further. Transparent profit sharing with 21-level commissions and structured achievement rewards.
             </p>
           </div>
 
@@ -41,7 +39,7 @@ export default function Footer() {
 
         <div className="mt-8 pt-6 border-t border-dark-500 flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} Group Trading Plan. All rights reserved.
+            © {new Date().getFullYear()} Solvex. All rights reserved.
           </p>
           <div className="flex gap-4 text-xs text-gray-500">
             <Link to="/login" className="hover:text-gold-400">Login</Link>

@@ -108,6 +108,18 @@ export default function Landing() {
       <section id="home" className="relative overflow-hidden pt-12 pb-16">
         <div className="absolute inset-0 bg-gradient-to-b from-gold-900/15 via-transparent to-transparent pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          {/* Brand Logo Emblem */}
+          <div className="flex justify-center mb-6">
+            <div className="relative group">
+              <div className="absolute -inset-2 bg-gradient-to-r from-gold-500/40 via-gold-400/20 to-gold-600/40 rounded-full blur-2xl opacity-60 group-hover:opacity-90 transition duration-700 animate-pulse" />
+              <img
+                src="/logo.png"
+                alt="SOLVEX - Trade Smarter, Grow Further"
+                className="relative w-36 h-36 sm:w-44 sm:h-44 object-contain drop-shadow-[0_10px_40px_rgba(212,175,55,0.45)] hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+          </div>
+
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 text-gold-400 text-xs font-semibold mb-6">
             <Zap size={14} />
             Institutional Group Trading Plan · New Architecture
@@ -217,7 +229,7 @@ export default function Landing() {
       </section>
 
       {/* ROI Date Periods */}
-      <section className="py-12">
+      <section id="profit" className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-white mb-2">
@@ -260,7 +272,7 @@ export default function Landing() {
       </section>
 
       {/* 21-Level Income & Unlocking Rules */}
-      <section className="py-16 bg-dark-800/40 border-y border-dark-600">
+      <section id="levels" className="py-16 bg-dark-800/40 border-y border-dark-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-white mb-2">
@@ -360,7 +372,7 @@ export default function Landing() {
       </section>
 
       {/* Achievements Summary with 60/40 BV Rule */}
-      <section className="py-16 bg-dark-800/40 border-y border-dark-600">
+      <section id="rewards" className="py-16 bg-dark-800/40 border-y border-dark-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-extrabold text-white mb-2">
@@ -433,6 +445,127 @@ export default function Landing() {
 
       {/* Profit Projection Calculator */}
       <ProfitCalculator />
+
+      {/* ── INVESTORS SECTION ──────────────────────────────────────────────── */}
+      <section id="investors" className="py-20 px-4 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-14">
+          <span className="inline-block mb-3 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
+                style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
+            Investor Programme
+          </span>
+          <h2 className="text-4xl font-black text-white mb-4">
+            Direct Investment Plans
+          </h2>
+          <p className="text-gray-400 max-w-2xl mx-auto text-sm leading-relaxed">
+            Earn structured daily ROI on your capital with two dedicated plans.
+            No MLM commissions — just transparent, predictable returns.
+            After 6 months, earn <strong className="text-amber-400">8% per month</strong> forever.
+          </p>
+        </div>
+
+        {/* Plan A & Plan B cards side by side */}
+        <div className="grid md:grid-cols-2 gap-6 mb-12">
+          {/* Plan A */}
+          <div className="rounded-3xl border p-7"
+               style={{ background: 'rgba(245,158,11,0.05)', borderColor: 'rgba(245,158,11,0.3)' }}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-black text-white">Plan A</h3>
+                <p className="text-amber-400 text-sm font-semibold">Higher Daily Rates</p>
+              </div>
+              <span className="px-3 py-1.5 rounded-full text-xs font-bold text-dark-900"
+                    style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}>
+                Default
+              </span>
+            </div>
+            <div className="space-y-3">
+              {[
+                { label: 'Package 1', amounts: '$100, $200, $300, $900', rate: '0.75% / day' },
+                { label: 'Package 2', amounts: '$1,000 – $5,000',        rate: '1.00% / day' },
+                { label: 'Package 3', amounts: '$6,000 – $9,000',        rate: '1.25% / day' },
+                { label: 'Package 4', amounts: '$10,000+',               rate: '1.50% / day' }
+              ].map(row => (
+                <div key={row.label} className="flex items-center justify-between rounded-xl border border-white/8 px-4 py-3"
+                     style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <div>
+                    <p className="text-white text-sm font-semibold">{row.label}</p>
+                    <p className="text-gray-500 text-xs">{row.amounts}</p>
+                  </div>
+                  <span className="text-amber-400 font-black text-base">{row.rate}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Plan B */}
+          <div className="rounded-3xl border p-7"
+               style={{ background: 'rgba(139,92,246,0.05)', borderColor: 'rgba(139,92,246,0.3)' }}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-black text-white">Plan B</h3>
+                <p className="text-purple-400 text-sm font-semibold">Standard Daily Rates</p>
+              </div>
+              <span className="px-3 py-1.5 rounded-full text-xs font-bold text-white border border-purple-500/50"
+                    style={{ background: 'rgba(139,92,246,0.2)' }}>
+                Admin Assigned
+              </span>
+            </div>
+            <div className="space-y-3">
+              {[
+                { label: 'Package 1', amounts: '$100, $200, $300, $900', rate: '0.50% / day' },
+                { label: 'Package 2', amounts: '$1,000 – $5,000',        rate: '0.75% / day' },
+                { label: 'Package 3', amounts: '$6,000 – $9,000',        rate: '1.00% / day' },
+                { label: 'Package 4', amounts: '$10,000+',               rate: '1.25% / day' }
+              ].map(row => (
+                <div key={row.label} className="flex items-center justify-between rounded-xl border border-white/8 px-4 py-3"
+                     style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <div>
+                    <p className="text-white text-sm font-semibold">{row.label}</p>
+                    <p className="text-gray-500 text-xs">{row.amounts}</p>
+                  </div>
+                  <span className="text-purple-400 font-black text-base">{row.rate}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Rules strip */}
+        <div className="grid sm:grid-cols-3 gap-4 mb-12">
+          <div className="rounded-2xl border border-white/8 p-5 text-center"
+               style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <p className="text-2xl font-black text-emerald-400 mb-1">8% / mo</p>
+            <p className="text-white text-sm font-semibold">After 6 Months</p>
+            <p className="text-gray-500 text-xs mt-1">Both plans switch to 8% monthly ROI automatically</p>
+          </div>
+          <div className="rounded-2xl border border-white/8 p-5 text-center"
+               style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <p className="text-2xl font-black text-amber-400 mb-1">3× Cap</p>
+            <p className="text-white text-sm font-semibold">Income Limit</p>
+            <p className="text-gray-500 text-xs mt-1">Maximum total ROI = 3× your invested amount</p>
+          </div>
+          <div className="rounded-2xl border border-white/8 p-5 text-center"
+               style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <p className="text-2xl font-black text-blue-400 mb-1">Anytime</p>
+            <p className="text-white text-sm font-semibold">Principal Withdraw</p>
+            <p className="text-gray-500 text-xs mt-1">Withdraw your original capital at any time</p>
+          </div>
+        </div>
+
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link to="/investor/register"
+                className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-xl font-extrabold text-dark-900 hover:brightness-110 transition-all text-base"
+                style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}>
+            Open Investor Account <ArrowRight size={20} />
+          </Link>
+          <Link to="/investor/login"
+                className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-xl font-bold text-amber-400 border border-amber-500/40 hover:bg-amber-500/10 transition-all text-base">
+            Investor Login
+          </Link>
+        </div>
+      </section>
 
       {/* CTA */}
       <section className="py-16 text-center max-w-3xl mx-auto px-4">

@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// In production, fallback to '/api' (same-origin reverse proxy) if VITE_API_URL is omitted.
+// Localhost is strictly used as a fallback in local development mode.
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api');
 
 const api = axios.create({
   baseURL: API_URL,
@@ -27,6 +29,32 @@ api.interceptors.response.use(
       localStorage.removeItem('user');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// ── Investor API instance (uses separate localStorage key) ────────────────────
+const investorApiInstance = axios.create({
+  baseURL: API_URL,
+  headers: { 'Content-Type': 'application/json' }
+});
+
+investorApiInstance.interceptors.request.use((config) => {
+  const token = localStorage.getItem('investor_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+investorApiInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('investor_token');
+      localStorage.removeItem('investor_user');
+      if (!window.location.pathname.startsWith('/investor')) {
+        window.location.href = '/investor/login';
       }
     }
     return Promise.reject(error);
@@ -124,4 +152,28 @@ export const adminAPI = {
 
   // Manual wallet adjustment
   adjustWallet: (data) => api.post('/admin/commission/adjust', data),
+
+  // ── Investor admin endpoints ──────────────────────────────────────────────
+  getInvestors:      (params) => api.get('/admin/investors', { params }),
+  updateInvestorPlan:(id, plan) => api.patch(`/admin/investors/${id}/plan`, { plan }),
+  toggleInvestor:    (id)     => api.patch(`/admin/investors/${id}/toggle`),
+  getInvestorInvestments: (id) => api.get(`/admin/investors/${id}/investments`),
+  getAllInvestorInvestments: (params) => api.get('/admin/investors/investments/all', { params }),
+  approveInvestorInvestment: (id) => api.patch(`/admin/investors/investments/${id}/approve`),
+  rejectInvestorInvestment:  (id, adminNote) => api.patch(`/admin/investors/investments/${id}/reject`, { adminNote }),
+  creditInvestorRoi: (investorId, data) => api.post(`/admin/investors/${investorId}/credit-roi`, data),
+};
+
+export { investorApiInstance };
+
+// Investor (self) endpoints
+export const investorAPI = {
+  register:  (data) => investorApiInstance.post('/investors/auth/register', data),
+  login:     (data) => investorApiInstance.post('/investors/auth/login', data),
+  me:        ()     => investorApiInstance.get('/investors/auth/me'),
+  dashboard: ()     => investorApiInstance.get('/investors/dashboard'),
+  createInvestment: (data) => investorApiInstance.post('/investors/investments/create', data),
+  getMyInvestments: ()     => investorApiInstance.get('/investors/investments/my'),
+  withdrawPrincipal:(data) => investorApiInstance.post('/investors/investments/withdraw-principal', data),
+  withdrawRoi:      (data) => investorApiInstance.post('/investors/investments/withdraw-roi', data),
 };
