@@ -12,12 +12,23 @@ frontend/.env.*
 !.env.example
 !backend/.env.example
 !frontend/.env.example
-.DS_Store
+
+# Build outputs & logs
 dist/
 build/
+backend/dist/
+backend/build/
+frontend/dist/
+frontend/build/
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 coverage/
 .nyc_output/
+
+# OS & Editor files
+.DS_Store
 .vscode/
 .idea/
