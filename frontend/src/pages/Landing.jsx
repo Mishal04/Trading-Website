@@ -127,7 +127,7 @@ export default function Landing() {
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-6">
             Intelligent Trading Pools.
             <br />
-            <span className="gradient-text">21 Levels. 2X & 4X Income Caps.</span>
+            <span className="gradient-text">21 Levels. 5X Income Cap.</span>
           </h1>
           <p className="max-w-3xl mx-auto text-gray-300 text-base sm:text-lg mb-10 leading-relaxed">
             Choose your activation package from <strong>$100 to $10,000</strong>. Earn scheduled daily returns across
@@ -154,8 +154,8 @@ export default function Landing() {
           <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
             {[
               { icon: Percent, label: 'Level Pool Share', value: '80% Across 21L' },
-              { icon: Shield, label: 'Investor Income Cap', value: '2X Total Invested' },
-              { icon: Zap, label: 'Working Leader Cap', value: '4X Total Invested' },
+              { icon: Shield, label: 'Global Income Cap', value: '5X Total Invested' },
+              { icon: Zap, label: 'Affiliate Network', value: '21 Levels' },
               { icon: ArrowLeftRight, label: 'Internal P2P', value: 'Instant · 0% Gas' },
             ].map((m) => (
               <div key={m.label} className="rounded-xl border border-dark-500 bg-dark-800/70 p-4 text-center backdrop-blur-xl">
@@ -323,48 +323,39 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 2X vs 4X Income Caps */}
+      {/* 5X Income Cap */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-extrabold text-white mb-2">
-              Account Types & <span className="gradient-text">Income Caps</span>
+              Maximum <span className="gradient-text">5X Income Cap</span>
             </h2>
             <p className="text-gray-400 text-sm">
               Cap applies to the sum of ROI + Level Income (totalEarned). Achievement rewards do not count toward cap.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <div className="rounded-2xl border border-blue-500/30 bg-dark-800/80 p-6 backdrop-blur-xl">
+          <div className="max-w-3xl mx-auto">
+            <div className="rounded-2xl border border-gold-500/40 bg-dark-800/80 p-8 backdrop-blur-xl shadow-xl shadow-gold-500/5">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-black uppercase text-blue-400 tracking-wider">Passive Mode</span>
-                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  2X CAP
+                <span className="text-xs font-black uppercase text-gold-400 tracking-wider">Universal Earning Limit</span>
+                <span className="px-3.5 py-1 rounded-full text-xs font-extrabold bg-gold-400 text-dark-900 shadow-md">
+                  5X CAP
                 </span>
               </div>
-              <h3 className="text-2xl font-black text-white mb-2">Investor Account</h3>
-              <p className="text-xs text-gray-300 mb-4 leading-relaxed">
-                Default account type for pure investors. Maximum cumulative earnings (ROI + commissions) is capped at <strong>200% (2 × Total Invested)</strong>.
+              <h3 className="text-2xl font-black text-white mb-2">500% Total Return Cap</h3>
+              <p className="text-sm text-gray-300 mb-6 leading-relaxed">
+                Every account enjoys up to <strong>500% (5 × Total Invested)</strong> cumulative earnings across ROI distributions and referral level commissions. Once the 5X threshold is reached, simply reinvest or add new capital to continue earning.
               </p>
-              <div className="p-3 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-400">
-                Example: $5,000 Investment → $10,000 Maximum Income Cap
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-gold-500/40 bg-dark-800/80 p-6 backdrop-blur-xl shadow-xl shadow-gold-500/5">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-black uppercase text-gold-400 tracking-wider">Leadership Mode</span>
-                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-gold-400 text-dark-900 shadow-md">
-                  4X CAP
-                </span>
-              </div>
-              <h3 className="text-2xl font-black text-white mb-2">Working Leader Account</h3>
-              <p className="text-xs text-gray-300 mb-4 leading-relaxed">
-                Assigned by administration for community builders and active network leaders. Maximum earnings capped at <strong>400% (4 × Total Invested)</strong>.
-              </p>
-              <div className="p-3 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-400">
-                Example: $5,000 Investment → $20,000 Maximum Income Cap
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
+                  <div className="font-bold text-white mb-1">$1,000 Investment</div>
+                  <div className="text-gold-400 font-semibold text-sm">→ $5,000 Maximum Cap</div>
+                </div>
+                <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
+                  <div className="font-bold text-white mb-1">$5,000 Investment</div>
+                  <div className="text-gold-400 font-semibold text-sm">→ $25,000 Maximum Cap</div>
+                </div>
               </div>
             </div>
           </div>

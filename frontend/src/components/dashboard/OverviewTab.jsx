@@ -25,7 +25,7 @@ export default function OverviewTab({ stats, user, onRefresh }) {
 
   const role = stats?.user?.role || user?.role || 'investor';
   const isWorkingLeader = role === 'working_leader';
-  const capMultiple = isWorkingLeader ? 4 : 2;
+  const capMultiple = stats?.incomeCap?.capMultiple ?? 5;
   const totalInvested = stats?.user?.totalInvested ?? stats?.incomeCap?.totalInvested ?? investments.totalInvested ?? 0;
   const totalEarned = stats?.user?.totalEarned ?? stats?.incomeCap?.totalEarned ?? 0;
   const capAmount = stats?.incomeCap?.capAmount ?? (totalInvested * capMultiple);
@@ -51,7 +51,7 @@ export default function OverviewTab({ stats, user, onRefresh }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-400/10 border border-gold-400/20 text-gold-400 text-xs font-semibold mb-2">
-              <ShieldCheck size={14} /> {isWorkingLeader ? 'Working Leader (4X Cap)' : 'Investor Account (2X Cap)'}
+              <ShieldCheck size={14} /> {isWorkingLeader ? 'Working Leader (5X Cap)' : 'Investor Account (5X Cap)'}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
               Welcome back, <span className="gradient-text">{user?.name || user?.fullName || 'Trader'}</span>!

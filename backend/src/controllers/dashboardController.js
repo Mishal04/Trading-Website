@@ -26,7 +26,7 @@ const getDashboardStats = async (req, res) => {
     const unreadNotificationsCount = await Notification.countDocuments({ userId, isRead: false });
 
     const role = user.role || 'investor';
-    const capMultiple = role === 'working_leader' ? 4 : 2;
+    const capMultiple = constants.INCOME_CAPS?.[role] || 5;
     const incomeCap = totalInvestments * capMultiple;
     const totalEarned = user.totalEarned || 0;
     const capProgressPercent = incomeCap > 0 ? Math.min(100, Math.round((totalEarned / incomeCap) * 100)) : 0;

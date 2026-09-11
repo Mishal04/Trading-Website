@@ -69,8 +69,8 @@ module.exports = {
 
   // Income caps (multiples of investment)
   INCOME_CAPS: {
-    investor: 2,
-    working_leader: 4
+    investor: 5,
+    working_leader: 5
   },
 
   // Achievement reward tiers (Business Volume → Reward in USDT)
