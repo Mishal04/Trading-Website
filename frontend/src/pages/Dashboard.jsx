@@ -6,7 +6,6 @@ import {
   LayoutDashboard, 
   PiggyBank, 
   ArrowUpRight, 
-  ArrowLeftRight,
   Users, 
   History, 
   RefreshCw,
@@ -17,7 +16,7 @@ import {
 import OverviewTab from '../components/dashboard/OverviewTab';
 import InvestTab from '../components/dashboard/InvestTab';
 import WithdrawTab from '../components/dashboard/WithdrawTab';
-import TransferTab from '../components/dashboard/TransferTab';
+// import TransferTab from '../components/dashboard/TransferTab'; // P2P hidden from UI
 import TeamTab from '../components/dashboard/TeamTab';
 import TransactionsTab from '../components/dashboard/TransactionsTab';
 
@@ -53,7 +52,6 @@ export default function Dashboard() {
     { path: '/dashboard', label: 'Overview', icon: LayoutDashboard, exact: true },
     { path: '/dashboard/invest', label: 'Invest / Deposit', icon: PiggyBank },
     { path: '/dashboard/withdraw', label: 'Withdraw', icon: ArrowUpRight },
-    { path: '/dashboard/transfer', label: 'P2P Transfer', icon: ArrowLeftRight },
     { path: '/dashboard/team', label: 'My Team', icon: Users },
     { path: '/dashboard/transactions', label: 'Transactions', icon: History },
   ];
@@ -107,7 +105,7 @@ export default function Dashboard() {
           <Route path="/" element={<OverviewTab stats={stats} user={user} onRefresh={fetchStats} />} />
           <Route path="/invest" element={<InvestTab onRefresh={fetchStats} />} />
           <Route path="/withdraw" element={<WithdrawTab user={user} onRefresh={fetchStats} />} />
-          <Route path="/transfer" element={<TransferTab user={user} onRefresh={fetchStats} />} />
+          {/* <Route path="/transfer" element={<TransferTab user={user} onRefresh={fetchStats} />} /> */}{/* P2P hidden from UI */}
           <Route path="/team" element={<TeamTab user={user} />} />
           <Route path="/transactions" element={<TransactionsTab />} />
         </Routes>

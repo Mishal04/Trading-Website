@@ -164,12 +164,11 @@ export default function Landing() {
           </div>
 
           {/* Quick Metrics Bar */}
-          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          <div className="mt-12 grid grid-cols-3 gap-4 max-w-4xl mx-auto">
             {[
               { icon: Percent, label: 'Level Pool Share', value: '80% Across 21L' },
               { icon: Shield, label: 'Global Income Cap', value: '5X Total Invested' },
               { icon: Zap, label: 'Affiliate Network', value: '21 Levels' },
-              { icon: ArrowLeftRight, label: 'Internal P2P', value: 'Instant · 0% Gas' },
             ].map((m) => (
               <div key={m.label} className="rounded-xl border border-dark-500 bg-dark-800/70 p-4 text-center backdrop-blur-xl">
                 <m.icon className="mx-auto mb-2 text-gold-400" size={20} />
@@ -476,11 +475,11 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-extrabold text-white mb-2">
-              Flexible <span className="gradient-text">Withdrawal & P2P</span>
+              Flexible <span className="gradient-text">Withdrawal Options</span>
             </h2>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
             <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-6 text-center">
               <Wallet className="mx-auto mb-3 text-gold-400" size={28} />
               <h3 className="font-bold text-white mb-1">On-Chain Multi-Network</h3>
@@ -497,13 +496,7 @@ export default function Landing() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-6 text-center">
-              <ArrowLeftRight className="mx-auto mb-3 text-blue-400" size={28} />
-              <h3 className="font-bold text-white mb-1">Member-to-Member P2P</h3>
-              <p className="text-xs text-gray-400">
-                Instant internal transfers between registered members using recipient email or referral ID with <strong>0% gas fees</strong>.
-              </p>
-            </div>
+
           </div>
         </div>
       </section>
@@ -547,9 +540,9 @@ export default function Landing() {
             <div className="space-y-3">
               {[
                 { label: 'Package 1', amounts: '$100, $200, $300, $900', rate: '0.75% / day' },
-                { label: 'Package 2', amounts: '$1,000 – $5,000',        rate: '1.00% / day' },
-                { label: 'Package 3', amounts: '$6,000 – $9,000',        rate: '1.25% / day' },
-                { label: 'Package 4', amounts: '$10,000+',               rate: '1.50% / day' }
+                { label: 'Package 2', amounts: '$1,000 – $5,000',        rate: '0.90% / day' },
+                { label: 'Package 3', amounts: '$6,000 – $9,000',        rate: '1.00% / day' },
+                { label: 'Package 4', amounts: '$10,000+',               rate: '1.25% / day' }
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between rounded-xl border border-white/8 px-4 py-3"
                      style={{ background: 'rgba(255,255,255,0.03)' }}>
@@ -561,6 +554,9 @@ export default function Landing() {
                 </div>
               ))}
             </div>
+            <p className="text-gray-500 text-xs mt-4 italic">
+              Plan A daily ROI rates are active for 6 months from activation.
+            </p>
           </div>
 
           {/* Plan B */}
@@ -593,8 +589,17 @@ export default function Landing() {
                 </div>
               ))}
             </div>
+            <p className="text-gray-500 text-xs mt-4 italic">
+              Plan B daily ROI rates are active for 6 months from activation.
+            </p>
           </div>
         </div>
+
+        {/* After-1-year transition note */}
+        <p className="text-center text-gray-400 text-sm mb-10">
+          After 1 year, all active investors transition to a fixed{' '}
+          <span className="text-emerald-400 font-semibold">8%–10% monthly rate</span>.
+        </p>
 
         {/* Rules strip */}
         <div className="grid sm:grid-cols-3 gap-4 mb-12">
@@ -629,6 +634,21 @@ export default function Landing() {
                 className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-xl font-bold text-amber-400 border border-amber-500/40 hover:bg-amber-500/10 transition-all text-base">
             Investor Login
           </Link>
+        </div>
+      </section>
+
+      {/* Direct Referral Commission */}
+      <section className="py-12 bg-dark-900/40">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 text-gold-400 text-xs font-bold uppercase tracking-wider mb-5">
+            Referral Rewards
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-4">
+            Direct Referral Commission
+          </h2>
+          <p className="text-gray-300 text-base leading-relaxed">
+            Earn a <span className="text-gold-400 font-bold">5% direct commission</span> instantly when someone you referred makes a deposit. The commission is credited to your account immediately at the time of their deposit.
+          </p>
         </div>
       </section>
 

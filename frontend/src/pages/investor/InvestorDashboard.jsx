@@ -11,9 +11,9 @@ import toast from 'react-hot-toast';
 
 const PLAN_A = [
   { pkg: 1, amounts: [100, 200, 300, 900],            rate: '0.75%/day', label: 'Package 1' },
-  { pkg: 2, amounts: [1000, 2000, 3000, 5000],        rate: '1.00%/day', label: 'Package 2' },
-  { pkg: 3, amounts: [6000, 7000, 8000, 9000],        rate: '1.25%/day', label: 'Package 3' },
-  { pkg: 4, amounts: ['$10,000+'],                    rate: '1.50%/day', label: 'Package 4' }
+  { pkg: 2, amounts: [1000, 2000, 3000, 5000],        rate: '0.90%/day', label: 'Package 2' },
+  { pkg: 3, amounts: [6000, 7000, 8000, 9000],        rate: '1.00%/day', label: 'Package 3' },
+  { pkg: 4, amounts: ['$10,000+'],                    rate: '1.25%/day', label: 'Package 4' }
 ];
 const PLAN_B = [
   { pkg: 1, amounts: [100, 200, 300, 900],            rate: '0.50%/day', label: 'Package 1' },

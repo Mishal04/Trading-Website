@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Cpu, BarChart, ArrowUpRight, Zap, RefreshCw, Lock, Sparkles } from 'lucide-react';
+import { ShieldCheck, BarChart, ArrowUpRight, Zap, Sparkles } from 'lucide-react';
 
 export default function InstitutionalTradingSection() {
   return (
