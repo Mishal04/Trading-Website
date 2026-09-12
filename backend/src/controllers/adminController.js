@@ -10,6 +10,7 @@ const commissionService = require('../services/commissionService');
 const profitService = require('../services/profitService');
 const { creditRoiToInvestor, distributeLevelIncome } = require('../services/incomeService');
 const achievementService = require('../services/achievementService');
+const { DIRECT_REFERRAL_COMMISSION_RATE } = require('../../config/constants');
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -288,6 +289,43 @@ const approveInvestment = async (req, res) => {
       message: `Your investment of $${investment.amount} in ${investment.packageName} has been approved and is now active!`,
       type:    'success'
     });
+
+    // ── 5% instant direct referral commission ─────────────────────────────
+    // Separate from the 21-level daily profit commission system.
+    // Fires once here at approval time; distributeLevelCommissions() runs
+    // independently on the daily cron and is NOT affected by this block.
+    if (investor && investor.referredBy) {
+      const directCommission = Number(
+        (investment.amount * DIRECT_REFERRAL_COMMISSION_RATE).toFixed(4)
+      );
+
+      if (directCommission > 0) {
+        // Credit referrer's commission wallet instantly
+        await User.findByIdAndUpdate(investor.referredBy, {
+          $inc: { 'wallet.commission': directCommission }
+        });
+
+        // Record a distinct transaction so it's identifiable in history
+        await Transaction.create({
+          userId:         investor.referredBy,
+          type:           'direct_referral',
+          amount:         directCommission,
+          status:         'completed',
+          description:    `5% direct referral commission from ${investor.name || investor.email}'s investment of $${investment.amount}`,
+          referenceId:    investment._id,
+          referenceModel: 'Investment'
+        });
+
+        // Notify referrer
+        await Notification.create({
+          userId:  investor.referredBy,
+          title:   'Direct Referral Commission Earned',
+          message: `You earned $${directCommission.toFixed(2)} (5%) direct commission from your referral's investment of $${investment.amount}!`,
+          type:    'commission'
+        });
+      }
+    }
+    // ── end direct referral commission ────────────────────────────────────
 
     return res.json({
       success: true,

@@ -105,5 +105,10 @@ module.exports = {
   WITHDRAWAL: {
     minAmount: 10,
     networks: ['BEP20', 'TRC20']
-  }
+  },
+
+  // ── Direct referral commission ────────────────────────────────────────────
+  // Instant 5% commission credited to referrer on investment approval.
+  // Separate from the 21-level daily profit commission system.
+  DIRECT_REFERRAL_COMMISSION_RATE: 0.05
 };
