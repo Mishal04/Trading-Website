@@ -11,7 +11,9 @@ export default function Navbar() {
 
   const navLinks = [
     { label: 'Home', href: '/#home' },
+    { label: 'Live Charts', href: '/#live-markets' },
     { label: 'Packages', href: '/#packages' },
+    { label: 'Trading Engine', href: '/#trading-ecosystem' },
     { label: 'Investors', href: '/#investors' },
   ];
 

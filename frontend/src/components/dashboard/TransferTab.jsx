@@ -15,7 +15,7 @@ import {
    ArrowDownLeft
  } from 'lucide-react';
 
-export default function TransferTab({ user, onRefresh }) {
+export default function TransferTab({ user, stats, onRefresh }) {
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
@@ -24,7 +24,7 @@ export default function TransferTab({ user, onRefresh }) {
   const [fetching, setFetching] = useState(true);
 
   // Transfer originates from profit wallet
-  const availableProfit = user?.wallet?.profit || 0;
+  const availableProfit = stats?.wallet?.profit ?? user?.wallet?.profit ?? 0;
 
   const fetchTransfers = async () => {
     try {

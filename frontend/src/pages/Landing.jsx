@@ -13,20 +13,20 @@ import {
   Layers,
   ArrowLeftRight,
   ShieldAlert,
-  Zap
+  Zap,
+  BarChart3,
+  Sparkles,
+  Activity,
+  Globe,
+  FileText
 } from 'lucide-react';
 import ProfitCalculator from '../components/ProfitCalculator';
 
-const PACKAGES = [
-  { amount: 100, label: 'P-100', periodA: '1.0% / day', periodB: '0.5% / day', periodC: '8.0% / mo', badge: 'Starter' },
-  { amount: 300, label: 'P-300', periodA: '1.0% / day', periodB: '0.5% / day', periodC: '8.0% / mo' },
-  { amount: 500, label: 'P-500', periodA: '1.0% / day', periodB: '0.5% / day', periodC: '8.0% / mo' },
-  { amount: 1000, label: 'P-1000', periodA: '1.0% / day', periodB: '0.5% / day', periodC: '8.0% / mo', popular: true },
-  { amount: 2000, label: 'P-2000', periodA: '1.5% / day', periodB: '0.75% / day', periodC: '8.0% / mo' },
-  { amount: 5000, label: 'P-5000', periodA: '1.5% / day', periodB: '0.75% / day', periodC: '8.0% / mo' },
-  { amount: 7000, label: 'P-7000', periodA: '2.0% / day', periodB: '1.0% / day', periodC: '8.0% / mo', badge: 'VIP' },
-  { amount: 10000, label: 'P-10000', periodA: '2.0% / day', periodB: '1.0% / day', periodC: '8.0% / mo', badge: 'Elite' },
-];
+import LiveTradingChart from '../components/trading/LiveTradingChart';
+import MarketOverviewCards from '../components/trading/MarketOverviewCards';
+import InstitutionalTradingSection from '../components/trading/InstitutionalTradingSection';
+
+
 
 const ROI_PERIODS = [
   {
@@ -57,6 +57,7 @@ const ROI_PERIODS = [
     rates: [
       { pkg: 'All Packages ($100+)', rate: '8.0% Monthly' },
     ],
+    note: 'This 8% Monthly rate applies only to Investor accounts. Networker/Affiliate plan rates remain unchanged and are not affected by this phase.'
   },
 ];
 
@@ -104,54 +105,66 @@ const SAMPLE_ACHIEVEMENTS = [
 export default function Landing() {
   return (
     <div className="space-y-16">
+      {/* Real-time Ticker Tape Bar */}
+      
+
       {/* Hero Section */}
-      <section id="home" className="relative overflow-hidden pt-12 pb-16">
+      <section id="home" className="relative overflow-hidden pt-6 pb-16">
         <div className="absolute inset-0 bg-gradient-to-b from-gold-900/15 via-transparent to-transparent pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Brand Logo Emblem */}
-          <div className="flex justify-center mb-6">
-            <div className="relative group">
-              <div className="absolute -inset-2 bg-gradient-to-r from-gold-500/40 via-gold-400/20 to-gold-600/40 rounded-full blur-2xl opacity-60 group-hover:opacity-90 transition duration-700 animate-pulse" />
-              <img
-                src="/logo.png"
-                alt="SOLVEX - Trade Smarter, Grow Further"
-                className="relative w-36 h-36 sm:w-44 sm:h-44 object-contain drop-shadow-[0_10px_40px_rgba(212,175,55,0.45)] hover:scale-105 transition-transform duration-300"
-              />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-4xl mx-auto">
+            {/* Brand Logo Emblem */}
+            <div className="flex justify-center mb-6">
+              <div className="relative group">
+                <div className="absolute -inset-2 bg-gradient-to-r from-gold-500/40 via-gold-400/20 to-gold-600/40 rounded-full blur-2xl opacity-60 group-hover:opacity-90 transition duration-700 animate-pulse" />
+                <img
+                  src="/logo.png"
+                  alt="SOLVEX - Trade Smarter, Grow Further"
+                  className="relative w-32 h-32 sm:w-40 sm:h-40 object-contain drop-shadow-[0_10px_40px_rgba(212,175,55,0.45)] hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+            </div>
+
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 text-gold-400 text-xs font-semibold mb-6">
+              <Zap size={14} />
+              Institutional Group Trading Plan · Live Market Execution
+            </div>
+
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-6">
+              21 Levels.
+              <br />
+              <span className="gradient-text">3X Investor Cap. 5X Networker Cap.</span>
+            </h1>
+
+<p className="max-w-3xl mx-auto text-gray-300 text-base sm:text-lg mb-10 leading-relaxed">
+  Choose your activation package from <strong>$100 to $10,000</strong>. Investors earn ROI on their investment up to a 3× income cap of the invested amount, while Networkers/Affiliates earn from the 21‑level affiliate structure up to a 5× income cap.
+</p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                to="/register"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 hover:from-gold-400 hover:to-gold-300 transition-all gold-glow"
+              >
+                Start Investing Now <ArrowRight size={18} />
+              </Link>
+              <a
+                href="#live-markets"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-semibold border border-gold-400/40 bg-gold-400/5 text-gold-300 hover:border-gold-400 hover:bg-gold-400/15 transition-all"
+              >
+                <Activity size={16} /> View Live Charts
+              </a>
+              <a
+                href="#packages"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-semibold border border-dark-500 text-gray-300 hover:border-gold-400 hover:text-gold-400 transition-all"
+              >
+                Explore Packages
+              </a>
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 text-gold-400 text-xs font-semibold mb-6">
-            <Zap size={14} />
-            Institutional Group Trading Plan · New Architecture
-          </div>
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-6">
-            Intelligent Trading Pools.
-            <br />
-            <span className="gradient-text">21 Levels. 5X Income Cap.</span>
-          </h1>
-          <p className="max-w-3xl mx-auto text-gray-300 text-base sm:text-lg mb-10 leading-relaxed">
-            Choose your activation package from <strong>$100 to $10,000</strong>. Earn scheduled daily returns across
-            structured ROI periods, unlock up to <strong>21 affiliate levels</strong> (80% pool distribution), and claim
-            up to <strong>$4,000,000 in fixed achievement rewards</strong> with our transparent 60/40 BV system.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/register"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 hover:from-gold-400 hover:to-gold-300 transition-all gold-glow"
-            >
-              Start Investing Now <ArrowRight size={18} />
-            </Link>
-            <a
-              href="#packages"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-semibold border border-dark-500 text-gray-300 hover:border-gold-400 hover:text-gold-400 transition-all"
-            >
-              Explore Plan Details
-            </a>
-          </div>
-
           {/* Quick Metrics Bar */}
-          <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
             {[
               { icon: Percent, label: 'Level Pool Share', value: '80% Across 21L' },
               { icon: Shield, label: 'Global Income Cap', value: '5X Total Invested' },
@@ -168,65 +181,35 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Packages Section */}
-      <section id="packages" className="py-16 bg-dark-800/40 border-y border-dark-600">
+      {/* ── LIVE TRADING MARKETS & INTERACTIVE CHARTS SECTION ──────────────── */}
+      <section id="live-markets" className="py-16 bg-dark-900/60 border-y border-dark-600/80 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-extrabold text-white mb-2">
-              Activation <span className="gradient-text">Packages</span>
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-3">
+              <Activity size={14} className="animate-pulse" /> Live Market Feed · Real-Time Execution
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-2">
+              Live Trading <span className="gradient-text">Charts & Technical Analysis</span>
             </h2>
-            <p className="text-gray-400 max-w-xl mx-auto text-sm">
-              Standardized investment packages with fixed denominations. Activate in USDT via BEP20 or TRC20.
+            <p className="text-gray-400 max-w-2xl mx-auto text-sm">
+              Inspect real-time institutional price action, candlestick chart trends, and multi-indicator technical summaries across Bitcoin, Ethereum, Solana, Gold Spot, and major Forex pairs.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {PACKAGES.map((pkg) => (
-              <div
-                key={pkg.amount}
-                className={`rounded-2xl border p-5 relative transition-all ${
-                  pkg.popular
-                    ? 'border-gold-400 bg-dark-800 shadow-xl shadow-gold-500/10'
-                    : 'border-dark-500 bg-dark-800/60 hover:border-gold-400/40'
-                }`}
-              >
-                {pkg.popular && (
-                  <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full bg-gold-400 text-dark-900 text-[10px] font-black uppercase tracking-wider">
-                    Popular
-                  </span>
-                )}
-                {pkg.badge && !pkg.popular && (
-                  <span className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full bg-dark-700 border border-dark-500 text-gold-400 text-[10px] font-bold uppercase">
-                    {pkg.badge}
-                  </span>
-                )}
-                <div className="text-xs font-bold text-gray-400 uppercase">{pkg.label}</div>
-                <div className="text-2xl sm:text-3xl font-black text-white my-2">${pkg.amount.toLocaleString()}</div>
-                <div className="space-y-1.5 text-xs text-gray-300 border-t border-dark-600 pt-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Period A:</span>
-                    <span className="font-bold text-emerald-400">{pkg.periodA}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Period B:</span>
-                    <span className="font-semibold text-gray-300">{pkg.periodB}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Period C:</span>
-                    <span className="font-semibold text-gray-300">{pkg.periodC}</span>
-                  </div>
-                </div>
-                <Link
-                  to="/register"
-                  className="mt-4 block text-center py-2 rounded-xl text-xs font-bold bg-dark-700 hover:bg-gold-400 hover:text-dark-900 text-white transition-colors border border-dark-500"
-                >
-                  Activate
-                </Link>
-              </div>
-            ))}
+          {/* 4 Mini Real-time Market Overview Cards */}
+          <div className="mb-8">
+            <MarketOverviewCards />
+          </div>
+
+          {/* Interactive TradingView Chart Component */}
+          <div>
+            <LiveTradingChart />
           </div>
         </div>
       </section>
+
+      {/* ── INSTITUTIONAL AI TRADING & ENGINE SECTION ──────────────────────── */}
+      <InstitutionalTradingSection />
 
       {/* ROI Date Periods */}
       <section id="profit" className="py-12">
@@ -264,6 +247,11 @@ export default function Landing() {
                       <span className="font-extrabold text-emerald-400 text-sm">{r.rate}</span>
                     </div>
                   ))}
+                  {period.note && (
+                    <p className="text-[11px] text-gray-400 leading-relaxed pt-1.5 px-0.5 border-t border-dark-600/50">
+                      {period.note}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
@@ -323,42 +311,128 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Terms & Conditions Section */}
+      <section id="terms" className="py-16 bg-dark-900/40 border-b border-dark-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-gold-500/30 bg-gold-500/10 text-gold-400 text-xs font-bold uppercase tracking-wider mb-3">
+              <FileText size={14} /> Official Policy & Guidelines
+            </div>
+            <h2 className="text-3xl font-extrabold text-white mb-2">
+              Terms & <span className="gradient-text">Conditions</span>
+            </h2>
+          </div>
+
+          <div className="max-w-4xl mx-auto rounded-2xl border border-dark-500 bg-dark-800/70 p-6 sm:p-8 backdrop-blur-xl shadow-xl">
+            <ul className="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+              <li className="flex items-start gap-3">
+                <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
+                <span>The 8% Monthly rate under the Perpetual Yield Phase (Period C) applies exclusively to Investor accounts and is calculated on the invested principal amount.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
+                <span>Networker/Affiliate accounts continue to earn strictly according to their existing plan structure (daily ROI rates and 21-level affiliate commissions); this phase does not alter Networker earnings or rates in any way.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
+                <span>Investors may withdraw their principal amount at any time, with no lock-in period, subject to standard processing timelines.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
+                <span>Daily/Monthly ROI earnings are separate from the principal and are credited according to the applicable Period (A, B, or C) rate active at that time.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
+                <span>All earnings (ROI + affiliate income + achievement rewards) are subject to a maximum income cap: 3x for Investors and 5x for Networkers, calculated on total activation/investment amount.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
+                <span>Once the income cap is reached, no further ROI, affiliate, or bonus earnings will be credited to that account/package.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
+                <span>Achievement rewards and affiliate commissions are credited only after all eligibility conditions (active status, direct referral requirements, business volume, etc.) are met.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
+                <span>The company reserves the right to revise ROI rates, phase periods, or terms with prior notice on the platform.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
+                <span>All withdrawals are subject to applicable processing fees and timelines as set by the platform.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
+                <span>Users are responsible for ensuring their account and payment details are accurate; the company is not liable for losses due to incorrect information provided by the user.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* 5X Income Cap */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-extrabold text-white mb-2">
-              Maximum <span className="gradient-text">5X Income Cap</span>
+              Maximum <span className="gradient-text">Income Cap</span>
             </h2>
             <p className="text-gray-400 text-sm">
-              Cap applies to the sum of ROI + Level Income (totalEarned). Achievement rewards do not count toward cap.
+                              Cap applies to the sum of ROI + Level Income (totalEarned). Investors are capped at 3× their investment, while Networkers have a 5× cap. Achievement rewards do not count toward cap.
             </p>
           </div>
 
           <div className="max-w-3xl mx-auto">
-            <div className="rounded-2xl border border-gold-500/40 bg-dark-800/80 p-8 backdrop-blur-xl shadow-xl shadow-gold-500/5">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-black uppercase text-gold-400 tracking-wider">Universal Earning Limit</span>
-                <span className="px-3.5 py-1 rounded-full text-xs font-extrabold bg-gold-400 text-dark-900 shadow-md">
-                  5X CAP
-                </span>
-              </div>
-              <h3 className="text-2xl font-black text-white mb-2">500% Total Return Cap</h3>
-              <p className="text-sm text-gray-300 mb-6 leading-relaxed">
-                Every account enjoys up to <strong>500% (5 × Total Invested)</strong> cumulative earnings across ROI distributions and referral level commissions. Once the 5X threshold is reached, simply reinvest or add new capital to continue earning.
-              </p>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
-                  <div className="font-bold text-white mb-1">$1,000 Investment</div>
-                  <div className="text-gold-400 font-semibold text-sm">→ $5,000 Maximum Cap</div>
-                </div>
-                <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
-                  <div className="font-bold text-white mb-1">$5,000 Investment</div>
-                  <div className="text-gold-400 font-semibold text-sm">→ $25,000 Maximum Cap</div>
-                </div>
-              </div>
-            </div>
-          </div>
+  <div className="grid sm:grid-cols-2 gap-4">
+    {/* Investor Card */}
+    <div className="rounded-2xl border border-gold-500/40 bg-dark-800/80 p-8 backdrop-blur-xl shadow-xl shadow-gold-500/5">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xs font-black uppercase text-gold-400 tracking-wider">INVESTOR EARNING LIMIT</span>
+        <span className="px-3.5 py-1 rounded-full text-xs font-extrabold bg-gold-400 text-dark-900 shadow-md">
+          3X CAP
+        </span>
+      </div>
+      <h3 className="text-2xl font-black text-white mb-2">300% Total Return Cap</h3>
+      <p className="text-sm text-gray-300 mb-6 leading-relaxed">
+        Investor accounts earn up to 300% (3 × Total Invested) in cumulative ROI earnings. Once the 3X threshold is reached, principal can be withdrawn or reinvested to continue earning.
+      </p>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
+          <div className="font-bold text-white mb-1">$1,000 Investment</div>
+          <div className="text-gold-400 font-semibold text-sm">→ $3,000 Maximum Cap</div>
+        </div>
+        <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
+          <div className="font-bold text-white mb-1">$5,000 Investment</div>
+          <div className="text-gold-400 font-semibold text-sm">→ $15,000 Maximum Cap</div>
+        </div>
+      </div>
+    </div>
+
+    {/* Networker Card */}
+    <div className="rounded-2xl border border-gold-500/40 bg-dark-800/80 p-8 backdrop-blur-xl shadow-xl shadow-gold-500/5">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xs font-black uppercase text-gold-400 tracking-wider">NETWORKER EARNING LIMIT</span>
+        <span className="px-3.5 py-1 rounded-full text-xs font-extrabold bg-gold-400 text-dark-900 shadow-md">
+          5X CAP
+        </span>
+      </div>
+      <h3 className="text-2xl font-black text-white mb-2">500% Total Return Cap</h3>
+      <p className="text-sm text-gray-300 mb-6 leading-relaxed">
+        Networker/Affiliate accounts earn up to 500% (5 × Total Invested) in cumulative earnings across ROI distributions and referral level commissions. Once the 5X threshold is reached, simply reinvest or add new capital to continue earning.
+      </p>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
+          <div className="font-bold text-white mb-1">$1,000 Investment</div>
+          <div className="text-gold-400 font-semibold text-sm">→ $5,000 Maximum Cap</div>
+        </div>
+        <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
+          <div className="font-bold text-white mb-1">$5,000 Investment</div>
+          <div className="text-gold-400 font-semibold text-sm">→ $25,000 Maximum Cap</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
         </div>
       </section>
 
