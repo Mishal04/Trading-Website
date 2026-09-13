@@ -5,9 +5,42 @@ import { investorAPI } from '../../services/api';
 import {
   TrendingUp, Wallet, BarChart2, Clock, LogOut,
   PlusCircle, CheckCircle2, XCircle, AlertCircle,
-  RefreshCw, ChevronDown, ChevronUp, ArrowUpRight
+  RefreshCw, ChevronDown, ChevronUp, ArrowUpRight,
+  Copy, Check as CheckIcon, Building2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// ─── payment method details (shared with InvestTab) ───────────────────────────
+const PAYMENT_METHODS = {
+  BEP20: {
+    label:   'USDT (BEP20)',
+    sub:     'Binance Smart Chain',
+    type:    'crypto',
+    address: '0x7bb5df2531e8ac0086eba3a0e68c25fb0ec0f4cd',
+    note:    'Send only USDT on the BNB Smart Chain (BEP20). Sending on the wrong network will result in permanent loss.',
+  },
+  TRC20: {
+    label:   'USDT (TRC20)',
+    sub:     'TRON Network',
+    type:    'crypto',
+    address: 'TC5WYzEVnwETtvPq8FZzYkKzcNoqMG9ezV',
+    note:    "Send only USDT on the TRON network (TRC20). Do not send from exchanges that don't support TRC20.",
+  },
+  BANK: {
+    label: 'Bank Transfer',
+    sub:   'India — IMPS / NEFT / RTGS',
+    type:  'bank',
+    fields: [
+      { label: 'Bank Name',      value: 'UTKARSH SFB' },
+      { label: 'Account Name',   value: 'OBO ENTERPRISES' },
+      { label: 'Account Number', value: '1603020000000728' },
+      { label: 'IFSC Code',      value: 'UTKS0001603' },
+      { label: 'Branch',         value: 'Kharghar' },
+      { label: 'Account Type',   value: 'CURRENT' },
+    ],
+    note: 'Use IMPS / NEFT / RTGS. Enter the bank reference number as your Transaction ID below.',
+  },
+};
 
 const PLAN_A = [
   { pkg: 1, amounts: [100, 200, 300, 900],            rate: '0.75%/day', label: 'Package 1' },
@@ -65,9 +98,18 @@ export default function InvestorDashboard() {
 
   // New investment form
   const [invAmount, setInvAmount] = useState('');
+  const [payMethod, setPayMethod] = useState('BEP20');
+  const [copiedField, setCopiedField] = useState(null);
   const [txId, setTxId] = useState('');
   const [payNote, setPayNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const copyToClipboard = (text, fieldKey) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldKey);
+    toast.success('Copied to clipboard!');
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -295,6 +337,105 @@ export default function InvestorDashboard() {
                     ))
                   )}
                 </div>
+              </div>
+
+              {/* ── Payment Method ── */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">
+                  Payment Method
+                </label>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {Object.entries(PAYMENT_METHODS).map(([id, method]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setPayMethod(id)}
+                      className="p-2.5 rounded-xl text-left border transition-all"
+                      style={{
+                        background:  payMethod === id ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)',
+                        borderColor: payMethod === id ? '#f59e0b'               : 'rgba(255,255,255,0.1)',
+                        boxShadow:   payMethod === id ? '0 0 0 1px rgba(245,158,11,0.4)' : 'none',
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold" style={{ color: payMethod === id ? '#f59e0b' : '#fff' }}>
+                          {method.label}
+                        </span>
+                        {payMethod === id && <CheckCircle2 size={13} style={{ color: '#f59e0b' }} />}
+                      </div>
+                      <span className="text-[10px] text-gray-500">{method.sub}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Detail card */}
+                {(() => {
+                  const method = PAYMENT_METHODS[payMethod];
+                  if (!method) return null;
+
+                  if (method.type === 'crypto') {
+                    return (
+                      <div className="rounded-xl border p-4 space-y-3"
+                           style={{ background: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                          <Building2 size={12} style={{ color: '#f59e0b' }} />
+                          Send {method.label} to this address
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="flex-1 font-mono text-xs text-white break-all rounded-lg px-3 py-2.5 select-all"
+                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            {method.address}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(method.address, payMethod)}
+                            className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-colors"
+                            style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}
+                          >
+                            {copiedField === payMethod
+                              ? <><CheckIcon size={12} /> Copied</>
+                              : <><Copy size={12} /> Copy</>}
+                          </button>
+                        </div>
+                        <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(245,158,11,0.75)' }}>
+                          ⚠ {method.note}
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="rounded-xl border p-4 space-y-2"
+                         style={{ background: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                        <Building2 size={12} style={{ color: '#f59e0b' }} />
+                        Bank Transfer Details
+                      </div>
+                      {method.fields.map((f) => (
+                        <div key={f.label}
+                             className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
+                             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          <span className="text-[11px] text-gray-500 shrink-0 w-28">{f.label}</span>
+                          <span className="flex-1 text-xs font-bold text-white text-right font-mono">{f.value}</span>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(f.value, f.label)}
+                            className="shrink-0 p-1.5 rounded-md transition-colors"
+                            style={{ background: 'rgba(255,255,255,0.06)' }}
+                            title={`Copy ${f.label}`}
+                          >
+                            {copiedField === f.label
+                              ? <CheckIcon size={12} style={{ color: '#f59e0b' }} />
+                              : <Copy size={12} className="text-gray-400 hover:text-amber-400" />}
+                          </button>
+                        </div>
+                      ))}
+                      <p className="text-[11px] leading-relaxed pt-1" style={{ color: 'rgba(245,158,11,0.75)' }}>
+                        ⚠ {method.note}
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div>
