@@ -5,7 +5,40 @@ import {
   PiggyBank, Sparkles, CheckCircle2, TrendingUp,
   DollarSign, RefreshCw, Layers, Clock, XCircle,
   AlertTriangle, Hash, FileText, MessageSquare,
+  Copy, Check as CheckIcon, Building2,
 } from 'lucide-react';
+
+// ─── payment method details ───────────────────────────────────────────────────
+const PAYMENT_METHODS = {
+  BEP20: {
+    label:   'USDT (BEP20)',
+    sub:     'Binance Smart Chain',
+    type:    'crypto',
+    address: '0x7bb5df2531e8ac0086eba3a0e68c25fb0ec0f4cd',
+    note:    'Send only USDT on the BNB Smart Chain (BEP20). Sending other tokens or on wrong network will result in permanent loss.',
+  },
+  TRC20: {
+    label:   'USDT (TRC20)',
+    sub:     'TRON Network',
+    type:    'crypto',
+    address: 'TC5WYzEVnwETtvPq8FZzYkKzcNoqMG9ezV',
+    note:    'Send only USDT on the TRON network (TRC20). Do not send from exchanges that don\'t support TRC20.',
+  },
+  BANK: {
+    label: 'Bank Transfer',
+    sub:   'India — IMPS / NEFT / RTGS',
+    type:  'bank',
+    fields: [
+      { label: 'Bank Name',       value: 'UTKARSH SFB' },
+      { label: 'Account Name',    value: 'OBO ENTERPRISES' },
+      { label: 'Account Number',  value: '1603020000000728' },
+      { label: 'IFSC Code',       value: 'UTKS0001603' },
+      { label: 'Branch',          value: 'Kharghar' },
+      { label: 'Account Type',    value: 'CURRENT' },
+    ],
+    note: 'Use IMPS / NEFT / RTGS. Enter the bank reference number as your Transaction ID below.',
+  },
+};
 
 // ─── package definitions ──────────────────────────────────────────────────────
 const PACKAGES = [
@@ -79,10 +112,18 @@ const getPackagePreview = (val) => {
 export default function InvestTab({ onRefresh }) {
   const [amount, setAmount]             = useState('1000');
   const [network, setNetwork]           = useState('BEP20');
+  const [copiedField, setCopiedField]   = useState(null);
   const [transactionId, setTransactionId] = useState('');
   const [paymentProof, setPaymentProof] = useState('');
   const [paymentNote, setPaymentNote]   = useState('');
   const [loading, setLoading]           = useState(false);
+
+  const copyToClipboard = (text, fieldKey) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldKey);
+    toast.success('Copied to clipboard!');
+    setTimeout(() => setCopiedField(null), 2000);
+  };
   const [myInvestments, setMyInvestments] = useState([]);
   const [fetching, setFetching]         = useState(true);
 
@@ -289,37 +330,99 @@ export default function InvestTab({ onRefresh }) {
               <span className="text-xs text-gray-500 ml-1">Admin will verify on blockchain</span>
             </div>
 
-            {/* Network Selector */}
+            {/* Network / Payment Method Selector */}
             <div>
               <label className="text-xs font-semibold text-gray-300 mb-2 block">
-                Payment Network <span className="text-red-400">*</span>
+                Payment Method <span className="text-red-400">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { id: 'BEP20', label: 'USDT (BEP20)', sub: 'Binance Smart Chain' },
-                  { id: 'TRC20', label: 'USDT (TRC20)', sub: 'TRON Network' }
-                ].map((net) => (
+              <div className="grid grid-cols-3 gap-3">
+                {Object.entries(PAYMENT_METHODS).map(([id, method]) => (
                   <button
-                    key={net.id}
+                    key={id}
                     type="button"
-                    onClick={() => setNetwork(net.id)}
+                    onClick={() => setNetwork(id)}
                     className={`p-3 rounded-xl text-left border transition-all ${
-                      network === net.id
+                      network === id
                         ? 'bg-gold-400/10 border-gold-400 ring-1 ring-gold-400/50 shadow-md'
                         : 'bg-dark-800 border-dark-500 hover:border-dark-400 text-gray-400'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold ${network === net.id ? 'text-gold-400' : 'text-white'}`}>
-                        {net.label}
+                      <span className={`text-xs font-bold ${network === id ? 'text-gold-400' : 'text-white'}`}>
+                        {method.label}
                       </span>
-                      {network === net.id && <CheckCircle2 size={14} className="text-gold-400" />}
+                      {network === id && <CheckCircle2 size={14} className="text-gold-400 shrink-0" />}
                     </div>
-                    <span className="text-[10px] text-gray-500">{net.sub}</span>
+                    <span className="text-[10px] text-gray-500">{method.sub}</span>
                   </button>
                 ))}
               </div>
             </div>
+
+            {/* Payment destination details */}
+            {(() => {
+              const method = PAYMENT_METHODS[network];
+              if (!method) return null;
+
+              if (method.type === 'crypto') {
+                return (
+                  <div className="rounded-xl border border-dark-500 bg-dark-950/60 p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      <Building2 size={13} className="text-gold-400" />
+                      Send {method.label} to this address
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="flex-1 font-mono text-xs text-white break-all bg-dark-900 border border-dark-600 rounded-lg px-3 py-2.5 select-all">
+                        {method.address}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(method.address, network)}
+                        className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-gold-400/10 border border-gold-400/30 text-gold-400 hover:bg-gold-400/20 transition-colors text-xs font-bold"
+                      >
+                        {copiedField === network
+                          ? <><CheckIcon size={13} /> Copied</>
+                          : <><Copy size={13} /> Copy</>}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-amber-400/80 leading-relaxed">
+                      ⚠ {method.note}
+                    </p>
+                  </div>
+                );
+              }
+
+              // Bank transfer
+              return (
+                <div className="rounded-xl border border-dark-500 bg-dark-950/60 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <Building2 size={13} className="text-gold-400" />
+                    Bank Transfer Details
+                  </div>
+                  <div className="space-y-2">
+                    {method.fields.map((f) => (
+                      <div key={f.label} className="flex items-center justify-between gap-3 rounded-lg bg-dark-900 border border-dark-600 px-3 py-2.5">
+                        <span className="text-[11px] text-gray-500 shrink-0 w-32">{f.label}</span>
+                        <span className="flex-1 text-xs font-bold text-white text-right font-mono">{f.value}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(f.value, f.label)}
+                          className="shrink-0 p-1.5 rounded-md bg-dark-700 text-gray-400 hover:text-gold-400 transition-colors"
+                          title={`Copy ${f.label}`}
+                        >
+                          {copiedField === f.label
+                            ? <CheckIcon size={12} className="text-gold-400" />
+                            : <Copy size={12} />}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-amber-400/80 leading-relaxed">
+                    ⚠ {method.note}
+                  </p>
+                </div>
+              );
+            })()}
 
             {/* Transaction ID — required */}
             <div>
