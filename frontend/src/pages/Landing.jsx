@@ -34,9 +34,9 @@ const ROI_PERIODS = [
     dates: 'Sep 10, 2026 – Dec 31, 2026',
     desc: 'High Growth Phase',
     rates: [
-      { pkg: '$100 – $1,000', rate: '1.0% Daily' },
-      { pkg: '$2,000 – $5,000', rate: '1.5% Daily' },
-      { pkg: '$7,000 – $10,000', rate: '2.0% Daily' },
+      { pkg: '$100 – $1,000', rate: '0.75% Daily' },
+      { pkg: '$2,000 – $5,000', rate: '1.0% Daily' },
+      { pkg: '$7,000 – $10,000', rate: '1.25% Daily' },
     ],
     highlight: true,
   },
