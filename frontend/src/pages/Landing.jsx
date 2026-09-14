@@ -540,9 +540,9 @@ export default function Landing() {
             <div className="space-y-3">
               {[
                 { label: 'Package 1', amounts: '$100, $200, $300, $900', rate: '0.75% / day' },
-                { label: 'Package 2', amounts: '$1,000 – $5,000',        rate: '0.90% / day' },
-                { label: 'Package 3', amounts: '$6,000 – $9,000',        rate: '1.00% / day' },
-                { label: 'Package 4', amounts: '$10,000+',               rate: '1.25% / day' }
+                { label: 'Package 2', amounts: '$1,000 – $5,000',        rate: '1.00% / day' },
+                { label: 'Package 3', amounts: '$6,000 – $9,000',        rate: '1.25% / day' },
+                { label: 'Package 4', amounts: '$10,000+',               rate: '1.50% / day' }
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between rounded-xl border border-white/8 px-4 py-3"
                      style={{ background: 'rgba(255,255,255,0.03)' }}>
