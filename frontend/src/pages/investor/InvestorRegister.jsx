@@ -60,8 +60,8 @@ export default function InvestorRegister() {
 
           <h1 className="text-2xl font-extrabold text-white mb-1">Create Investor Account</h1>
           <p className="text-gray-400 text-sm mb-6">
-            You'll be assigned <span className="text-amber-400 font-semibold">Plan A</span> by default.
-            Admin can update your plan after review.
+            You'll be assigned <span className="text-amber-400 font-semibold">Phase 1</span> by default.
+            Admin can update your phase after review.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -145,11 +145,11 @@ export default function InvestorRegister() {
              style={{ background: 'rgba(245,158,11,0.04)' }}>
           <div className="flex items-center gap-2 mb-5">
             <BadgeDollarSign size={22} className="text-amber-400" />
-            <h2 className="text-xl font-bold text-white">Plan A Preview</h2>
+            <h2 className="text-xl font-bold text-white">Phase 1 Preview</h2>
             <span className="ml-auto text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-semibold">Default</span>
           </div>
           <p className="text-gray-400 text-sm mb-5">
-            All new investors start on <strong className="text-amber-400">Plan A</strong>. Admin may adjust your plan after account review.
+            All new investors start on <strong className="text-amber-400">Phase 1</strong>. Admin may adjust your phase after account review.
           </p>
 
           <div className="space-y-3">

@@ -522,15 +522,15 @@ export default function Landing() {
           </p>
         </div>
 
-        {/* Plan A & Plan B cards side by side */}
+        {/* Phase 1 & Phase 2 cards side by side */}
         <div className="grid md:grid-cols-2 gap-6 mb-12">
-          {/* Plan A */}
+          {/* Phase 1 */}
           <div className="rounded-3xl border p-7"
                style={{ background: 'rgba(245,158,11,0.05)', borderColor: 'rgba(245,158,11,0.3)' }}>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-2xl font-black text-white">Plan A</h3>
-                <p className="text-amber-400 text-sm font-semibold">Higher Daily Rates</p>
+                <h3 className="text-2xl font-black text-white">Phase 1</h3>
+                <p className="text-amber-400 text-sm font-semibold">Months 1–6 from Activation</p>
               </div>
               <span className="px-3 py-1.5 rounded-full text-xs font-bold text-dark-900"
                     style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}>
@@ -555,17 +555,17 @@ export default function Landing() {
               ))}
             </div>
             <p className="text-gray-500 text-xs mt-4 italic">
-              Plan A daily ROI rates are active for 6 months from activation.
+              Phase 1 daily ROI rates are active for months 1–6 from activation.
             </p>
           </div>
 
-          {/* Plan B */}
+          {/* Phase 2 */}
           <div className="rounded-3xl border p-7"
                style={{ background: 'rgba(139,92,246,0.05)', borderColor: 'rgba(139,92,246,0.3)' }}>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-2xl font-black text-white">Plan B</h3>
-                <p className="text-purple-400 text-sm font-semibold">Standard Daily Rates</p>
+                <h3 className="text-2xl font-black text-white">Phase 2</h3>
+                <p className="text-purple-400 text-sm font-semibold">Months 6–12 from Activation</p>
               </div>
               <span className="px-3 py-1.5 rounded-full text-xs font-bold text-white border border-purple-500/50"
                     style={{ background: 'rgba(139,92,246,0.2)' }}>
@@ -590,7 +590,7 @@ export default function Landing() {
               ))}
             </div>
             <p className="text-gray-500 text-xs mt-4 italic">
-              Plan B daily ROI rates are active for 6 months from activation.
+              Phase 2 daily ROI rates are active for months 6–12 from activation.
             </p>
           </div>
         </div>

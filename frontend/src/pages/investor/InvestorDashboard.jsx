@@ -188,7 +188,7 @@ export default function InvestorDashboard() {
         <div className="flex items-center gap-4">
           <div className="text-right hidden sm:block">
             <p className="text-white font-semibold text-sm">{investor?.name}</p>
-            <p className="text-amber-400 text-xs font-bold">Plan {investor?.plan || 'A'}</p>
+            <p className="text-amber-400 text-xs font-bold">Phase {investor?.plan === 'A' ? '1' : investor?.plan === 'B' ? '2' : '1'}</p>
           </div>
           {data?.sixMonthsReached && (
             <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full font-semibold">
@@ -251,7 +251,7 @@ export default function InvestorDashboard() {
             <div className="rounded-3xl border border-white/10 p-6" style={{ background: 'rgba(255,255,255,0.04)' }}>
               <h3 className="text-white font-bold mb-4 flex items-center gap-2">
                 <BarChart2 size={18} className="text-amber-400" />
-                Your Plan {investor?.plan} — Package Rates
+                Your Phase {investor?.plan === 'A' ? '1' : '2'} — Package Rates
               </h3>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {planPackages.map(p => (
@@ -295,7 +295,7 @@ export default function InvestorDashboard() {
                          style={{ background: 'rgba(255,255,255,0.03)' }}>
                       <div>
                         <p className="text-white font-semibold text-sm">${inv.amount.toLocaleString()} – Pkg {inv.packageNumber}</p>
-                        <p className="text-gray-500 text-xs">Plan {inv.plan} · {(inv.dailyRate * 100).toFixed(2)}%/day</p>
+                        <p className="text-gray-500 text-xs">Phase {inv.plan === 'A' ? '1' : '2'} · {(inv.dailyRate * 100).toFixed(2)}%/day</p>
                       </div>
                       <div className="text-right">
                         <StatusBadge status={inv.status} />
@@ -314,7 +314,7 @@ export default function InvestorDashboard() {
           <div className="rounded-3xl border border-white/10 p-8 max-w-lg" style={{ background: 'rgba(255,255,255,0.04)' }}>
             <h3 className="text-white font-bold text-xl mb-2">New Investment</h3>
             <p className="text-gray-400 text-sm mb-6">
-              Invest based on your <strong className="text-amber-400">Plan {investor?.plan}</strong> packages.
+              Invest based on your <strong className="text-amber-400">Phase {investor?.plan === 'A' ? '1' : '2'}</strong> packages.
               Your submission will be reviewed by admin.
             </p>
 
@@ -489,7 +489,7 @@ export default function InvestorDashboard() {
                     {investments.map(inv => (
                       <tr key={inv._id} className="hover:bg-white/2 transition">
                         <td className="py-3 text-white font-semibold">${inv.amount.toLocaleString()}</td>
-                        <td className="py-3 text-gray-300">Plan {inv.plan} / Pkg {inv.packageNumber}</td>
+                        <td className="py-3 text-gray-300">Phase {inv.plan === 'A' ? '1' : '2'} / Pkg {inv.packageNumber}</td>
                         <td className="py-3 text-amber-400 font-semibold">
                           {inv.isMonthlyMode ? '8%/mo' : `${(inv.dailyRate * 100).toFixed(2)}%/d`}
                         </td>

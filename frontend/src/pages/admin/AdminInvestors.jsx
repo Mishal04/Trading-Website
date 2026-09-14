@@ -181,9 +181,9 @@ export default function AdminInvestors() {
             <select value={invPlanFilter}
                     onChange={e => { setInvPlanFilter(e.target.value); setInvPage(1); }}
                     className="px-4 py-2.5 rounded-xl bg-dark-800 border border-white/10 text-white text-sm focus:outline-none focus:border-amber-500 transition">
-              <option value="" className="bg-dark-800 text-white">All Plans</option>
-              <option value="A" className="bg-dark-800 text-white">Plan A</option>
-              <option value="B" className="bg-dark-800 text-white">Plan B</option>
+              <option value="" className="bg-dark-800 text-white">All Phases</option>
+              <option value="A" className="bg-dark-800 text-white">Phase 1</option>
+              <option value="B" className="bg-dark-800 text-white">Phase 2</option>
             </select>
             <span className="px-3 py-2.5 text-gray-400 text-sm">{invTotal} total</span>
           </div>
@@ -221,8 +221,8 @@ export default function AdminInvestors() {
                         <select value={inv.plan}
                                 onChange={e => handlePlanChange(inv._id, e.target.value)}
                                 className="text-xs bg-dark-800 border border-white/10 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-amber-500 cursor-pointer transition">
-                          <option value="A" className="bg-dark-800 text-white">Plan A</option>
-                          <option value="B" className="bg-dark-800 text-white">Plan B</option>
+                          <option value="A" className="bg-dark-800 text-white">Phase 1</option>
+                          <option value="B" className="bg-dark-800 text-white">Phase 2</option>
                         </select>
                         <button onClick={() => handleToggle(inv._id)}
                                 className="text-xs border border-white/10 text-gray-400 hover:text-white px-2.5 py-1.5 rounded-lg transition">
