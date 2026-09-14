@@ -595,9 +595,9 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* After-1-year transition note */}
+        {/* After-6-months transition note */}
         <p className="text-center text-gray-400 text-sm mb-10">
-          After 1 year, all active investors transition to a fixed{' '}
+          After 6 months, all active investors transition to a fixed{' '}
           <span className="text-emerald-400 font-semibold">8%–10% monthly rate</span>.
         </p>
 
