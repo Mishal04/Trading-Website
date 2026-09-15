@@ -32,6 +32,7 @@ const ROI_PERIODS = [
   {
     name: 'Period 1',
     dates: 'Sep 10, 2026 – Dec 31, 2026',
+    phaseNote: 'This phase runs for 6 months from activation.',
     desc: 'High Growth Phase',
     rates: [
       { pkg: '$100 – $1,000', rate: '0.75% Daily' },
@@ -43,6 +44,7 @@ const ROI_PERIODS = [
   {
     name: 'Period 2',
     dates: 'Jan 01, 2027 – Apr 30, 2027',
+    phaseNote: 'This phase runs for 6 months from activation.',
     desc: 'Consolidation Phase',
     rates: [
       { pkg: '$100 – $1,000', rate: '0.5% Daily' },
@@ -237,7 +239,11 @@ export default function Landing() {
                   <Calendar size={16} className="text-gold-400" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-1">{period.desc}</h3>
-                <p className="text-xs font-mono text-gray-400 mb-6">{period.dates}</p>
+                <p className="text-xs font-mono text-gray-400 mb-1">{period.dates}</p>
+                {period.phaseNote && (
+                  <p className="text-[11px] text-gray-500 italic mb-6">{period.phaseNote}</p>
+                )}
+                {!period.phaseNote && <div className="mb-6" />}
 
                 <div className="space-y-3">
                   {period.rates.map((r) => (
