@@ -30,7 +30,7 @@ import InstitutionalTradingSection from '../components/trading/InstitutionalTrad
 
 const ROI_PERIODS = [
   {
-    name: 'Period 1',
+    name: 'Phase 1',
     dates: 'Sep 10, 2026 – Dec 31, 2026',
     phaseNote: 'This phase runs for 6 months from activation.',
     desc: 'High Growth Phase',
@@ -42,7 +42,7 @@ const ROI_PERIODS = [
     highlight: true,
   },
   {
-    name: 'Period 2',
+    name: 'Phase 2',
     dates: 'Jan 01, 2027 – Apr 30, 2027',
     phaseNote: 'This phase runs for 6 months from activation.',
     desc: 'Consolidation Phase',
@@ -53,7 +53,7 @@ const ROI_PERIODS = [
     ],
   },
   {
-    name: 'Period 3',
+    name: 'Phase 3',
     dates: 'May 01, 2027 Onwards',
     desc: 'Perpetual Yield Phase',
     rates: [
@@ -332,7 +332,7 @@ export default function Landing() {
             <ul className="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
               <li className="flex items-start gap-3">
                 <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
-                <span>The 8% Monthly rate under the Perpetual Yield Phase (Period 3) applies exclusively to Investor accounts and is calculated on the invested principal amount.</span>
+                <span>The 8% Monthly rate under the Perpetual Yield Phase (Phase 3) applies exclusively to Investor accounts and is calculated on the invested principal amount.</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
