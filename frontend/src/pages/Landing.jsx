@@ -35,8 +35,8 @@ const ROI_PERIODS = [
     phaseNote: 'This phase runs for 6 months from activation.',
     desc: 'High Growth Phase',
     rates: [
-      { pkg: '$100 – $1,000', rate: '0.75% Daily' },
-      { pkg: '$2,000 – $5,000', rate: '1.0% Daily' },
+      { pkg: '$100 – $900', rate: '0.75% Daily' },
+      { pkg: '$1,000 – $5,000', rate: '1.0% Daily' },
       { pkg: '$7,000 Onwards', rate: '1.25% Daily' },
     ],
     highlight: true,

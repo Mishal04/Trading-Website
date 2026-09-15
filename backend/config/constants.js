@@ -12,8 +12,8 @@ module.exports = {
       start: new Date('2026-09-10'),
       end: new Date('2027-03-09'),
       rates: [
-        { min: 100, max: 1000, daily: 0.01 },
-        { min: 2000, max: 5000, daily: 0.015 },
+        { min: 100, max: 900, daily: 0.01 },
+        { min: 1000, max: 5000, daily: 0.015 },
         { min: 7000, max: Infinity, daily: 0.02 }
       ]
     },
