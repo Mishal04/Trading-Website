@@ -11,7 +11,7 @@ const { protect } = require('../middleware/auth');
 const validateWithdrawalRequest = [
   body('amount')
     .isNumeric().withMessage('Amount must be a number')
-    .custom(val => Number(val) >= 10).withMessage('Minimum withdrawal amount is $10')
+    .custom(val => Number(val) >= 20).withMessage('Minimum withdrawal amount is $20')
     .custom(val => Number(val) <= 500000).withMessage('Maximum withdrawal amount is $500,000'),
   body('type')
     .isIn(['capital', 'profit', 'commission']).withMessage('Type must be capital, profit, or commission'),

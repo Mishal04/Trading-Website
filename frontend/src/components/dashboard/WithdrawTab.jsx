@@ -69,8 +69,8 @@ export default function WithdrawTab({ user, onRefresh }) {
       return;
     }
 
-    if (num < 10) {
-      toast.error('Minimum withdrawal amount is 10 USDT');
+    if (num < 20) {
+      toast.error('Minimum withdrawal amount is 20 USDT');
       return;
     }
 
@@ -258,7 +258,7 @@ export default function WithdrawTab({ user, onRefresh }) {
                     MAX
                   </button>
                 </div>
-                <p className="text-[11px] text-gray-500 mt-1">Minimum payout is <strong>10 USDT</strong>.</p>
+                <p className="text-[11px] text-gray-500 mt-1">Minimum payout is <strong>20 USDT</strong>.</p>
               </div>
 
               <div>

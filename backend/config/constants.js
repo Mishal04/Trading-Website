@@ -103,7 +103,7 @@ module.exports = {
 
   // Withdrawal settings
   WITHDRAWAL: {
-    minAmount: 10,
+    minAmount: 20,
     networks: ['BEP20', 'TRC20']
   },
 

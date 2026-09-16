@@ -500,9 +500,9 @@ export default function Landing() {
 
             <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-6 text-center">
               <Clock className="mx-auto mb-3 text-emerald-400" size={28} />
-              <h3 className="font-bold text-white mb-1">Min $10 USDT Withdrawal</h3>
+              <h3 className="font-bold text-white mb-1">Min $20 USDT Withdrawal</h3>
               <p className="text-xs text-gray-400">
-                Low $10 minimum payout threshold. Regular daily withdrawal request window: <strong>10:30 PM to 12:00 Midnight</strong>.
+                Low $20 minimum payout threshold. Regular daily withdrawal request window: <strong>10:30 PM to 12:00 Midnight</strong>.
               </p>
             </div>
 
