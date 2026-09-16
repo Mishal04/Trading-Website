@@ -56,9 +56,10 @@ const ROI_PERIODS = [
     dates: 'Sep 01, 2027 Onwards',
     desc: 'Perpetual Yield Phase',
     rates: [
-      { pkg: 'All Packages ($100+)', rate: '8.0% Monthly' },
+      { pkg: 'All Packages ($100+)', rate: '8%–10% Monthly' },
     ],
-    note: 'This 8% Monthly rate applies only to Investor accounts. Networker/Affiliate plan rates remain unchanged and are not affected by this phase.'
+    note: 'This 8%–10% Monthly rate applies only to Investor accounts. Networker/Affiliate plan rates remain unchanged and are not affected by this phase.',
+    noteBold: '8%–10% Monthly'
   },
 ];
 
@@ -253,7 +254,11 @@ export default function Landing() {
                   ))}
                   {period.note && (
                     <p className="text-[11px] text-gray-400 leading-relaxed pt-1.5 px-0.5 border-t border-dark-600/50">
-                      {period.note}
+                      {period.noteBold
+                        ? period.note.split(period.noteBold).map((part, i, arr) => (
+                            <span key={i}>{part}{i < arr.length - 1 && <strong className="text-white">{period.noteBold}</strong>}</span>
+                          ))
+                        : period.note}
                     </p>
                   )}
                 </div>
@@ -331,7 +336,7 @@ export default function Landing() {
             <ul className="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
               <li className="flex items-start gap-3">
                 <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
-                <span>The 8% Monthly rate under the Perpetual Yield Phase (Phase 3) applies exclusively to Investor accounts and is calculated on the invested principal amount.</span>
+                <span>The <strong>8%–10% Monthly</strong> rate under the Perpetual Yield Phase (Phase 3) applies exclusively to Investor accounts and is calculated on the invested principal amount.</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
