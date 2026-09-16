@@ -403,7 +403,7 @@ export default function Landing() {
       </div>
       <h3 className="text-2xl font-black text-white mb-2">300% Total Return Cap</h3>
       <p className="text-sm text-gray-300 mb-6 leading-relaxed">
-        Investor accounts earn up to 300% (3 × Total Invested) in cumulative ROI earnings. Once the 3X threshold is reached, principal can be withdrawn or reinvested to continue earning.
+        Investor accounts earn up to 300% (3 × Total Invested) in cumulative ROI earnings. Once the 3X threshold is reached, principal is already merged within the 3× returns — reinvest here to continue earning.
       </p>
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
