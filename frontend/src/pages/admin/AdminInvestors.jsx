@@ -293,7 +293,7 @@ export default function AdminInvestors() {
                       <span className="text-gray-500 text-xs ml-1">Pkg {inv.packageNumber}</span>
                     </td>
                     <td className="px-5 py-4 text-amber-400 font-semibold">
-                      {inv.isMonthlyMode ? '8%/mo' : `${((inv.dailyRate || 0) * 100).toFixed(2)}%/d`}
+                      {inv.isMonthlyMode ? '8%–10%/mo' : `${((inv.dailyRate || 0) * 100).toFixed(2)}%/d`}
                     </td>
                     <td className="px-5 py-4 text-emerald-400">${(inv.totalRoiEarned || 0).toFixed(4)}</td>
                     <td className="px-5 py-4 text-gray-400">

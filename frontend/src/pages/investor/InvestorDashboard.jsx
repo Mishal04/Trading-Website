@@ -192,7 +192,7 @@ export default function InvestorDashboard() {
           </div>
           {data?.sixMonthsReached && (
             <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full font-semibold">
-              8% Monthly Mode
+              8%–10% Monthly Mode
             </span>
           )}
           <button onClick={handleLogout}
@@ -223,7 +223,7 @@ export default function InvestorDashboard() {
             <CheckCircle2 size={20} className="text-emerald-400 flex-shrink-0" />
             <div>
               <p className="text-emerald-400 font-bold text-sm">6-Month Milestone Reached</p>
-              <p className="text-gray-400 text-xs">Your ROI has switched to <strong className="text-emerald-400">8% per month</strong> on all active investments.</p>
+              <p className="text-gray-400 text-xs">Your ROI has switched to <strong className="text-emerald-400">8%–10% per month</strong> on all active investments.</p>
             </div>
           </div>
         )}
@@ -270,7 +270,7 @@ export default function InvestorDashboard() {
               <div className="mt-4 pt-4 border-t border-white/8 grid sm:grid-cols-3 gap-4 text-sm">
                 <div>
                   <p className="text-gray-500">After 6 months</p>
-                  <p className="text-emerald-400 font-bold">8% / month</p>
+                  <p className="text-emerald-400 font-bold">8%–10% / month</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Income cap</p>
@@ -491,7 +491,7 @@ export default function InvestorDashboard() {
                         <td className="py-3 text-white font-semibold">${inv.amount.toLocaleString()}</td>
                         <td className="py-3 text-gray-300">Phase {inv.plan === 'A' ? '1' : '2'} / Pkg {inv.packageNumber}</td>
                         <td className="py-3 text-amber-400 font-semibold">
-                          {inv.isMonthlyMode ? '8%/mo' : `${(inv.dailyRate * 100).toFixed(2)}%/d`}
+                          {inv.isMonthlyMode ? '8%–10%/mo' : `${(inv.dailyRate * 100).toFixed(2)}%/d`}
                         </td>
                         <td className="py-3 text-emerald-400">${inv.totalRoiEarned.toFixed(4)}</td>
                         <td className="py-3 text-gray-400">${inv.incomeCap.toFixed(2)}</td>
