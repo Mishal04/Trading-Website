@@ -20,7 +20,6 @@ import {
   Globe,
   FileText
 } from 'lucide-react';
-import ProfitCalculator from '../components/ProfitCalculator';
 
 import LiveTradingChart from '../components/trading/LiveTradingChart';
 import MarketOverviewCards from '../components/trading/MarketOverviewCards';
@@ -506,9 +505,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
-      {/* Profit Projection Calculator */}
-      <ProfitCalculator />
 
       {/* Direct Referral Commission */}
       <section className="py-12 bg-dark-900/40">
