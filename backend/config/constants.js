@@ -10,7 +10,7 @@ module.exports = {
     {
       name: 'Period A',
       start: new Date('2026-10-01'),
-      end: new Date('2027-03-31'),
+      end: new Date('2027-03-01'),
       rates: [
         { min: 100, max: 900, daily: 0.01 },
         { min: 1000, max: 5000, daily: 0.015 },
@@ -20,7 +20,7 @@ module.exports = {
     {
       name: 'Period B',
       start: new Date('2027-04-01'),
-      end: new Date('2027-09-30'),
+      end: new Date('2027-09-01'),
       rates: [
         { min: 100, max: 1000, daily: 0.005 },
         { min: 2000, max: 5000, daily: 0.0075 },
@@ -29,7 +29,7 @@ module.exports = {
     },
     {
       name: 'Period C',
-      start: new Date('2027-10-01'),
+      start: new Date('2027-09-01'),
       end: null,
       rates: [
         { min: 0, max: Infinity, monthly: 0.08 }

@@ -31,7 +31,7 @@ import InstitutionalTradingSection from '../components/trading/InstitutionalTrad
 const ROI_PERIODS = [
   {
     name: 'Phase 1',
-    dates: 'Oct 01, 2026 – Mar 31, 2027',
+    dates: 'Oct 01, 2026 – Mar 01, 2027',
     phaseNote: 'This phase runs for 6 months from activation.',
     desc: 'High Growth Phase',
     rates: [
@@ -43,7 +43,7 @@ const ROI_PERIODS = [
   },
   {
     name: 'Phase 2',
-    dates: 'Apr 01, 2027 – Sep 30, 2027',
+    dates: 'Apr 01, 2027 – Sep 01, 2027',
     phaseNote: 'This phase runs for 6 months from activation.',
     desc: 'Consolidation Phase',
     rates: [
@@ -54,7 +54,7 @@ const ROI_PERIODS = [
   },
   {
     name: 'Phase 3',
-    dates: 'Oct 01, 2027 Onwards',
+    dates: 'Sep 01, 2027 Onwards',
     desc: 'Perpetual Yield Phase',
     rates: [
       { pkg: 'All Packages ($100+)', rate: '8.0% Monthly' },
