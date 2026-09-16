@@ -169,7 +169,7 @@ export default function InvestorRegister() {
                style={{ background: 'rgba(255,255,255,0.02)' }}>
             <div className="flex justify-between text-sm">
               <span className="text-gray-400">After 6 months</span>
-              <span className="text-emerald-400 font-bold">8% / month</span>
+              <span className="text-emerald-400 font-bold">8%–10% / month</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-400">Income cap</span>
