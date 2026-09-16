@@ -36,7 +36,7 @@ const ROI_PERIODS = [
     rates: [
       { pkg: '$100 – $900', rate: '0.75% Daily' },
       { pkg: '$1,000 – $5,000', rate: '1.0% Daily' },
-      { pkg: '$7,000 Onwards', rate: '1.25% Daily' },
+      { pkg: '$7,000, $10,000, $11,000, $12,000+', rate: '1.25% Daily' },
     ],
     highlight: true,
   },
