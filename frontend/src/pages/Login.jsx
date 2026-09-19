@@ -105,6 +105,12 @@ export default function Login() {
             Register
           </Link>
         </p>
+        <p className="text-center text-xs text-gray-500 mt-3">
+          Are you an investor?{' '}
+          <Link to="/investor/login" className="text-amber-400 hover:underline">
+            Investor Portal Login →
+          </Link>
+        </p>
       </div>
     </div>
   );

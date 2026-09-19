@@ -60,6 +60,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             <Link
               to="/investor/login"
+              title="For Investor Plan A/B accounts — fixed ROI packages"
               className="text-xs font-semibold px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-all flex items-center gap-1.5"
             >
               Investor Portal
@@ -94,9 +95,10 @@ export default function Navbar() {
               <>
                 <Link
                   to="/login"
+                  title="For regular member / referral network accounts"
                   className="px-4 py-2 text-sm text-gray-300 hover:text-gold-400 transition-colors"
                 >
-                  Login
+                  User Login
                 </Link>
                 <Link
                   to="/register"
@@ -171,14 +173,14 @@ export default function Navbar() {
                   onClick={() => setOpen(false)}
                   className="block text-sm font-semibold text-amber-400 py-1"
                 >
-                  ⚡ Investor Portal (Login / Register)
+                  ⚡ Investor Portal — Fixed ROI Packages
                 </Link>
                 <Link
                   to="/login"
                   onClick={() => setOpen(false)}
                   className="block text-sm text-gray-300 hover:text-gold-400"
                 >
-                  Login
+                  User Login — Member / Referral Network
                 </Link>
                 <Link
                   to="/register"

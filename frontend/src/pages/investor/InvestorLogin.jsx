@@ -106,7 +106,7 @@ export default function InvestorLogin() {
         </p>
         <p className="text-center text-gray-600 text-xs mt-3">
           Not an investor?{' '}
-          <Link to="/login" className="text-gray-400 hover:text-white">User login →</Link>
+          <Link to="/login" className="text-gray-400 hover:text-white">User Login →</Link>
         </p>
       </div>
     </div>
