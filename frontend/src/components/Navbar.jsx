@@ -98,7 +98,7 @@ export default function Navbar() {
                   title="For regular member / referral network accounts"
                   className="px-4 py-2 text-xs font-semibold rounded-lg border border-gold-500/50 text-gold-400 hover:bg-gold-500/10 hover:border-gold-400 transition-all"
                 >
-                  User Login
+                  User Portal
                 </Link>
                 <Link
                   to="/register"
@@ -180,7 +180,7 @@ export default function Navbar() {
                   onClick={() => setOpen(false)}
                   className="block text-sm font-semibold text-gold-400 py-1 hover:text-gold-300 transition-colors"
                 >
-                  User Login
+                  User Portal
                 </Link>
                 <Link
                   to="/register"
