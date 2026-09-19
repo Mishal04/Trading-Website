@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const User = require('../models/User');
+const Investor = require('../models/Investor');
 const { validationResult } = require('express-validator');
 const {
   generateToken,
@@ -139,6 +140,14 @@ const login = async (req, res) => {
 
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
+      // Cross-check: is this email an investor account instead?
+      const investorAccount = await Investor.findOne({ email: email.toLowerCase() });
+      if (investorAccount) {
+        return res.status(401).json({
+          success: false,
+          message: 'This email is registered as an investor. Please use the Investor Login page.'
+        });
+      }
       // Generic message — don't confirm whether the email exists
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }

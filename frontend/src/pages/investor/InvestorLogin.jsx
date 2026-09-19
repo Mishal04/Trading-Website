@@ -18,7 +18,7 @@ export default function InvestorLogin() {
       await login(form.email, form.password);
       navigate('/investor/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      toast.error(err.response?.data?.message || 'Login failed', { id: 'investor-login-error' });
     } finally {
       setLoading(false);
     }

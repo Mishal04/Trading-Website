@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const Investor = require('../models/Investor');
+const User = require('../models/User');
 const InvestorInvestment = require('../models/InvestorInvestment');
 const {
   getInvestorPackageInfo,
@@ -82,6 +83,14 @@ const loginInvestor = async (req, res) => {
 
     const investor = await Investor.findOne({ email: email.toLowerCase() }).select('+password');
     if (!investor) {
+      // Cross-check: is this email a regular user account instead?
+      const regularUser = await User.findOne({ email: email.toLowerCase() });
+      if (regularUser) {
+        return res.status(401).json({
+          success: false,
+          message: 'This email is registered as a regular user, not an investor. Please use the User Login page, or register a new investor account.'
+        });
+      }
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
