@@ -57,11 +57,11 @@ export default function Navbar() {
           )}
 
           {/* Auth buttons */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2">
             <Link
               to="/investor/login"
               title="For Investor Plan A/B accounts — fixed ROI packages"
-              className="text-xs font-semibold px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-all flex items-center gap-1.5"
+              className="px-4 py-2 text-xs font-semibold rounded-lg border border-gold-500/50 text-gold-400 hover:bg-gold-500/10 hover:border-gold-400 transition-all"
             >
               Investor Portal
             </Link>
@@ -96,7 +96,7 @@ export default function Navbar() {
                 <Link
                   to="/login"
                   title="For regular member / referral network accounts"
-                  className="px-4 py-2 text-sm text-gray-300 hover:text-gold-400 transition-colors"
+                  className="px-4 py-2 text-xs font-semibold rounded-lg border border-gold-500/50 text-gold-400 hover:bg-gold-500/10 hover:border-gold-400 transition-all"
                 >
                   User Login
                 </Link>
@@ -171,16 +171,16 @@ export default function Navbar() {
                 <Link
                   to="/investor/login"
                   onClick={() => setOpen(false)}
-                  className="block text-sm font-semibold text-amber-400 py-1"
+                  className="block text-sm font-semibold text-gold-400 py-1 hover:text-gold-300 transition-colors"
                 >
-                  ⚡ Investor Portal — Fixed ROI Packages
+                  Investor Portal
                 </Link>
                 <Link
                   to="/login"
                   onClick={() => setOpen(false)}
-                  className="block text-sm text-gray-300 hover:text-gold-400"
+                  className="block text-sm font-semibold text-gold-400 py-1 hover:text-gold-300 transition-colors"
                 >
-                  User Login — Member / Referral Network
+                  User Login
                 </Link>
                 <Link
                   to="/register"
