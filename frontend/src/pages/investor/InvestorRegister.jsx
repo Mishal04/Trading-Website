@@ -120,7 +120,11 @@ export default function InvestorRegister() {
                 <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
                 <input id="inv-reg-confirm" type={showPw ? 'text' : 'password'} required placeholder="••••••••"
                        value={form.confirm} onChange={set('confirm')}
-                       className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-600 focus:outline-none focus:border-amber-500 transition text-sm" />
+                       className="w-full pl-10 pr-12 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-600 focus:outline-none focus:border-amber-500 transition text-sm" />
+                <button type="button" onClick={() => setShowPw(v => !v)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-amber-400 transition">
+                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
               </div>
             </div>
 
