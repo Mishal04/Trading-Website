@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInvestorAuth } from '../../context/InvestorAuthContext';
-import { TrendingUp, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
+import { TrendingUp, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function InvestorLogin() {
@@ -27,6 +27,11 @@ export default function InvestorLogin() {
   return (
     <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-4 py-16"
          style={{ background: 'linear-gradient(135deg,#0a0e1a 0%,#0d1a2e 50%,#0a0e1a 100%)' }}>
+      {/* Back to Home */}
+      <Link to="/" className="mb-6 flex items-center gap-1.5 text-xs text-gray-500 hover:text-gold-400 transition-colors self-start">
+        <ArrowLeft size={13} /> Back to Home
+      </Link>
+
       {/* Brand badge */}
       <div className="flex items-center gap-3 mb-8">
         <div className="w-12 h-12 rounded-2xl flex items-center justify-center"

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useInvestorAuth } from '../../context/InvestorAuthContext';
-import { TrendingUp, Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, BadgeDollarSign } from 'lucide-react';
+import { TrendingUp, Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, BadgeDollarSign, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const PLAN_PREVIEW = {
@@ -41,6 +41,11 @@ export default function InvestorRegister() {
   return (
     <div className="min-h-screen flex items-start justify-center px-4 py-12"
          style={{ background: 'linear-gradient(135deg,#0a0e1a 0%,#0d1a2e 50%,#0a0e1a 100%)' }}>
+      {/* Back to Home */}
+      <Link to="/" className="mb-4 flex items-center gap-1.5 text-xs text-gray-500 hover:text-gold-400 transition-colors self-start">
+        <ArrowLeft size={13} /> Back to Home
+      </Link>
+
       <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8 items-start">
 
         {/* Left: Form */}
