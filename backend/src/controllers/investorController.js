@@ -91,7 +91,8 @@ const loginInvestor = async (req, res) => {
           message: 'This email is registered as a regular user, not an investor. Please use the User Login page, or register a new investor account.'
         });
       }
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      // Email not found in either collection — safe to tell the user to register
+      return res.status(401).json({ success: false, message: 'No investor account found with this email. Please register as a new investor.' });
     }
 
     const isMatch = await investor.comparePassword(password);

@@ -148,8 +148,8 @@ const login = async (req, res) => {
           message: 'This email is registered as an investor. Please use the Investor Login page.'
         });
       }
-      // Generic message — don't confirm whether the email exists
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      // Email not found in either collection — safe to tell the user to register
+      return res.status(401).json({ success: false, message: 'No account found with this email. Please register first.' });
     }
 
     const isMatch = await user.comparePassword(password);
