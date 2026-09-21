@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { investmentAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import {
@@ -45,7 +45,7 @@ const PACKAGES = [
   {
     id: 1,
     name: 'Tier 1 Package',
-    range: '$100 – $500',
+    range: '$100 – $999',
     rate: '0.35% – 0.50% Daily',
     min: 100,
     max: 500,
@@ -244,6 +244,11 @@ export default function InvestTab({ onRefresh }) {
           );
         })}
       </div>
+
+      {/* Clarifying note */}
+      <p className="text-[11px] text-gray-500 text-center -mt-4">
+        These are individual investment tier rates for regular User accounts. Rates shown on the public homepage&apos;s &ldquo;Structured ROI Periods&rdquo; apply only to the separate Investor Portal system.
+      </p>
 
       {/* Investment + Payment Proof Form */}
       <div className="rounded-2xl border border-gold-500/30 bg-dark-800/80 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
