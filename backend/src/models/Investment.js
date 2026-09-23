@@ -22,7 +22,7 @@ const investmentSchema = new mongoose.Schema({
   tier: {
     type: Number,
     required: true,
-    enum: [1, 2, 3]
+    enum: [1, 2, 3, 4]
   },
   packageName: {
     type: String,
@@ -79,6 +79,21 @@ const investmentSchema = new mongoose.Schema({
   adminNote: {
     type: String,
     default: ''
+  },
+  // Package number (1-4) under the new discrete package system
+  // null for investments created before this system was introduced (backward compat)
+  packageNumber: {
+    type: Number,
+    enum: [1, 2, 3, 4],
+    default: null
+  },
+  // Rate tier locked at creation time
+  // 'standard' = created Oct 1 – Dec 31 2026; 'reduced' = created Jan 1 2027+
+  // null for investments created before this system was introduced (backward compat)
+  rateTier: {
+    type: String,
+    enum: ['standard', 'reduced', null],
+    default: null
   },
   approvedBy: {
     type: mongoose.Schema.Types.ObjectId,

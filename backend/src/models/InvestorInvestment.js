@@ -82,6 +82,12 @@ const investorInvestmentSchema = new mongoose.Schema({
   transactionId: { type: String, default: '', trim: true },
   paymentNote:   { type: String, default: '', trim: true },
   adminNote:     { type: String, default: '' },
+  // Rate tier locked at creation — 'standard' (Oct-Dec 2026) or 'reduced' (Jan 2027+)
+  rateTier: {
+    type: String,
+    enum: ['standard', 'reduced'],
+    default: 'standard'
+  },
   approvedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

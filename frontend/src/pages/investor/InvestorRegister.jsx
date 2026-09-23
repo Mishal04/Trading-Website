@@ -6,10 +6,10 @@ import toast from 'react-hot-toast';
 
 const PLAN_PREVIEW = {
   A: [
-    { pkg: 'Package 1', amounts: '$100, $200, $300, $900', rate: '0.75% / day' },
-    { pkg: 'Package 2', amounts: '$1,000 – $5,000', rate: '1.00% / day' },
-    { pkg: 'Package 3', amounts: '$6,000 – $9,000', rate: '1.25% / day' },
-    { pkg: 'Package 4', amounts: '$10,000+', rate: '1.50% / day' }
+    { pkg: 'Package 1', amounts: '$100, $200, $300, $900',              rate: '0.75% / day' },
+    { pkg: 'Package 2', amounts: '$1,000, $2,000, $3,000, $5,000',     rate: '1.00% / day' },
+    { pkg: 'Package 3', amounts: '$6,000, $7,000, $8,000, $9,000',     rate: '1.25% / day' },
+    { pkg: 'Package 4', amounts: '$10,000, $15,000, $20,000, $25,000', rate: '1.50% / day' }
   ]
 };
 

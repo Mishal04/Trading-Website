@@ -2,8 +2,8 @@
 import { investmentAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import {
-  PiggyBank, Sparkles, CheckCircle2, TrendingUp,
-  DollarSign, RefreshCw, Layers, Clock, XCircle,
+  PiggyBank, Sparkles, CheckCircle2,
+  RefreshCw, Layers, Clock, XCircle,
   AlertTriangle, Hash, FileText, MessageSquare,
   Copy, Check as CheckIcon, Building2,
 } from 'lucide-react';
@@ -40,25 +40,22 @@ const PAYMENT_METHODS = {
   },
 };
 
-// ─── package definitions ──────────────────────────────────────────────────────
+// ─── discrete package definitions (4 tiers) ──────────────────────────────────
+// ASSUMPTION: Tier 4 amounts ($10k/$15k/$20k/$25k) — client must confirm exact list.
 const PACKAGES = [
   {
     id: 1,
     name: 'Tier 1 Package',
-    range: '$100 – $999',
-    rate: '0.35% – 0.50% Daily',
-    min: 100,
-    max: 500,
+    amounts: [100, 200, 300, 900],
+    rate: '0.75% Daily',
     color: 'from-blue-500/20 to-blue-600/5 border-blue-500/30 text-blue-400',
     badge: 'Starter',
   },
   {
     id: 2,
     name: 'Tier 2 Package',
-    range: '$1,000 – $5,000',
-    rate: '1.00% – 1.25% Daily',
-    min: 1000,
-    max: 5000,
+    amounts: [1000, 2000, 3000, 5000],
+    rate: '1.00% Daily',
     color: 'from-gold-500/20 to-gold-600/5 border-gold-500/40 text-gold-400',
     badge: 'Popular',
     featured: true,
@@ -66,11 +63,17 @@ const PACKAGES = [
   {
     id: 3,
     name: 'Tier 3 Package',
-    range: '$7,500+',
-    rate: '1.50% – 2.00% Daily',
-    min: 7500,
-    max: 100000,
+    amounts: [6000, 7000, 8000, 9000],
+    rate: '1.25% Daily',
     color: 'from-purple-500/20 to-purple-600/5 border-purple-500/30 text-purple-400',
+    badge: 'Growth',
+  },
+  {
+    id: 4,
+    name: 'Tier 4 Package',
+    amounts: [10000, 15000, 20000, 25000],
+    rate: '1.50% Daily',
+    color: 'from-emerald-500/20 to-emerald-600/5 border-emerald-500/30 text-emerald-400',
     badge: 'VIP Elite',
   },
 ];
@@ -94,23 +97,20 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-// ─── package rate preview ─────────────────────────────────────────────────────
-const getPackagePreview = (val) => {
-  if (val >= 7500) {
-    const rate = Math.min(2.00, 1.50 + ((val - 7500) / 10000) * 0.50);
-    return { tier: 3, name: 'Tier 3 VIP', ratePercent: rate };
+// ─── package lookup for selected amount ──────────────────────────────────────
+const getPackageForAmount = (val) => {
+  for (const pkg of PACKAGES) {
+    if (pkg.amounts.includes(val)) {
+      return { tier: pkg.id, name: pkg.name, ratePercent: parseFloat(pkg.rate) };
+    }
   }
-  if (val >= 1000) {
-    const rate = 1.00 + ((val - 1000) / 4000) * 0.25;
-    return { tier: 2, name: 'Tier 2 Standard', ratePercent: rate };
-  }
-  const rate = 0.35 + ((val - 100) / 400) * 0.15;
-  return { tier: 1, name: 'Tier 1 Basic', ratePercent: Math.max(0.35, rate) };
+  return { tier: 1, name: 'Tier 1 Package', ratePercent: 0.75 };
 };
 
 // ─── main component ───────────────────────────────────────────────────────────
 export default function InvestTab({ onRefresh }) {
   const [amount, setAmount]             = useState('1000');
+  const [selectedTier, setSelectedTier] = useState(2);
   const [network, setNetwork]           = useState('BEP20');
   const [copiedField, setCopiedField]   = useState(null);
   const [transactionId, setTransactionId] = useState('');
@@ -141,9 +141,10 @@ export default function InvestTab({ onRefresh }) {
 
   useEffect(() => { fetchInvestments(); }, []);
 
+  const activePkg = PACKAGES.find(p => p.id === selectedTier);
   const numAmount = parseFloat(amount) || 0;
-  const preview   = getPackagePreview(numAmount);
-  const estimatedDaily   = (numAmount * preview.ratePercent) / 100;
+  const ratePercent = activePkg ? parseFloat(activePkg.rate) : 0.75;
+  const estimatedDaily   = (numAmount * ratePercent) / 100;
   const estimatedMonthly = estimatedDaily * 30;
 
   const handleInvest = async (e) => {
@@ -198,15 +199,18 @@ export default function InvestTab({ onRefresh }) {
         </p>
       </div>
 
-      {/* Package cards */}
-      <div className="grid md:grid-cols-3 gap-6">
+      {/* Package cards — Tier selector (row 1) */}
+      <div className="grid md:grid-cols-4 gap-4">
         {PACKAGES.map((pkg) => {
-          const isSelected = preview.tier === pkg.id;
+          const isSelected = selectedTier === pkg.id;
           return (
             <div
               key={pkg.id}
-              onClick={() => setAmount(pkg.min.toString())}
-              className={`rounded-2xl border p-6 cursor-pointer transition-all duration-300 relative bg-gradient-to-b ${pkg.color} ${
+              onClick={() => {
+                setSelectedTier(pkg.id);
+                setAmount(pkg.amounts[0].toString());
+              }}
+              className={`rounded-2xl border p-5 cursor-pointer transition-all duration-300 relative bg-gradient-to-b ${pkg.color} ${
                 isSelected
                   ? 'ring-2 ring-gold-400 scale-[1.02] shadow-xl shadow-gold-500/10'
                   : 'hover:border-gold-400/50 hover:scale-[1.01]'
@@ -217,28 +221,25 @@ export default function InvestTab({ onRefresh }) {
                   Most Popular
                 </div>
               )}
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wider text-gray-300">{pkg.badge}</span>
-                <span className={`text-xs px-2.5 py-1 rounded-full font-bold bg-dark-900/60 border ${pkg.color}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-bold bg-dark-900/60 border ${pkg.color}`}>
                   {pkg.rate}
                 </span>
               </div>
-              <h3 className="text-xl font-extrabold text-white mb-1">{pkg.name}</h3>
-              <div className="text-2xl font-black text-white mb-4">{pkg.range}</div>
-              <ul className="space-y-2 text-xs text-gray-300">
-                <li className="flex items-center gap-2"><CheckCircle2 size={14} className="text-gold-400 shrink-0" /> Real-time daily payout</li>
-                <li className="flex items-center gap-2"><CheckCircle2 size={14} className="text-gold-400 shrink-0" /> 25-Level team bonus eligible</li>
-                <li className="flex items-center gap-2"><CheckCircle2 size={14} className="text-gold-400 shrink-0" /> No fixed lock-in period</li>
-              </ul>
+              <h3 className="text-base font-extrabold text-white mb-1">{pkg.name}</h3>
+              <p className="text-xs text-gray-400">
+                ${pkg.amounts[0].toLocaleString()} – ${pkg.amounts[pkg.amounts.length - 1].toLocaleString()}
+              </p>
               <button
                 type="button"
-                className={`mt-6 w-full py-2.5 rounded-xl font-bold text-xs transition-colors ${
+                className={`mt-4 w-full py-2 rounded-xl font-bold text-xs transition-colors ${
                   isSelected
                     ? 'bg-gold-400 text-dark-900 shadow-md'
                     : 'bg-dark-900/80 text-gray-300 hover:text-white border border-dark-500'
                 }`}
               >
-                {isSelected ? 'Selected Package' : 'Select Tier'}
+                {isSelected ? 'Selected' : 'Select Tier'}
               </button>
             </div>
           );
@@ -260,19 +261,21 @@ export default function InvestTab({ onRefresh }) {
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Sparkles size={18} className="text-gold-400" /> Activate Investment
               </h3>
-              <p className="text-xs text-gray-400">Minimum $100. Fill in payment proof so admin can verify.</p>
+              <p className="text-xs text-gray-400">Select a tier and amount below. Fill in payment proof so admin can verify.</p>
             </div>
             <div className="text-right">
               <span className="text-xs text-gray-400">Package: </span>
-              <span className="text-sm font-bold text-gold-400">{preview.name}</span>
+              <span className="text-sm font-bold text-gold-400">{activePkg ? activePkg.name : 'Tier 1 Package'}</span>
             </div>
           </div>
 
-          {/* Quick preset amounts */}
+          {/* Amount buttons for selected tier (row 2) */}
           <div>
-            <label className="text-xs font-semibold text-gray-400 mb-2 block">Package Amounts (USD)</label>
+            <label className="text-xs font-semibold text-gray-400 mb-2 block">
+              Select Amount — {activePkg ? activePkg.name : ''} (USD)
+            </label>
             <div className="flex flex-wrap gap-2">
-              {[100, 300, 500, 1000, 2000, 5000, 7000, 10000].map((preset) => (
+              {(activePkg ? activePkg.amounts : []).map((preset) => (
                 <button
                   key={preset}
                   type="button"
@@ -289,33 +292,11 @@ export default function InvestTab({ onRefresh }) {
             </div>
           </div>
 
-          {/* Amount input */}
-          <div>
-            <label className="text-xs font-semibold text-gray-400 mb-2 block">
-              Investment Amount (USD) <span className="text-red-400">*</span>
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gold-400">
-                <DollarSign size={20} />
-              </div>
-              <input
-                type="number"
-                min="100"
-                step="50"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter investment amount (e.g. 1000)"
-                className="w-full bg-dark-900 text-white rounded-xl pl-11 pr-4 py-3.5 border border-dark-500 focus:border-gold-400 focus:outline-none text-lg font-bold"
-                required
-              />
-            </div>
-          </div>
-
           {/* Rate preview */}
           <div className="grid sm:grid-cols-3 gap-4 rounded-xl bg-dark-900/90 p-4 border border-dark-500">
             <div>
               <span className="text-[11px] text-gray-400 block">Daily Return Rate</span>
-              <span className="text-base font-extrabold text-gold-400">{preview.ratePercent.toFixed(4)}%</span>
+              <span className="text-base font-extrabold text-gold-400">{ratePercent.toFixed(2)}%</span>
             </div>
             <div>
               <span className="text-[11px] text-gray-400 block">Estimated Daily Profit</span>

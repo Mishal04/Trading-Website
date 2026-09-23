@@ -107,6 +107,41 @@ module.exports = {
     networks: ['BEP20', 'TRC20']
   },
 
+  // ── Package phase dates ────────────────────────────────────────────────────
+  // Standard rate applies to investments created Oct 1 – Dec 31, 2026 (inclusive).
+  // Reduced rate applies Jan 1, 2027 onward.
+  PACKAGE_PHASE_START_DATE: new Date('2026-10-01'),
+  PACKAGE_PHASE_END_DATE:   new Date('2026-12-31'),  // last day of standard-rate window
+
+  // ── Regular User (Tier) discrete package amounts ───────────────────────────
+  // 4 tiers mirroring the Investor Portal Package 1-4 structure.
+  // ASSUMPTION: Package 4 amounts ($10k/$15k/$20k/$25k) — CLIENT MUST CONFIRM.
+  USER_PACKAGES: {
+    1: [100, 200, 300, 900],
+    2: [1000, 2000, 3000, 5000],
+    3: [6000, 7000, 8000, 9000],
+    4: [10000, 15000, 20000, 25000]  // ASSUMPTION — client to confirm exact amounts
+  },
+
+  // ── Regular User flat daily rates ─────────────────────────────────────────
+  // Flat rates per tier — replaces the old interpolation logic in commissionService.js.
+  USER_DAILY_RATES: {
+    standard: {
+      1: 0.0075,  // 0.75%
+      2: 0.01,    // 1.00%
+      3: 0.0125,  // 1.25%
+      4: 0.015    // 1.50%
+    },
+    // PLACEHOLDER — client has not confirmed final reduced rate.
+    // Currently set to standard rate minus 20%.
+    reduced: {
+      1: 0.006,   // 0.60% (PLACEHOLDER: standard 0.75% - 20%)
+      2: 0.008,   // 0.80% (PLACEHOLDER: standard 1.00% - 20%)
+      3: 0.01,    // 1.00% (PLACEHOLDER: standard 1.25% - 20%)
+      4: 0.012    // 1.20% (PLACEHOLDER: standard 1.50% - 20%)
+    }
+  },
+
   // ── Direct referral commission ────────────────────────────────────────────
   // Instant 5% commission credited to referrer on investment approval.
   // Separate from the 21-level daily profit commission system.

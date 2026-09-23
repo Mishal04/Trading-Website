@@ -4,6 +4,7 @@ const User = require('../models/User');
 const InvestorInvestment = require('../models/InvestorInvestment');
 const {
   getInvestorPackageInfo,
+  getInvestorRateTier,
   INVESTOR_INCOME_CAP,
   INVESTOR_MONTHLY_RATE,
   INVESTOR_SWITCH_MONTHS
@@ -91,7 +92,7 @@ const loginInvestor = async (req, res) => {
           message: 'This email is registered as a regular user, not an investor. Please use the User Login page, or register a new investor account.'
         });
       }
-      // Email not found in either collection — safe to tell the user to register
+      // Email not found in either collection ï¿½ safe to tell the user to register
       return res.status(401).json({ success: false, message: 'No investor account found with this email. Please register as a new investor.' });
     }
 
@@ -140,7 +141,9 @@ const createInvestorInvestment = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Amount must be at least $100' });
     }
 
-    const pkgInfo = getInvestorPackageInfo(Number(amount), investor.plan);
+    // Determine which rate tier applies based on current date
+    const rateTier = getInvestorRateTier(new Date());
+    const pkgInfo = getInvestorPackageInfo(Number(amount), investor.plan, rateTier);
     if (!pkgInfo) {
       return res.status(400).json({
         success: false,
@@ -156,12 +159,12 @@ const createInvestorInvestment = async (req, res) => {
       plan:          investor.plan,
       packageNumber: pkgInfo.packageNumber,
       dailyRate:     pkgInfo.dailyRate,
+      rateTier:      pkgInfo.rateTier,
       incomeCap,
       paymentProof:  paymentProof || '',
       transactionId: transactionId || '',
       paymentNote:   paymentNote || ''
     });
-
     return res.status(201).json({
       success: true,
       message: 'Investment submitted for admin approval.',

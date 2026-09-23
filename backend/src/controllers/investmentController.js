@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
 const commissionService = require('../services/commissionService');
+const { USER_PACKAGES } = require('../../config/constants');
 
 /**
   POST /api/investments/create
@@ -30,7 +31,16 @@ const createInvestment = async (req, res) => {
       });
     }
 
-    const { tier, packageName, dailyRate } = commissionService.getInvestmentPackage(amount);
+    const numAmount = Number(amount);
+    const allAllowedAmounts = Object.values(USER_PACKAGES).flat();
+    if (!allAllowedAmounts.includes(numAmount)) {
+      return res.status(400).json({
+        success: false,
+        message: `$${numAmount} is not a valid package amount. Please select one of the available package amounts.`
+      });
+    }
+
+    const { tier, packageName, dailyRate, packageNumber, rateTier } = commissionService.getInvestmentPackage(amount);
     const dailyProfit = Number(((amount * dailyRate) / 100).toFixed(4));
 
     // Extract all payment proof fields
@@ -44,6 +54,8 @@ const createInvestment = async (req, res) => {
       packageName,
       dailyRate,
       dailyProfit,
+      packageNumber,
+      rateTier,
       isActive:      false,
       status:        'pending',
       transactionId: (transactionId || '').trim(),

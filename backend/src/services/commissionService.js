@@ -1,8 +1,9 @@
-const User = require('../models/User');
+﻿const User = require('../models/User');
 const CommissionLog = require('../models/CommissionLog');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
 const SystemPool = require('../models/SystemPool');
+const constants = require('../../config/constants');
 
 // 25-Level Rates (Sum = 10.00%)
 const LEVEL_RATES = [
@@ -41,31 +42,53 @@ const PERFORMANCE_TIERS = [
 ];
 
 /**
-  Calculate investment package details based on amount
+ * Returns 'standard' if the given date falls within the standard-rate window,
+ * otherwise returns 'reduced'.
  */
-const getInvestmentPackage = (amount) => {
-  let tier = 1;
-  let packageName = 'Tier 1';
-  let dailyRate = 0.35;
+function getUserRateTier(date = new Date()) {
+  // Standard rate applies for all dates on/before Dec 31 2026 (including pre-launch testing).
+  // Reduced rate applies only from Jan 1, 2027 onward.
+  const end = constants.PACKAGE_PHASE_END_DATE;
+  return date <= end ? 'standard' : 'reduced';
+}
 
-  if (amount >= 7500) {
-    tier = 3;
-    packageName = 'Tier 3 ($7,500+)';
-    const interpolated = 1.50 + ((amount - 7500) / 10000) * (2.00 - 1.50);
-    dailyRate = Math.min(2.00, Number(interpolated.toFixed(4)));
-  } else if (amount >= 1000) {
-    tier = 2;
-    packageName = 'Tier 2 ($1,000 - $5,000)';
-    const interpolated = 1.00 + ((amount - 1000) / 4000) * (1.25 - 1.00);
-    dailyRate = Number(interpolated.toFixed(4));
-  } else {
-    tier = 1;
-    packageName = 'Tier 1 ($100 - $500)';
-    const interpolated = 0.35 + ((amount - 100) / 400) * (0.50 - 0.35);
-    dailyRate = Number(interpolated.toFixed(4));
+/**
+ * Returns package details for a regular User investment.
+ * Uses flat rates per tier — replaces the old interpolation logic.
+ * @param {number} amount - must be one of the discrete allowed amounts
+ * @param {Date}   [date] - investment creation date (defaults to now)
+ * @returns {{ tier, packageName, dailyRate, packageNumber, rateTier } | null}
+ */
+const getInvestmentPackage = (amount, date = new Date()) => {
+  const packages = constants.USER_PACKAGES;
+  let packageNumber = null;
+
+  for (const [pkgNum, amounts] of Object.entries(packages)) {
+    if (amounts.includes(Number(amount))) {
+      packageNumber = Number(pkgNum);
+      break;
+    }
   }
 
-  return { tier, packageName, dailyRate };
+  if (!packageNumber) return null;
+
+  const rateTier = getUserRateTier(date);
+  const dailyRate = constants.USER_DAILY_RATES[rateTier][packageNumber];
+
+  const tierNames = {
+    1: 'Tier 1 ($100–$900)',
+    2: 'Tier 2 ($1,000–$5,000)',
+    3: 'Tier 3 ($6,000–$9,000)',
+    4: 'Tier 4 ($10,000+)'
+  };
+
+  return {
+    tier:        packageNumber,
+    packageName: tierNames[packageNumber],
+    dailyRate,
+    packageNumber,
+    rateTier
+  };
 };
 
 /**
@@ -308,6 +331,7 @@ module.exports = {
   LEVEL_RATES,
   LEADERSHIP_TIERS,
   PERFORMANCE_TIERS,
+  getUserRateTier,
   getInvestmentPackage,
   check6040Qualification,
   distributeLevelCommissions,
