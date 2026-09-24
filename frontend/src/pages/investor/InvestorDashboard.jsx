@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useInvestorAuth } from '../../context/InvestorAuthContext';
 import { investorAPI } from '../../services/api';
+import { getInvestorPackageInfo } from '../../utils/investorConstants';
 import {
   TrendingUp, Wallet, BarChart2, Clock, LogOut,
   PlusCircle, CheckCircle2, XCircle, AlertCircle,
@@ -157,6 +158,12 @@ export default function InvestorDashboard() {
   };
 
   const planPackages = investor?.plan === 'B' ? PLAN_B : PLAN_A;
+  const numInvAmount = parseFloat(invAmount) || 0;
+  const pkgInfo = getInvestorPackageInfo(numInvAmount, investor?.plan || 'A');
+  const dailyRateDecimal = pkgInfo ? pkgInfo.dailyRate : 0;
+  const dailyRatePercent = dailyRateDecimal * 100;
+  const estimatedDailyProfit = numInvAmount * dailyRateDecimal;
+  const estimatedMonthlyProfit = estimatedDailyProfit * 30;
 
   if (loadingData) {
     return (
@@ -338,6 +345,48 @@ export default function InvestorDashboard() {
                   )}
                 </div>
               </div>
+
+              {/* ── Live Estimated Profit Preview ── */}
+              {numInvAmount >= 100 && pkgInfo ? (
+                <div
+                  className="grid grid-cols-3 gap-3 rounded-2xl p-4 border"
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.35)',
+                    borderColor: 'rgba(245, 158, 11, 0.25)',
+                  }}
+                >
+                  <div>
+                    <span className="text-[11px] text-gray-400 block font-medium">Daily Return Rate</span>
+                    <span className="text-sm sm:text-base font-extrabold text-amber-400">
+                      {dailyRatePercent.toFixed(2)}%
+                    </span>
+                    <span className="text-[10px] text-gray-500 block">
+                      Package {pkgInfo.packageNumber}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-gray-400 block font-medium">Estimated Daily Profit</span>
+                    <span className="text-sm sm:text-base font-extrabold text-emerald-400">
+                      ${estimatedDailyProfit.toFixed(2)}
+                    </span>
+                    <span className="text-[10px] text-gray-500 block">per day</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-gray-400 block font-medium">Estimated Monthly Profit</span>
+                    <span className="text-sm sm:text-base font-extrabold text-white">
+                      ${estimatedMonthlyProfit.toFixed(2)}
+                    </span>
+                    <span className="text-[10px] text-gray-500 block">30-day est.</span>
+                  </div>
+                </div>
+              ) : numInvAmount > 0 && numInvAmount < 100 ? (
+                <div
+                  className="rounded-xl p-3 border text-xs text-amber-400/90"
+                  style={{ background: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.2)' }}
+                >
+                  Minimum investment amount is $100.
+                </div>
+              ) : null}
 
               {/* ── Payment Method ── */}
               <div>
