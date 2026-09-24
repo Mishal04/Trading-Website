@@ -2,6 +2,7 @@ const Investment = require('../models/Investment');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
+const CronLock = require('../models/CronLock');
 const commissionService = require('./commissionService');
 
 /**
@@ -143,68 +144,123 @@ const calculateDailyProfits = async () => {
   console.log('--- Starting Daily Profit Calculation ---');
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-  const investments = await Investment.find({
-    isActive: true,
-    status: 'active',
-    lastProfitDate: { $lt: startOfToday }
-  }).populate('userId');
+  // ── 1. Acquire Distributed Lock ───────────────────────────────────────────
+  let lock;
+  try {
+    lock = await CronLock.create({
+      jobName: 'dailyProfits',
+      dateKey,
+      lockedAt: now,
+      status: 'running',
+      instanceId: `pid_${process.pid}_${Math.random().toString(36).substring(2, 8)}`
+    });
+  } catch (err) {
+    if (err.code === 11000) {
+      console.log(`[CronLock] Daily profit cron already running on another instance for ${dateKey}, skipping.`);
+      return { processedCount: 0, totalProfitDistributed: 0, skipped: true };
+    }
+    console.error('[CronLock] Error acquiring distributed lock:', err);
+    throw err;
+  }
 
   let processedCount = 0;
   let totalProfitDistributed = 0;
 
-  for (const investment of investments) {
-    try {
-      const investor = investment.userId;
-      if (!investor || !investor.isActive) continue;
+  try {
+    const investments = await Investment.find({
+      isActive: true,
+      status: 'active',
+      lastProfitDate: { $lt: startOfToday }
+    }).populate('userId');
 
-      const dailyProfitAmount = Number(((investment.amount * investment.dailyRate) / 100).toFixed(4));
-      if (dailyProfitAmount <= 0) continue;
+    for (const investment of investments) {
+      try {
+        const investor = investment.userId;
+        if (!investor || !investor.isActive) continue;
 
-      // Update investment stats
-      investment.totalProfitEarned += dailyProfitAmount;
-      investment.lastProfitDate = now;
-      await investment.save();
+        const dailyProfitAmount = Number(((investment.amount * investment.dailyRate) / 100).toFixed(4));
+        if (dailyProfitAmount <= 0) continue;
 
-      // Credit investor's profit wallet
-      await User.findByIdAndUpdate(investor._id, {
-        $inc: {
-          'wallet.profit': dailyProfitAmount,
-          totalProfitEarned: dailyProfitAmount
+        // Atomic document-level guard: update lastProfitDate only if it still hasn't been updated today
+        const updatedInvestment = await Investment.findOneAndUpdate(
+          {
+            _id: investment._id,
+            isActive: true,
+            status: 'active',
+            lastProfitDate: { $lt: startOfToday }
+          },
+          {
+            $set: { lastProfitDate: now },
+            $inc: { totalProfitEarned: dailyProfitAmount }
+          },
+          { new: true }
+        );
+
+        if (!updatedInvestment) {
+          // Already processed concurrently
+          continue;
         }
-      });
 
-      // Record profit transaction
-      await Transaction.create({
-        userId: investor._id,
-        type: 'profit',
-        amount: dailyProfitAmount,
-        status: 'completed',
-        description: `Daily profit (${investment.dailyRate}%) from package ${investment.packageName}`,
-        referenceId: investment._id,
-        referenceModel: 'Investment'
-      });
+        // Credit investor's profit wallet
+        await User.findByIdAndUpdate(investor._id, {
+          $inc: {
+            'wallet.profit': dailyProfitAmount,
+            totalProfitEarned: dailyProfitAmount
+          }
+        });
 
-      // Send profit notification
-      await Notification.create({
-        userId: investor._id,
-        title: 'Daily Profit Credited',
-        message: `You earned $${dailyProfitAmount} daily profit from your $${investment.amount} investment!`,
-        type: 'profit'
-      });
+        // Record profit transaction
+        await Transaction.create({
+          userId: investor._id,
+          type: 'profit',
+          amount: dailyProfitAmount,
+          status: 'completed',
+          description: `Daily profit (${investment.dailyRate}%) from package ${investment.packageName}`,
+          referenceId: investment._id,
+          referenceModel: 'Investment'
+        });
 
-      // Distribute 25-level commissions to uplines
-      await commissionService.distributeLevelCommissions(investment, dailyProfitAmount, investor);
+        // Send profit notification
+        await Notification.create({
+          userId: investor._id,
+          title: 'Daily Profit Credited',
+          message: `You earned $${dailyProfitAmount} daily profit from your $${investment.amount} investment!`,
+          type: 'profit'
+        });
 
-      processedCount++;
-      totalProfitDistributed += dailyProfitAmount;
-    } catch (err) {
-      console.error(`Error processing profit for investment ${investment._id}:`, err);
+        // Distribute 25-level commissions to uplines
+        await commissionService.distributeLevelCommissions(investment, dailyProfitAmount, investor);
+
+        processedCount++;
+        totalProfitDistributed += dailyProfitAmount;
+      } catch (err) {
+        console.error(`Error processing profit for investment ${investment._id}:`, err);
+      }
     }
-  }
 
-  console.log(`--- Daily Profit Calculation Complete: Processed ${processedCount} investments, total $${totalProfitDistributed.toFixed(2)} distributed ---`);
-  return { processedCount, totalProfitDistributed };
+    // Mark lock as successfully completed
+    if (lock) {
+      await CronLock.findByIdAndUpdate(lock._id, {
+        status: 'completed',
+        releasedAt: new Date()
+      });
+    }
+
+    console.log(`--- Daily Profit Calculation Complete: Processed ${processedCount} investments, total $${totalProfitDistributed.toFixed(2)} distributed ---`);
+    return { processedCount, totalProfitDistributed };
+  } catch (outerErr) {
+    if (lock) {
+      await CronLock.findByIdAndUpdate(lock._id, {
+        status: 'failed',
+        releasedAt: new Date(),
+        error: outerErr.message
+      });
+    }
+    console.error('Fatal error in calculateDailyProfits:', outerErr);
+    throw outerErr;
+  }
 };
 
 module.exports = {

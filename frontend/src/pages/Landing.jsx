@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import {
   TrendingUp,
   Users,
@@ -30,25 +30,28 @@ import InstitutionalTradingSection from '../components/trading/InstitutionalTrad
 const ROI_PERIODS = [
   {
     name: 'Phase 1',
-    dates: 'Oct 01, 2026 – Mar 01, 2027',
-    phaseNote: 'This phase runs for 6 months from activation.',
-    desc: 'High Growth Phase',
+    dates: 'Oct 01, 2026 – Dec 31, 2026',
+    phaseNote: 'Standard rates apply to all investments activated before Jan 1, 2027.',
+    phaseNote2: 'This phase runs for 6 months from activation.',
+    desc: 'Standard Rate Phase',
     rates: [
-      { pkg: '$100 – $900', rate: '0.75% Daily' },
-      { pkg: '$1,000 – $5,000', rate: '1.0% Daily' },
-      { pkg: '$7,000, $10,000, $11,000, $12,000+', rate: '1.25% Daily' },
+      { pkg: '$100, $200, $300, $900',                    rate: '0.75% Daily' },
+      { pkg: '$1,000, $2,000, $3,000, $5,000',           rate: '1.00% Daily' },
+      { pkg: '$6,000, $7,000, $8,000, $9,000',           rate: '1.25% Daily' },
+      { pkg: '$10,000, $15,000, $20,000, $25,000',       rate: '1.50% Daily' },
     ],
     highlight: true,
   },
   {
     name: 'Phase 2',
-    dates: 'Apr 01, 2027 – Sep 01, 2027',
-    phaseNote: 'This phase runs for 6 months from activation.',
-    desc: 'Consolidation Phase',
+    dates: 'Jan 01, 2027 Onwards',
+    phaseNote: 'Reduced rates apply to investments activated from Jan 1, 2027 onward. Final rates subject to confirmation.',
+    desc: 'Reduced Rate Phase',
     rates: [
-      { pkg: '$100 – $1,000', rate: '0.5% Daily' },
-      { pkg: '$2,000 – $5,000', rate: '0.75% Daily' },
-      { pkg: '$7,000 – $10,000', rate: '1.0% Daily' },
+      { pkg: '$100, $200, $300, $900',                    rate: '0.60% Daily' },
+      { pkg: '$1,000, $2,000, $3,000, $5,000',           rate: '0.80% Daily' },
+      { pkg: '$6,000, $7,000, $8,000, $9,000',           rate: '1.00% Daily' },
+      { pkg: '$10,000, $15,000, $20,000, $25,000',       rate: '1.20% Daily' },
     ],
   },
   {
@@ -241,7 +244,10 @@ export default function Landing() {
                 <h3 className="text-xl font-bold text-white mb-1">{period.desc}</h3>
                 <p className="text-xs font-mono text-gray-400 mb-1">{period.dates}</p>
                 {period.phaseNote && (
-                  <p className="text-[11px] text-gray-500 italic mb-6">{period.phaseNote}</p>
+                  <p className="text-[11px] text-gray-500 italic mb-1">{period.phaseNote}</p>
+                )}
+                {period.phaseNote2 && (
+                  <p className="text-[11px] text-gray-500 italic mb-6">{period.phaseNote2}</p>
                 )}
                 {!period.phaseNote && <div className="mb-6" />}
 

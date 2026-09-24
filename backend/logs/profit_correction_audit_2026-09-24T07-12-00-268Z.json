@@ -1,0 +1,667 @@
+{
+  "executedAt": "2026-09-24T07:12:03.010Z",
+  "executedBy": "Antigravity / Lead Developer",
+  "description": "Permanent audit record for duplicate daily profit resolution & cleanup.",
+  "summaryTotals": {
+    "totalAffectedUsers": 16,
+    "usersBalanceDeducted": 13,
+    "usersUntouchedZeroBalance": 0,
+    "totalInvestmentsCorrected": 17,
+    "totalDuplicateTransactionsDeleted": 44,
+    "backupFile": "C:\\Users\\PCS\\Desktop\\Office Projects\\Trading Website\\backend\\backups\\pre_correction_backup_2026-09-24T07-12-00-268Z.json"
+  },
+  "userAdjustments": [
+    {
+      "userId": "6aa433ed211c3f876f4517f2",
+      "name": "Sonia kanwal",
+      "email": "kanwalsonia45@gmail.com",
+      "initialProfitBalance": 180,
+      "initialTotalEarned": 180,
+      "overCreditAmount": 80,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 100,
+      "finalTotalEarned": 100
+    },
+    {
+      "userId": "6aa5a528244a276686a43280",
+      "name": "Dr Sajjad Naru",
+      "email": "sajjadnaru2005@gmail.com",
+      "initialProfitBalance": 250,
+      "initialTotalEarned": 250,
+      "overCreditAmount": 125,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 125,
+      "finalTotalEarned": 125
+    },
+    {
+      "userId": "6aa710bb6efbe2df22e4b15d",
+      "name": "Muhammad Zubair",
+      "email": "muhammadzubair4268@gmail.com",
+      "initialProfitBalance": 40,
+      "initialTotalEarned": 40,
+      "overCreditAmount": 20,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 20,
+      "finalTotalEarned": 20
+    },
+    {
+      "userId": "6aa7236b6efbe2df22e4b15f",
+      "name": "M.Sajjad naru",
+      "email": "abdullahnaru2005@gmail.com",
+      "initialProfitBalance": 40,
+      "initialTotalEarned": 40,
+      "overCreditAmount": 20,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 20,
+      "finalTotalEarned": 20
+    },
+    {
+      "userId": "6aa7bb916efbe2df22e4b16d",
+      "name": "Umar shah",
+      "email": "pakistan3056459918@gmail.com",
+      "initialProfitBalance": 40,
+      "initialTotalEarned": 40,
+      "overCreditAmount": 20,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 20,
+      "finalTotalEarned": 20
+    },
+    {
+      "userId": "6aa7e5537f19b6ce9ce8582a",
+      "name": "Ghulam Murtza",
+      "email": "murtzag1986@gmail.com",
+      "initialProfitBalance": 40,
+      "initialTotalEarned": 40,
+      "overCreditAmount": 20,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 20,
+      "finalTotalEarned": 20
+    },
+    {
+      "userId": "6aa8615ff0055475115a94e4",
+      "name": "Aman ali",
+      "email": "alivideostv.com@gmail.com",
+      "initialProfitBalance": 40,
+      "initialTotalEarned": 40,
+      "overCreditAmount": 20,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 20,
+      "finalTotalEarned": 20
+    },
+    {
+      "userId": "6aa948e39621fae8a5397330",
+      "name": "Huma Nurjis",
+      "email": "humanarjis171@gmail.com",
+      "initialProfitBalance": 40,
+      "initialTotalEarned": 40,
+      "overCreditAmount": 20,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 20,
+      "finalTotalEarned": 20
+    },
+    {
+      "userId": "6aaaa414690cd9c2b645d273",
+      "name": "Muhammadhussain",
+      "email": "babafareeed786@gmail.com",
+      "initialProfitBalance": 40,
+      "initialTotalEarned": 40,
+      "overCreditAmount": 20,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 20,
+      "finalTotalEarned": 20
+    },
+    {
+      "userId": "6aae6d093db841b4cebcd3d3",
+      "name": "Pro trader",
+      "email": "sohailfaisalilyas@gmail.com",
+      "initialProfitBalance": 40,
+      "initialTotalEarned": 40,
+      "overCreditAmount": 20,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 20,
+      "finalTotalEarned": 20
+    },
+    {
+      "userId": "6aaf5ee83db841b4cebcd3dd",
+      "name": "M Khalid",
+      "email": "muneerkhalid303@gmail.com",
+      "initialProfitBalance": 10,
+      "initialTotalEarned": 10,
+      "overCreditAmount": 5,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 5,
+      "finalTotalEarned": 5
+    },
+    {
+      "userId": "6ab182cf68ad5d0b0db28dfd",
+      "name": "Shahzad",
+      "email": "shahzaddd554@gmail.com",
+      "initialProfitBalance": 40,
+      "initialTotalEarned": 40,
+      "overCreditAmount": 20,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 20,
+      "finalTotalEarned": 20
+    },
+    {
+      "userId": "6ab18d0568ad5d0b0db28e0d",
+      "name": "Asif Hussain",
+      "email": "asifsaab12333@gmail.com",
+      "initialProfitBalance": 40,
+      "initialTotalEarned": 40,
+      "overCreditAmount": 20,
+      "balanceAdjusted": true,
+      "finalProfitBalance": 20,
+      "finalTotalEarned": 20
+    }
+  ],
+  "investmentAdjustments": [
+    {
+      "investmentId": "6a8d41f7ee632e15888e6d41",
+      "userId": "6a8d3d8800a98cce9ffad7fe",
+      "amount": 250,
+      "packageName": "Tier 1 ($100 - $500)",
+      "initialTotalProfitEarned": 2.0314,
+      "deductedAmount": 3.0471000000000004,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6a8fd0e7c8c88c5ddbb1d3a4",
+      "userId": "6a8d67db62a251c14e5cd195",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 20,
+      "deductedAmount": 30,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6a8fdf73a087c689b02877f7",
+      "userId": "6a8d67db62a251c14e5cd195",
+      "amount": 500,
+      "packageName": "Tier 1 ($100 - $500)",
+      "initialTotalProfitEarned": 5,
+      "deductedAmount": 7.5,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6a8fe9ca0307f61800248325",
+      "userId": "6a8fe9520307f61800248324",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 20,
+      "deductedAmount": 30,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6aa43a33211c3f876f4517f7",
+      "userId": "6aa433ed211c3f876f4517f2",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 100,
+      "deductedAmount": 80,
+      "finalTotalProfitEarned": 20
+    },
+    {
+      "investmentId": "6ab12d92a393380cf21b2924",
+      "userId": "6aa5a528244a276686a43280",
+      "amount": 5000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 125,
+      "deductedAmount": 125,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6ab1752668ad5d0b0db28dc8",
+      "userId": "6aa7e5537f19b6ce9ce8582a",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 20,
+      "deductedAmount": 20,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6ab1758268ad5d0b0db28dce",
+      "userId": "6aa710bb6efbe2df22e4b15d",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 20,
+      "deductedAmount": 20,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6ab1764d68ad5d0b0db28dd6",
+      "userId": "6aa8615ff0055475115a94e4",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 20,
+      "deductedAmount": 20,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6ab1773968ad5d0b0db28ddc",
+      "userId": "6aa948e39621fae8a5397330",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 20,
+      "deductedAmount": 20,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6ab1790568ad5d0b0db28de4",
+      "userId": "6aa7bb916efbe2df22e4b16d",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 20,
+      "deductedAmount": 20,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6ab17a7d68ad5d0b0db28dea",
+      "userId": "6aa7236b6efbe2df22e4b15f",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 20,
+      "deductedAmount": 20,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6ab17b1368ad5d0b0db28df0",
+      "userId": "6aaaa414690cd9c2b645d273",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 20,
+      "deductedAmount": 20,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6ab17ba768ad5d0b0db28df6",
+      "userId": "6aae6d093db841b4cebcd3d3",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 20,
+      "deductedAmount": 20,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6ab1893968ad5d0b0db28e00",
+      "userId": "6ab182cf68ad5d0b0db28dfd",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 20,
+      "deductedAmount": 20,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6ab18a5a68ad5d0b0db28e06",
+      "userId": "6aaf5ee83db841b4cebcd3dd",
+      "amount": 500,
+      "packageName": "Tier 1 ($100 - $500)",
+      "initialTotalProfitEarned": 5,
+      "deductedAmount": 5,
+      "finalTotalProfitEarned": 0
+    },
+    {
+      "investmentId": "6ab1923168ad5d0b0db28e0e",
+      "userId": "6ab18d0568ad5d0b0db28e0d",
+      "amount": 1000,
+      "packageName": "Tier 2 ($1,000 - $5,000)",
+      "initialTotalProfitEarned": 20,
+      "deductedAmount": 20,
+      "finalTotalProfitEarned": 0
+    }
+  ],
+  "deletedTransactions": [
+    {
+      "id": "6aa1f33c645b5953f14c394a",
+      "userId": "6a8d3d8800a98cce9ffad7fe",
+      "referenceId": "6a8d41f7ee632e15888e6d41",
+      "amount": 1.0157,
+      "date": "2026-09-10T00:01:00.358Z",
+      "description": "Daily profit (0.4063%) from package Tier 1 ($100 - $500)"
+    },
+    {
+      "id": "6aa1f33c645b5953f14c394c",
+      "userId": "6a8d67db62a251c14e5cd195",
+      "referenceId": "6a8fd0e7c8c88c5ddbb1d3a4",
+      "amount": 10,
+      "date": "2026-09-10T00:01:00.688Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6aa1f33c69fe62f4937f4b3d",
+      "userId": "6a8d67db62a251c14e5cd195",
+      "referenceId": "6a8fd0e7c8c88c5ddbb1d3a4",
+      "amount": 10,
+      "date": "2026-09-10T00:01:00.688Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6aa1f33cc71073c5acd74287",
+      "userId": "6a8d3d8800a98cce9ffad7fe",
+      "referenceId": "6a8d41f7ee632e15888e6d41",
+      "amount": 1.0157,
+      "date": "2026-09-10T00:01:00.357Z",
+      "description": "Daily profit (0.4063%) from package Tier 1 ($100 - $500)"
+    },
+    {
+      "id": "6aa1f33d69fe62f4937f4b3f",
+      "userId": "6a8d67db62a251c14e5cd195",
+      "referenceId": "6a8fdf73a087c689b02877f7",
+      "amount": 2.5,
+      "date": "2026-09-10T00:01:01.009Z",
+      "description": "Daily profit (0.5%) from package Tier 1 ($100 - $500)"
+    },
+    {
+      "id": "6aa1f33d69fe62f4937f4b41",
+      "userId": "6a8fe9520307f61800248324",
+      "referenceId": "6a8fe9ca0307f61800248325",
+      "amount": 10,
+      "date": "2026-09-10T00:01:01.310Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6aa1f33dc71073c5acd7428b",
+      "userId": "6a8d67db62a251c14e5cd195",
+      "referenceId": "6a8fdf73a087c689b02877f7",
+      "amount": 2.5,
+      "date": "2026-09-10T00:01:01.011Z",
+      "description": "Daily profit (0.5%) from package Tier 1 ($100 - $500)"
+    },
+    {
+      "id": "6aa1f33dc71073c5acd7428d",
+      "userId": "6a8fe9520307f61800248324",
+      "referenceId": "6a8fe9ca0307f61800248325",
+      "amount": 10,
+      "date": "2026-09-10T00:01:01.315Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6aa344bca3804618758f8cc8",
+      "userId": "6a8d3d8800a98cce9ffad7fe",
+      "referenceId": "6a8d41f7ee632e15888e6d41",
+      "amount": 1.0157,
+      "date": "2026-09-11T00:01:00.374Z",
+      "description": "Daily profit (0.4063%) from package Tier 1 ($100 - $500)"
+    },
+    {
+      "id": "6aa344bca3804618758f8cca",
+      "userId": "6a8d67db62a251c14e5cd195",
+      "referenceId": "6a8fd0e7c8c88c5ddbb1d3a4",
+      "amount": 10,
+      "date": "2026-09-11T00:01:00.684Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6aa344bca3804618758f8ccc",
+      "userId": "6a8d67db62a251c14e5cd195",
+      "referenceId": "6a8fdf73a087c689b02877f7",
+      "amount": 2.5,
+      "date": "2026-09-11T00:01:00.989Z",
+      "description": "Daily profit (0.5%) from package Tier 1 ($100 - $500)"
+    },
+    {
+      "id": "6aa344bda3804618758f8cce",
+      "userId": "6a8fe9520307f61800248324",
+      "referenceId": "6a8fe9ca0307f61800248325",
+      "amount": 10,
+      "date": "2026-09-11T00:01:01.307Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6aa5a16e37975ddef8497a8f",
+      "userId": "6aa433ed211c3f876f4517f2",
+      "referenceId": "6aa43a33211c3f876f4517f7",
+      "amount": 10,
+      "date": "2026-09-12T19:01:02.442Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6aa7393cdd906e254b779fad",
+      "userId": "6aa433ed211c3f876f4517f2",
+      "referenceId": "6aa43a33211c3f876f4517f7",
+      "amount": 10,
+      "date": "2026-09-14T00:01:00.330Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6aadd0bc9f8cfef0469454bb",
+      "userId": "6aa433ed211c3f876f4517f2",
+      "referenceId": "6aa43a33211c3f876f4517f7",
+      "amount": 10,
+      "date": "2026-09-19T00:01:00.336Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6aaf223cba4449560e718c21",
+      "userId": "6aa433ed211c3f876f4517f2",
+      "referenceId": "6aa43a33211c3f876f4517f7",
+      "amount": 10,
+      "date": "2026-09-20T00:01:00.341Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab073bcba4449560e718c23",
+      "userId": "6aa433ed211c3f876f4517f2",
+      "referenceId": "6aa43a33211c3f876f4517f7",
+      "amount": 10,
+      "date": "2026-09-21T00:01:00.341Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab073bcd1f9951f37b796cd",
+      "userId": "6aa433ed211c3f876f4517f2",
+      "referenceId": "6aa43a33211c3f876f4517f7",
+      "amount": 10,
+      "date": "2026-09-21T00:01:00.380Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c53c0c806c5e468ff969",
+      "userId": "6aa433ed211c3f876f4517f2",
+      "referenceId": "6aa43a33211c3f876f4517f7",
+      "amount": 10,
+      "date": "2026-09-22T00:01:00.357Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c53c0c806c5e468ff96b",
+      "userId": "6aa5a528244a276686a43280",
+      "referenceId": "6ab12d92a393380cf21b2924",
+      "amount": 62.5,
+      "date": "2026-09-22T00:01:00.679Z",
+      "description": "Daily profit (1.25%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c53c0c806c5e468ff96d",
+      "userId": "6aa7e5537f19b6ce9ce8582a",
+      "referenceId": "6ab1752668ad5d0b0db28dc8",
+      "amount": 10,
+      "date": "2026-09-22T00:01:00.986Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c53c68ad5d0b0db28e12",
+      "userId": "6aa433ed211c3f876f4517f2",
+      "referenceId": "6aa43a33211c3f876f4517f7",
+      "amount": 10,
+      "date": "2026-09-22T00:01:00.386Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c53c68ad5d0b0db28e14",
+      "userId": "6aa5a528244a276686a43280",
+      "referenceId": "6ab12d92a393380cf21b2924",
+      "amount": 62.5,
+      "date": "2026-09-22T00:01:00.692Z",
+      "description": "Daily profit (1.25%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c53c68ad5d0b0db28e16",
+      "userId": "6aa7e5537f19b6ce9ce8582a",
+      "referenceId": "6ab1752668ad5d0b0db28dc8",
+      "amount": 10,
+      "date": "2026-09-22T00:01:00.996Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c53d0c806c5e468ff972",
+      "userId": "6aa710bb6efbe2df22e4b15d",
+      "referenceId": "6ab1758268ad5d0b0db28dce",
+      "amount": 10,
+      "date": "2026-09-22T00:01:01.690Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c53d68ad5d0b0db28e1b",
+      "userId": "6aa710bb6efbe2df22e4b15d",
+      "referenceId": "6ab1758268ad5d0b0db28dce",
+      "amount": 10,
+      "date": "2026-09-22T00:01:01.688Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c53e0c806c5e468ff977",
+      "userId": "6aa8615ff0055475115a94e4",
+      "referenceId": "6ab1764d68ad5d0b0db28dd6",
+      "amount": 10,
+      "date": "2026-09-22T00:01:02.383Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c53e68ad5d0b0db28e20",
+      "userId": "6aa8615ff0055475115a94e4",
+      "referenceId": "6ab1764d68ad5d0b0db28dd6",
+      "amount": 10,
+      "date": "2026-09-22T00:01:02.373Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c53f0c806c5e468ff97c",
+      "userId": "6aa948e39621fae8a5397330",
+      "referenceId": "6ab1773968ad5d0b0db28ddc",
+      "amount": 10,
+      "date": "2026-09-22T00:01:03.079Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c53f68ad5d0b0db28e25",
+      "userId": "6aa948e39621fae8a5397330",
+      "referenceId": "6ab1773968ad5d0b0db28ddc",
+      "amount": 10,
+      "date": "2026-09-22T00:01:03.070Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c5400c806c5e468ff984",
+      "userId": "6aa7bb916efbe2df22e4b16d",
+      "referenceId": "6ab1790568ad5d0b0db28de4",
+      "amount": 10,
+      "date": "2026-09-22T00:01:04.450Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c54068ad5d0b0db28e2d",
+      "userId": "6aa7bb916efbe2df22e4b16d",
+      "referenceId": "6ab1790568ad5d0b0db28de4",
+      "amount": 10,
+      "date": "2026-09-22T00:01:04.428Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c5410c806c5e468ff98c",
+      "userId": "6aa7236b6efbe2df22e4b15f",
+      "referenceId": "6ab17a7d68ad5d0b0db28dea",
+      "amount": 10,
+      "date": "2026-09-22T00:01:05.889Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c54168ad5d0b0db28e35",
+      "userId": "6aa7236b6efbe2df22e4b15f",
+      "referenceId": "6ab17a7d68ad5d0b0db28dea",
+      "amount": 10,
+      "date": "2026-09-22T00:01:05.879Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c5420c806c5e468ff991",
+      "userId": "6aaaa414690cd9c2b645d273",
+      "referenceId": "6ab17b1368ad5d0b0db28df0",
+      "amount": 10,
+      "date": "2026-09-22T00:01:06.575Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c54268ad5d0b0db28e3a",
+      "userId": "6aaaa414690cd9c2b645d273",
+      "referenceId": "6ab17b1368ad5d0b0db28df0",
+      "amount": 10,
+      "date": "2026-09-22T00:01:06.564Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c5430c806c5e468ff999",
+      "userId": "6aae6d093db841b4cebcd3d3",
+      "referenceId": "6ab17ba768ad5d0b0db28df6",
+      "amount": 10,
+      "date": "2026-09-22T00:01:07.867Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c54368ad5d0b0db28e42",
+      "userId": "6aae6d093db841b4cebcd3d3",
+      "referenceId": "6ab17ba768ad5d0b0db28df6",
+      "amount": 10,
+      "date": "2026-09-22T00:01:07.862Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c5450c806c5e468ff9a4",
+      "userId": "6ab182cf68ad5d0b0db28dfd",
+      "referenceId": "6ab1893968ad5d0b0db28e00",
+      "amount": 10,
+      "date": "2026-09-22T00:01:09.553Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c54568ad5d0b0db28e4d",
+      "userId": "6ab182cf68ad5d0b0db28dfd",
+      "referenceId": "6ab1893968ad5d0b0db28e00",
+      "amount": 10,
+      "date": "2026-09-22T00:01:09.533Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c5470c806c5e468ff9b2",
+      "userId": "6aaf5ee83db841b4cebcd3dd",
+      "referenceId": "6ab18a5a68ad5d0b0db28e06",
+      "amount": 2.5,
+      "date": "2026-09-22T00:01:11.747Z",
+      "description": "Daily profit (0.5%) from package Tier 1 ($100 - $500)"
+    },
+    {
+      "id": "6ab1c54768ad5d0b0db28e5b",
+      "userId": "6aaf5ee83db841b4cebcd3dd",
+      "referenceId": "6ab18a5a68ad5d0b0db28e06",
+      "amount": 2.5,
+      "date": "2026-09-22T00:01:11.720Z",
+      "description": "Daily profit (0.5%) from package Tier 1 ($100 - $500)"
+    },
+    {
+      "id": "6ab1c5490c806c5e468ff9bd",
+      "userId": "6ab18d0568ad5d0b0db28e0d",
+      "referenceId": "6ab1923168ad5d0b0db28e0e",
+      "amount": 10,
+      "date": "2026-09-22T00:01:13.568Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    },
+    {
+      "id": "6ab1c54968ad5d0b0db28e66",
+      "userId": "6ab18d0568ad5d0b0db28e0d",
+      "referenceId": "6ab1923168ad5d0b0db28e0e",
+      "amount": 10,
+      "date": "2026-09-22T00:01:13.522Z",
+      "description": "Daily profit (1%) from package Tier 2 ($1,000 - $5,000)"
+    }
+  ]
+}
