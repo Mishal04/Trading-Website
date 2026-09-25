@@ -24,16 +24,16 @@ const INVESTOR_PACKAGES = {
 
 const INVESTOR_DAILY_RATES = {
   A: {
-    1: 0.0075,  // 0.75%
+    1: 0.01,    // 1.00%
     2: 0.01,    // 1.00%
-    3: 0.0125,  // 1.25%
-    4: 0.015    // 1.50%
-  },
-  B: {
-    1: 0.005,   // 0.50%
-    2: 0.0075,  // 0.75%
     3: 0.01,    // 1.00%
     4: 0.0125   // 1.25%
+  },
+  B: {
+    1: 0.0075,  // 0.75%
+    2: 0.0075,  // 0.75%
+    3: 0.0075,  // 0.75%
+    4: 0.01     // 1.00%
   }
 };
 
@@ -75,13 +75,13 @@ function getInvestorPackageInfo(amount, plan) {
 function getAllInvestorPackages() {
   return [
     { pkg: 1, amounts: [100, 200, 300, 900],
-      rateA: '0.75% / day', rateB: '0.50% / day' },
+      rateA: '1.00% / day', rateB: '0.75% / day' },
     { pkg: 2, amounts: [1000, 2000, 3000, 5000],
       rateA: '1.00% / day', rateB: '0.75% / day' },
     { pkg: 3, amounts: [6000, 7000, 8000, 9000],
-      rateA: '1.25% / day', rateB: '1.00% / day' },
+      rateA: '1.00% / day', rateB: '0.75% / day' },
     { pkg: 4, amounts: [10000, 15000, 20000, 25000],
-      rateA: '1.50% / day', rateB: '1.25% / day' }
+      rateA: '1.25% / day', rateB: '1.00% / day' }
   ];
 }
 

@@ -34,10 +34,10 @@ const ROI_PERIODS = [
     desc: 'Plan A',
     phaseNote: 'This phase runs for 6 months from activation.',
     rates: [
-      { pkg: '$100, $200, $300, $900',                    rate: '0.75% Daily' },
+      { pkg: '$100, $200, $300, $900',                    rate: '1.00% Daily' },
       { pkg: '$1,000, $2,000, $3,000, $5,000',           rate: '1.00% Daily' },
-      { pkg: '$6,000, $7,000, $8,000, $9,000',           rate: '1.25% Daily' },
-      { pkg: '$10,000, $15,000, $20,000, $25,000',       rate: '1.50% Daily' },
+      { pkg: '$6,000, $7,000, $8,000, $9,000',           rate: '1.00% Daily' },
+      { pkg: '$10,000, $15,000, $20,000, $25,000',       rate: '1.25% Daily' },
     ],
     highlight: true,
   },
@@ -46,10 +46,10 @@ const ROI_PERIODS = [
     dates: 'Jan 01, 2027 Onwards',
     desc: 'Plan B',
     rates: [
-      { pkg: '$100, $200, $300, $900',                    rate: '0.50% Daily' },
+      { pkg: '$100, $200, $300, $900',                    rate: '0.75% Daily' },
       { pkg: '$1,000, $2,000, $3,000, $5,000',           rate: '0.75% Daily' },
-      { pkg: '$6,000, $7,000, $8,000, $9,000',           rate: '1.00% Daily' },
-      { pkg: '$10,000, $15,000, $20,000, $25,000',       rate: '1.25% Daily' },
+      { pkg: '$6,000, $7,000, $8,000, $9,000',           rate: '0.75% Daily' },
+      { pkg: '$10,000, $15,000, $20,000, $25,000',       rate: '1.00% Daily' },
     ],
   },
   {
