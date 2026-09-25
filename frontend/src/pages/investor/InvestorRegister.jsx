@@ -177,8 +177,9 @@ export default function InvestorRegister() {
           <div className="mt-5 rounded-xl border border-white/8 px-4 py-4 space-y-2"
                style={{ background: 'rgba(255,255,255,0.02)' }}>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-400">After 6 months</span>
-              <span className="text-emerald-400 font-bold">8%–10% / month</span>
+              <span className="text-gray-400"></span>
+              <span className="text-emerald-400 font-bold">The 8–10% monthly return will  be applicable after 1 year.
+</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-400">Income cap</span>

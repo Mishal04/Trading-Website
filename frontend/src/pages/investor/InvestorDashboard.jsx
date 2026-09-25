@@ -276,8 +276,9 @@ export default function InvestorDashboard() {
               </div>
               <div className="mt-4 pt-4 border-t border-white/8 grid sm:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-500">After 6 months</p>
-                  <p className="text-emerald-400 font-bold">8%–10% / month</p>
+                  <p className="text-gray-500"></p>
+                  <p className="text-emerald-400 font-bold">The 8–10% monthly return will <br/> be applicable after 1 year.
+</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Income cap</p>
