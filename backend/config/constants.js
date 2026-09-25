@@ -37,20 +37,21 @@ module.exports = {
     }
   ],
 
-  // 21‑level income distribution (total 80%)
+  // 25‑level income distribution (total 10.00%)
   LEVEL_RATES: [
-    0.25, // L1
-    0.15, // L2
-    0.10, // L3
-    0.05, // L4
-    0.05, // L5
-    // L6–L10
-    0.02, 0.02, 0.02, 0.02, 0.02,
-    // L11–L20
-    0.009, 0.009, 0.009, 0.009, 0.009,
-    0.009, 0.009, 0.009, 0.009, 0.009,
-    // L21
-    0.01
+    1.50, // L1
+    1.00, // L2
+    0.75, // L3
+    0.50, // L4
+    0.50, // L5
+    // L6–L10 (0.35% each)
+    0.35, 0.35, 0.35, 0.35, 0.35,
+    // L11–L15 (0.30% each)
+    0.30, 0.30, 0.30, 0.30, 0.30,
+    // L16–L20 (0.25% each)
+    0.25, 0.25, 0.25, 0.25, 0.25,
+    // L21–L25 (0.25% each)
+    0.25, 0.25, 0.25, 0.25, 0.25
   ],
 
   // Level unlocking based on direct referral count
@@ -107,12 +108,6 @@ module.exports = {
     networks: ['BEP20', 'TRC20']
   },
 
-  // ── Package phase dates ────────────────────────────────────────────────────
-  // Standard rate applies to investments created Oct 1 – Dec 31, 2026 (inclusive).
-  // Reduced rate applies Jan 1, 2027 onward.
-  PACKAGE_PHASE_START_DATE: new Date('2026-10-01'),
-  PACKAGE_PHASE_END_DATE:   new Date('2026-12-31'),  // last day of standard-rate window
-
   // ── Regular User (Tier) discrete package amounts ───────────────────────────
   // 4 tiers mirroring the Investor Portal Package 1-4 structure.
   // ASSUMPTION: Package 4 amounts ($10k/$15k/$20k/$25k) — CLIENT MUST CONFIRM.
@@ -124,26 +119,18 @@ module.exports = {
   },
 
   // ── Regular User flat daily rates ─────────────────────────────────────────
-  // Flat rates per tier — replaces the old interpolation logic in commissionService.js.
+  // Flat rates per tier — permanent standard rates with no time-based switching.
   USER_DAILY_RATES: {
     standard: {
-      1: 0.0075,  // 0.75%
-      2: 0.01,    // 1.00%
-      3: 0.0125,  // 1.25%
-      4: 0.015    // 1.50%
-    },
-    // PLACEHOLDER — client has not confirmed final reduced rate.
-    // Currently set to standard rate minus 20%.
-    reduced: {
-      1: 0.006,   // 0.60% (PLACEHOLDER: standard 0.75% - 20%)
-      2: 0.008,   // 0.80% (PLACEHOLDER: standard 1.00% - 20%)
-      3: 0.01,    // 1.00% (PLACEHOLDER: standard 1.25% - 20%)
-      4: 0.012    // 1.20% (PLACEHOLDER: standard 1.50% - 20%)
+      1: 0.75,   // 0.75%
+      2: 1.00,   // 1.00%
+      3: 1.25,   // 1.25%
+      4: 1.50    // 1.50%
     }
   },
 
   // ── Direct referral commission ────────────────────────────────────────────
   // Instant 5% commission credited to referrer on investment approval.
-  // Separate from the 21-level daily profit commission system.
+  // Separate from the 25-level daily profit commission system.
   DIRECT_REFERRAL_COMMISSION_RATE: 0.05
 };

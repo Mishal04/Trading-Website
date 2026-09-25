@@ -19,6 +19,7 @@ export default function OverviewTab({ stats, user, onRefresh }) {
 
   const wallet = stats?.wallet || user?.wallet || { capital: 0, profit: 0, commission: 0, totalBalance: 0 };
   const referralCode = user?.referralCode || stats?.user?.referralCode || '--------';
+  const referralUrl = `${window.location.origin}/register?ref=${referralCode}`;
   const investments = stats?.investments || { totalInvested: 0, activeCount: 0, totalProfitEarned: 0 };
   const team = stats?.team || { directCount: 0, unlockedLevels: 0, teamBusiness: { total: 0 } };
   const recentTransactions = stats?.recentTransactions || [];
@@ -37,9 +38,9 @@ export default function OverviewTab({ stats, user, onRefresh }) {
   const unlockedLevels = stats?.user?.unlockedLevels ?? stats?.team?.unlockedLevels ?? user?.unlockedLevels ?? 0;
 
   const copyReferral = () => {
-    navigator.clipboard.writeText(referralCode);
+    navigator.clipboard.writeText(referralUrl);
     setCopied(true);
-    toast.success('Referral code copied!');
+    toast.success('Referral link copied!');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -135,7 +136,7 @@ export default function OverviewTab({ stats, user, onRefresh }) {
             <div className="p-3 rounded-xl bg-dark-900 border border-dark-600 text-center min-w-[125px]">
               <span className="text-[10px] text-gray-400 uppercase font-semibold block">Unlocked Levels</span>
               <span className="text-2xl font-black text-gold-400">
-                {unlockedLevels}<span className="text-xs text-gray-500 font-normal"> / 21</span>
+                {unlockedLevels}<span className="text-xs text-gray-500 font-normal"> / 25</span>
               </span>
             </div>
           </div>
@@ -192,22 +193,25 @@ export default function OverviewTab({ stats, user, onRefresh }) {
               <Users size={18} className="text-gold-400" /> Share Your Referral Link
             </h3>
             <p className="text-xs text-gray-400 mt-0.5">
-              Earn 25-level team commissions when friends sign up and trade with your code: <span className="text-gold-400 font-mono font-bold">{referralCode}</span>
+              Earn 25-level team commissions when friends sign up and trade with your link.
             </p>
+            <div className="text-xs text-gray-400 mt-1">
+              Code: <span className="text-gold-400 font-mono font-bold">{referralCode}</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 max-w-lg w-full md:w-auto">
             <input
               readOnly
-              value={referralCode}
-              className="flex-1 bg-dark-900/90 rounded-xl px-4 py-2.5 text-sm text-gold-400 border border-dark-500 font-mono font-bold tracking-widest text-center focus:outline-none"
+              value={referralUrl}
+              className="flex-1 bg-dark-900/90 rounded-xl px-4 py-2.5 text-xs text-gold-400 border border-dark-500 font-mono focus:outline-none"
             />
             <button
               onClick={copyReferral}
               className="px-5 py-2.5 rounded-xl bg-gold-400 text-dark-900 font-bold text-xs flex items-center gap-1.5 hover:bg-gold-300 transition-colors shrink-0 shadow-md shadow-gold-500/10"
             >
               {copied ? <Check size={16} /> : <Copy size={16} />}
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? 'Copied' : 'Copy Link'}
             </button>
           </div>
         </div>
@@ -301,7 +305,7 @@ export default function OverviewTab({ stats, user, onRefresh }) {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">Unlocked Generations</span>
-                <span className="text-sm font-bold text-gold-400">{unlockedLevels} / 21</span>
+                <span className="text-sm font-bold text-gold-400">{unlockedLevels} / 25</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">Team Business Volume</span>

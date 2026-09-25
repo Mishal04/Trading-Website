@@ -1,21 +1,12 @@
-﻿const User = require('../models/User');
+const User = require('../models/User');
 const CommissionLog = require('../models/CommissionLog');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
 const SystemPool = require('../models/SystemPool');
 const constants = require('../../config/constants');
 
-// 25-Level Rates (Sum = 10.00%)
-const LEVEL_RATES = [
-  1.50, // Level 1
-  1.00, // Level 2
-  0.75, // Level 3
-  0.50, // Level 4
-  0.50, // Level 5
-  0.35, 0.35, 0.35, 0.35, 0.35, // Levels 6-10
-  0.30, 0.30, 0.30, 0.30, 0.30, // Levels 11-15
-  0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25 // Levels 16-25
-];
+// Reference 25-Level Rates (Sum = 10.00%) from constants.js as single source of truth
+const LEVEL_RATES = constants.LEVEL_RATES;
 
 // Leadership Salary Tiers
 const LEADERSHIP_TIERS = [
@@ -42,24 +33,12 @@ const PERFORMANCE_TIERS = [
 ];
 
 /**
- * Returns 'standard' if the given date falls within the standard-rate window,
- * otherwise returns 'reduced'.
- */
-function getUserRateTier(date = new Date()) {
-  // Standard rate applies for all dates on/before Dec 31 2026 (including pre-launch testing).
-  // Reduced rate applies only from Jan 1, 2027 onward.
-  const end = constants.PACKAGE_PHASE_END_DATE;
-  return date <= end ? 'standard' : 'reduced';
-}
-
-/**
  * Returns package details for a regular User investment.
- * Uses flat rates per tier — replaces the old interpolation logic.
+ * Uses permanent flat standard rates per tier — no calendar-based switching.
  * @param {number} amount - must be one of the discrete allowed amounts
- * @param {Date}   [date] - investment creation date (defaults to now)
  * @returns {{ tier, packageName, dailyRate, packageNumber, rateTier } | null}
  */
-const getInvestmentPackage = (amount, date = new Date()) => {
+const getInvestmentPackage = (amount) => {
   const packages = constants.USER_PACKAGES;
   let packageNumber = null;
 
@@ -72,8 +51,7 @@ const getInvestmentPackage = (amount, date = new Date()) => {
 
   if (!packageNumber) return null;
 
-  const rateTier = getUserRateTier(date);
-  const dailyRate = constants.USER_DAILY_RATES[rateTier][packageNumber];
+  const dailyRate = constants.USER_DAILY_RATES.standard[packageNumber];
 
   const tierNames = {
     1: 'Tier 1 ($100–$900)',
@@ -87,7 +65,7 @@ const getInvestmentPackage = (amount, date = new Date()) => {
     packageName: tierNames[packageNumber],
     dailyRate,
     packageNumber,
-    rateTier
+    rateTier:    'standard'
   };
 };
 
@@ -113,7 +91,7 @@ const distributeLevelCommissions = async (investment, dailyProfitAmount, investo
     return;
   }
 
-  for (let i = 0; i < investor.ancestorPath.length && i < 25; i++) {
+  for (let i = 0; i < investor.ancestorPath.length && i < LEVEL_RATES.length; i++) {
     const ancestorId = investor.ancestorPath[i];
     const level = i + 1;
     const ratePercent = LEVEL_RATES[i] || 0.25;
@@ -331,7 +309,6 @@ module.exports = {
   LEVEL_RATES,
   LEADERSHIP_TIERS,
   PERFORMANCE_TIERS,
-  getUserRateTier,
   getInvestmentPackage,
   check6040Qualification,
   distributeLevelCommissions,

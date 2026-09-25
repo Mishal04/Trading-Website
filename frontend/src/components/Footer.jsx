@@ -13,7 +13,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
-              Trade Smarter | Grow Further. Transparent profit sharing with 21-level commissions and structured achievement rewards.
+              Trade Smarter | Grow Further. Transparent profit sharing with 25-level commissions and structured achievement rewards.
             </p>
           </div>
 

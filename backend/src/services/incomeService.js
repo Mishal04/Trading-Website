@@ -5,6 +5,8 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const Investment = require('../models/Investment');
 const Transaction = require('../models/Transaction');
+const CommissionLog = require('../models/CommissionLog');
+const Notification = require('../models/Notification');
 const constants = require('../../config/constants');
 
 /**
@@ -83,10 +85,67 @@ async function creditRoiToInvestor(userId, investmentId, amount) {
 }
 
 /**
+ * Credit level commission to upline, respecting income cap.
+ */
+async function creditCommissionToUpline(upline, sourceUser, levelIdx, ratePercent, levelAmount, baseAmount) {
+  if (!canEarnMore(upline)) {
+    return { credited: 0, capped: true };
+  }
+  const cap = upline.getIncomeCap ? upline.getIncomeCap() : (upline.totalInvested || 0) * 5;
+  const remaining = Math.max(0, cap - (upline.totalEarned || 0));
+  const credit = Number(Math.min(levelAmount, remaining).toFixed(4));
+  if (credit <= 0) return { credited: 0, capped: true };
+
+  const level = levelIdx + 1;
+
+  // Credit upline commission wallet
+  await User.findByIdAndUpdate(upline._id, {
+    $inc: {
+      'wallet.commission': credit,
+      totalEarned: credit,
+      [`commissions.levelCommissions.${levelIdx}`]: credit
+    }
+  });
+
+  // Create Transaction of type 'commission'
+  await Transaction.create({
+    userId: upline._id,
+    type: 'commission',
+    amount: credit,
+    status: 'completed',
+    description: `Level ${level} commission (${ratePercent}%) from ${sourceUser.name || 'referral'}`,
+    referenceId: sourceUser._id,
+    referenceModel: 'User'
+  });
+
+  // Create CommissionLog
+  await CommissionLog.create({
+    recipientId: upline._id,
+    sourceUserId: sourceUser._id,
+    level,
+    commissionType: 'level',
+    rate: ratePercent,
+    baseAmount,
+    commissionAmount: credit,
+    description: `Level ${level} commission (${ratePercent}%) from ${sourceUser.name || 'referral'}`
+  });
+
+  // Create Notification
+  await Notification.create({
+    userId: upline._id,
+    title: 'Commission Received',
+    message: `You earned $${credit} in Level ${level} commission from your team!`,
+    type: 'commission'
+  });
+
+  return { credited: credit, capped: credit < levelAmount };
+}
+
+/**
  * Distribute level income up the upline chain.
  */
 async function distributeLevelIncome(sourceUserId, baseAmount) {
-  const sourceUser = await User.findById(sourceUserId).select('ancestorPath role unlockedLevels');
+  const sourceUser = await User.findById(sourceUserId).select('name email ancestorPath role unlockedLevels');
   if (!sourceUser) throw new Error('Source user not found');
 
   const rates = constants.LEVEL_RATES;
@@ -96,14 +155,16 @@ async function distributeLevelIncome(sourceUserId, baseAmount) {
   for (let i = 0; i < maxLevels; i++) {
     const uplineId = sourceUser.ancestorPath[i];
     const levelIdx = i; // 0 = L1
-    const rate = rates[levelIdx];
-    if (!rate) continue;
+    const ratePercent = rates[levelIdx];
+    if (!ratePercent) continue;
     const upline = await User.findById(uplineId);
-    if (!upline) continue;
+    if (!upline || !upline.isActive) continue;
     if (upline.unlockedLevels < levelIdx + 1) continue;
-    const levelAmount = baseAmount * rate;
+    const levelAmount = Number(((baseAmount * ratePercent) / 100).toFixed(4));
+    if (levelAmount <= 0) continue;
     if (upline.getIncomeCap && upline.hasReachedIncomeCap && upline.hasReachedIncomeCap()) continue;
-    const creditInfo = await creditRoiToInvestor(uplineId, sourceUserId, levelAmount);
+
+    const creditInfo = await creditCommissionToUpline(upline, sourceUser, levelIdx, ratePercent, levelAmount, baseAmount);
     if (creditInfo.credited > 0) {
       results.push({ uplineId, level: levelIdx + 1, amount: creditInfo.credited });
     }
@@ -116,5 +177,6 @@ module.exports = {
   getUnlockedLevels,
   canEarnMore,
   creditRoiToInvestor,
+  creditCommissionToUpline,
   distributeLevelIncome
 };

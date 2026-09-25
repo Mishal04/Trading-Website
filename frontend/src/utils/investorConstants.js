@@ -1,6 +1,9 @@
 /**
  * Investor Plan constants & helper functions (Frontend)
  * Mirrors backend/config/investorConstants.js
+ *
+ * ONE single rate table — no time-based switching, no tiers.
+ * Every investor always gets the rate below based on Plan (A/B) + Package (1-4).
  */
 
 export const INVESTOR_PACKAGES = {
@@ -25,56 +28,28 @@ export const INVESTOR_DAILY_RATES = {
   }
 };
 
-export const INVESTOR_REDUCED_RATES = {
-  A: {
-    1: 0.006,   // 0.60%
-    2: 0.008,   // 0.80%
-    3: 0.01,    // 1.00%
-    4: 0.012    // 1.20%
-  },
-  B: {
-    1: 0.004,   // 0.40%
-    2: 0.006,   // 0.60%
-    3: 0.008,   // 0.80%
-    4: 0.01     // 1.00%
-  }
-};
-
-export const INVESTOR_PHASE_START = new Date('2026-10-01');
-export const INVESTOR_PHASE_END   = new Date('2026-12-31');
-
 /**
- * Returns 'standard' for dates on/before Dec 31, 2026; 'reduced' for Jan 1, 2027 onward.
+ * Returns package details: { packageNumber, dailyRate }
+ * Strict discrete-amount validation — amount must exactly match.
  */
-export function getInvestorRateTier(date = new Date()) {
-  return date <= INVESTOR_PHASE_END ? 'standard' : 'reduced';
-}
-
-/**
- * Returns package details: { packageNumber, dailyRate, rateTier }
- */
-export function getInvestorPackageInfo(amount, plan = 'A', rateTier = null) {
+export function getInvestorPackageInfo(amount, plan = 'A') {
   const num = Number(amount);
   if (!num || num < 100) return null;
 
-  let packageNumber;
-  if (num >= 10000) {
-    packageNumber = 4;
-  } else if (num >= 6000) {
-    packageNumber = 3;
-  } else if (num >= 1000) {
-    packageNumber = 2;
-  } else if (num >= 100) {
-    packageNumber = 1;
-  } else {
-    return null;
+  let packageNumber = null;
+
+  for (const [pkgNum, amounts] of Object.entries(INVESTOR_PACKAGES)) {
+    if (amounts.includes(num)) {
+      packageNumber = Number(pkgNum);
+      break;
+    }
   }
 
+  if (!packageNumber) return null;
+
   const effectivePlan = plan === 'B' ? 'B' : 'A';
-  const tier = rateTier || getInvestorRateTier();
-  const rates = tier === 'reduced' ? INVESTOR_REDUCED_RATES : INVESTOR_DAILY_RATES;
-  const dailyRate = rates[effectivePlan]?.[packageNumber];
+  const dailyRate = INVESTOR_DAILY_RATES[effectivePlan]?.[packageNumber];
   if (dailyRate === undefined) return null;
 
-  return { packageNumber, dailyRate, rateTier: tier };
+  return { packageNumber, dailyRate };
 }

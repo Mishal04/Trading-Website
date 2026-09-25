@@ -4,7 +4,6 @@ const User = require('../models/User');
 const InvestorInvestment = require('../models/InvestorInvestment');
 const {
   getInvestorPackageInfo,
-  getInvestorRateTier,
   INVESTOR_INCOME_CAP,
   INVESTOR_MONTHLY_RATE,
   INVESTOR_SWITCH_MONTHS

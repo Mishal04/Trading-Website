@@ -16,11 +16,12 @@ export default function TeamTab({ user }) {
   const [levelFilter, setLevelFilter] = useState('all');
 
   const referralCode = user?.referralCode || stats?.referralCode || '--------';
+  const referralUrl = `${window.location.origin}/register?ref=${referralCode}`;
 
   const copyReferral = () => {
-    navigator.clipboard.writeText(referralCode);
+    navigator.clipboard.writeText(referralUrl);
     setCopied(true);
-    toast.success('Referral code copied!');
+    toast.success('Referral link copied!');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -101,25 +102,27 @@ export default function TeamTab({ user }) {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <span className="text-xs font-semibold text-gold-400 uppercase tracking-wider block mb-1">
-              Your Sponsor Code
+              Your Referral Link
             </span>
-            <div className="text-2xl font-black text-white font-mono">{referralCode}</div>
+            <div className="text-sm font-semibold text-gray-300">
+              Code: <span className="text-gold-400 font-mono font-bold text-base">{referralCode}</span>
+            </div>
             <p className="text-xs text-gray-500 mt-1">
-              Share this code or link to earn 25-level team commissions
+              Share this link to earn 25-level team commissions
             </p>
           </div>
           <div className="flex items-center gap-2 max-w-md w-full">
             <input
               readOnly
-              value={referralCode}
-              className="flex-1 bg-dark-900 rounded-xl px-4 py-3 text-sm text-gold-400 border border-dark-500 font-mono font-bold tracking-widest text-center"
+              value={referralUrl}
+              className="flex-1 bg-dark-900 rounded-xl px-4 py-3 text-xs text-gold-400 border border-dark-500 font-mono focus:outline-none"
             />
             <button
               onClick={copyReferral}
               className="px-5 py-3 rounded-xl bg-gold-400 text-dark-900 font-bold text-xs flex items-center gap-1.5 hover:bg-gold-300 transition-colors shrink-0"
             >
               {copied ? <Check size={16} /> : <Copy size={16} />}
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? 'Copied' : 'Copy Link'}
             </button>
           </div>
         </div>

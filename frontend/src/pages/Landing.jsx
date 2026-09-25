@@ -1,4 +1,4 @@
-﻿import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   TrendingUp,
   Users,
@@ -31,9 +31,8 @@ const ROI_PERIODS = [
   {
     name: 'Phase 1',
     dates: 'Oct 01, 2026 – Dec 31, 2026',
-    phaseNote: 'Standard rates apply to all investments activated before Jan 1, 2027.',
-    phaseNote2: 'This phase runs for 6 months from activation.',
-    desc: 'Standard Rate Phase',
+    desc: 'Plan A',
+    phaseNote: 'This phase runs for 6 months from activation.',
     rates: [
       { pkg: '$100, $200, $300, $900',                    rate: '0.75% Daily' },
       { pkg: '$1,000, $2,000, $3,000, $5,000',           rate: '1.00% Daily' },
@@ -45,13 +44,12 @@ const ROI_PERIODS = [
   {
     name: 'Phase 2',
     dates: 'Jan 01, 2027 Onwards',
-    phaseNote: 'Reduced rates apply to investments activated from Jan 1, 2027 onward. Final rates subject to confirmation.',
-    desc: 'Reduced Rate Phase',
+    desc: 'Plan B',
     rates: [
-      { pkg: '$100, $200, $300, $900',                    rate: '0.60% Daily' },
-      { pkg: '$1,000, $2,000, $3,000, $5,000',           rate: '0.80% Daily' },
+      { pkg: '$100, $200, $300, $900',                    rate: '0.50% Daily' },
+      { pkg: '$1,000, $2,000, $3,000, $5,000',           rate: '0.75% Daily' },
       { pkg: '$6,000, $7,000, $8,000, $9,000',           rate: '1.00% Daily' },
-      { pkg: '$10,000, $15,000, $20,000, $25,000',       rate: '1.20% Daily' },
+      { pkg: '$10,000, $15,000, $20,000, $25,000',       rate: '1.25% Daily' },
     ],
   },
   {
@@ -67,14 +65,15 @@ const ROI_PERIODS = [
 ];
 
 const LEVEL_DISTRIBUTION = [
-  { level: 'Level 1', rate: '25.0%' },
-  { level: 'Level 2', rate: '15.0%' },
-  { level: 'Level 3', rate: '10.0%' },
-  { level: 'Level 4', rate: '5.0%' },
-  { level: 'Level 5', rate: '5.0%' },
-  { level: 'Level 6–10', rate: '2.0% each (10%)' },
-  { level: 'Level 11–20', rate: '0.9% each (9%)' },
-  { level: 'Level 21', rate: '1.0%' },
+  { level: 'Level 1', rate: '1.50%' },
+  { level: 'Level 2', rate: '1.00%' },
+  { level: 'Level 3', rate: '0.75%' },
+  { level: 'Level 4', rate: '0.50%' },
+  { level: 'Level 5', rate: '0.50%' },
+  { level: 'Level 6–10', rate: '0.35% each (1.75%)' },
+  { level: 'Level 11–15', rate: '0.30% each (1.50%)' },
+  { level: 'Level 16–20', rate: '0.25% each (1.25%)' },
+  { level: 'Level 21–25', rate: '0.25% each (1.25%)' },
 ];
 
 const LEVEL_UNLOCK_RULES = [
@@ -137,13 +136,13 @@ export default function Landing() {
             </div>
 
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-6">
-              21 Levels.
+              25 Levels.
               <br />
               <span className="gradient-text">3X Investor Cap. 5X Networker Cap.</span>
             </h1>
 
 <p className="max-w-3xl mx-auto text-gray-300 text-base sm:text-lg mb-10 leading-relaxed">
-  Choose your activation package from <strong>$100 to $10,000</strong>. Investors earn ROI on their investment up to a 3× income cap of the invested amount, while Networkers/Affiliates earn from the 21‑level affiliate structure up to a 5× income cap.
+  Choose your activation package from <strong>$100 to $10,000</strong>. Investors earn ROI on their investment up to a 3× income cap of the invested amount, while Networkers/Affiliates earn from the 25‑level affiliate structure up to a 5× income cap.
 </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -171,9 +170,9 @@ export default function Landing() {
           {/* Quick Metrics Bar */}
           <div className="mt-12 grid grid-cols-3 gap-4 max-w-4xl mx-auto">
             {[
-              { icon: Percent, label: 'Level Pool Share', value: '80% Across 21L' },
+              { icon: Percent, label: 'Level Pool Share', value: '10% Across 25L' },
               { icon: Shield, label: 'Global Income Cap', value: '5X Total Invested' },
-              { icon: Zap, label: 'Affiliate Network', value: '21 Levels' },
+              { icon: Zap, label: 'Affiliate Network', value: '25 Levels' },
             ].map((m) => (
               <div key={m.label} className="rounded-xl border border-dark-500 bg-dark-800/70 p-4 text-center backdrop-blur-xl">
                 <m.icon className="mx-auto mb-2 text-gold-400" size={20} />
@@ -244,10 +243,7 @@ export default function Landing() {
                 <h3 className="text-xl font-bold text-white mb-1">{period.desc}</h3>
                 <p className="text-xs font-mono text-gray-400 mb-1">{period.dates}</p>
                 {period.phaseNote && (
-                  <p className="text-[11px] text-gray-500 italic mb-1">{period.phaseNote}</p>
-                )}
-                {period.phaseNote2 && (
-                  <p className="text-[11px] text-gray-500 italic mb-6">{period.phaseNote2}</p>
+                  <p className="text-[11px] text-gray-500 italic mb-6">{period.phaseNote}</p>
                 )}
                 {!period.phaseNote && <div className="mb-6" />}
 
@@ -274,15 +270,15 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 21-Level Income & Unlocking Rules */}
+      {/* 25-Level Income & Unlocking Rules */}
       <section id="levels" className="py-16 bg-dark-800/40 border-y border-dark-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-white mb-2">
-              21-Level <span className="gradient-text">Affiliate Distribution</span>
+              25-Level <span className="gradient-text">Affiliate Distribution</span>
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto text-sm">
-              Total 80% level commission pool distributed across 21 generations. Unlocking is strictly unlocked by active direct referrals.
+              Total 10% level commission pool distributed across 25 generations. Unlocking is strictly unlocked by active direct referrals.
             </p>
           </div>
 
@@ -290,7 +286,7 @@ export default function Landing() {
             {/* Rates Table */}
             <div className="rounded-2xl border border-dark-500 bg-dark-800/70 p-6 backdrop-blur-xl">
               <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2">
-                <Layers className="text-gold-400" size={18} /> Level Commission Rates (80% Total)
+                <Layers className="text-gold-400" size={18} /> Level Commission Rates (10% Total)
               </h3>
               <div className="divide-y divide-dark-600 text-xs">
                 {LEVEL_DISTRIBUTION.map((row) => (
@@ -301,7 +297,7 @@ export default function Landing() {
                 ))}
               </div>
               <div className="mt-4 p-3 rounded-xl bg-gold-400/10 border border-gold-400/20 text-xs text-gold-300">
-                L1–L5 carry the highest incentive weights (25%, 15%, 10%, 5%, 5% = 60%).
+                L1–L5 carry the highest incentive weights (1.50%, 1.00%, 0.75%, 0.50%, 0.50% = 4.25%).
               </div>
             </div>
 
@@ -346,7 +342,7 @@ export default function Landing() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
-                <span>Networker/Affiliate accounts continue to earn strictly according to their existing plan structure (daily ROI rates and 21-level affiliate commissions); this phase does not alter Networker earnings or rates in any way.</span>
+                <span>Networker/Affiliate accounts continue to earn strictly according to their existing plan structure (daily ROI rates and 25-level affiliate commissions); this phase does not alter Networker earnings or rates in any way.</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
