@@ -136,7 +136,7 @@ userSchema.methods.recomputeUnlockedLevels = function() {
   const rules = require('../../config/constants').LEVEL_UNLOCK_RULES;
   const direct = this.directCount || 0;
   if (direct >= 10) {
-    this.unlockedLevels = 21;
+    this.unlockedLevels = 25;
   } else {
     this.unlockedLevels = rules[direct] || 0;
   }

@@ -86,7 +86,7 @@ const LEVEL_UNLOCK_RULES = [
   { directs: '7 Direct Referrals', unlocked: '14 Levels Unlocked' },
   { directs: '8 Direct Referrals', unlocked: '16 Levels Unlocked' },
   { directs: '9 Direct Referrals', unlocked: '18 Levels Unlocked' },
-  { directs: '10+ Direct Referrals', unlocked: 'All 21 Levels Unlocked (Full Tree)' },
+  { directs: '10+ Direct Referrals', unlocked: 'All 25 Levels Unlocked (Full Tree)' },
 ];
 
 const SAMPLE_ACHIEVEMENTS = [
@@ -315,7 +315,7 @@ export default function Landing() {
                 ))}
               </div>
               <div className="mt-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300">
-                10 direct referrals unlock all 21 generations across your entire organization.
+                10 direct referrals unlock all 25 generations across your entire organization.
               </div>
             </div>
           </div>

@@ -65,7 +65,7 @@ module.exports = {
     7: 14,
     8: 16,
     9: 18,
-    10: 21
+    10: 25
   },
 
   // Income caps (multiples of investment)

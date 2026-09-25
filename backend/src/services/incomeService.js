@@ -38,7 +38,7 @@ function getRoiPercent(amount, date = new Date()) {
  * Determine unlocked levels based on direct referral count.
  */
 function getUnlockedLevels(directCount) {
-  if (directCount >= 10) return 21;
+  if (directCount >= 10) return 25;
   const rules = constants.LEVEL_UNLOCK_RULES;
   return rules[directCount] || 0;
 }

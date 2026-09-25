@@ -291,7 +291,7 @@ const approveInvestment = async (req, res) => {
     });
 
     // ── 5% instant direct referral commission ─────────────────────────────
-    // Separate from the 21-level daily profit commission system.
+    // Separate from the 25-level daily profit commission system.
     // Fires once here at approval time; distributeLevelCommissions() runs
     // independently on the daily cron and is NOT affected by this block.
     if (investor && investor.referredBy) {
