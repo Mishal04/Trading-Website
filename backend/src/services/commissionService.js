@@ -5,7 +5,7 @@ const Notification = require('../models/Notification');
 const SystemPool = require('../models/SystemPool');
 const constants = require('../../config/constants');
 
-// Reference 25-Level Rates (Sum = 10.00%) from constants.js as single source of truth
+// Reference 21-Level Rates (Sum = 80.00%) from constants.js as single source of truth
 const LEVEL_RATES = constants.LEVEL_RATES;
 
 // Leadership Salary Tiers
@@ -83,7 +83,7 @@ const check6040Qualification = (strongTeam, otherTeam, targetVolume) => {
 };
 
 /**
-  Distribute 25-level commissions when profit is generated
+  Distribute 21-level commissions when profit is generated
   Fix: Checks that upline user is active (isActive: true) and has an active investment (totalInvestment > 0)
  */
 const distributeLevelCommissions = async (investment, dailyProfitAmount, investor) => {

@@ -230,7 +230,7 @@ const getAllInvestments = async (req, res) => {
  *  1. Set investment status → 'active', isActive → true, record approvedBy/At
  *  2. Credit user wallet.capital with the investment amount
  *  3. Update user totalInvestment + investmentLevel
- *  4. Credit upline teamBusiness volumes (up to 25 levels)
+ *  4. Credit upline teamBusiness volumes (up to 21 levels)
  *  5. Mark the pending Transaction as completed
  *  6. Notify investor
  */
@@ -291,7 +291,7 @@ const approveInvestment = async (req, res) => {
     });
 
     // ── 5% instant direct referral commission ─────────────────────────────
-    // Separate from the 25-level daily profit commission system.
+    // Separate from the 21-level daily profit commission system.
     // Fires once here at approval time; distributeLevelCommissions() runs
     // independently on the daily cron and is NOT affected by this block.
     if (investor && investor.referredBy) {

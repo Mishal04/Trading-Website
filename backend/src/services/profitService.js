@@ -133,7 +133,7 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
  * calculateDailyProfits
  *
  * Cron-driven daily profit run — credits each active investment's daily rate
- * directly to the investor's wallet.profit, then distributes 25-level commissions
+ * directly to the investor's wallet.profit, then distributes 21-level commissions
  * to all qualifying uplines.
  *
  * NOTE: This is separate from the admin profit injection flow. Daily profits are
@@ -230,7 +230,7 @@ const calculateDailyProfits = async () => {
           type: 'profit'
         });
 
-        // Distribute 25-level commissions to uplines
+        // Distribute 21-level commissions to uplines
         await commissionService.distributeLevelCommissions(investment, dailyProfitAmount, investor);
 
         processedCount++;

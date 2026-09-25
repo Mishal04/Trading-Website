@@ -4,7 +4,7 @@ Modern React + Vite + Tailwind frontend for the Group Trading Plan platform.
 
 ## Features
 
-- Landing page with all investment packages, profit sharing, 25-level commission, salary & rewards
+- Landing page with all investment packages, profit sharing, 21-level commission, salary & rewards
 - Registration (with referral code support)
 - Login + JWT auth
 - Email verification page

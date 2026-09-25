@@ -59,34 +59,32 @@ const ROI_PERIODS = [
     rates: [
       { pkg: 'All Packages ($100+)', rate: '8%–10% Monthly' },
     ],
-    note: 'This 8%–10% Monthly rate applies only to Investor accounts. Networker/Affiliate plan rates remain unchanged and are not affected by this phase.',
+    note: 'The 8–10% monthly return will be applicable after 1 year.',
     noteBold: '8%–10% Monthly'
   },
 ];
 
 const LEVEL_DISTRIBUTION = [
-  { level: 'Level 1', rate: '1.50%' },
-  { level: 'Level 2', rate: '1.00%' },
-  { level: 'Level 3', rate: '0.75%' },
-  { level: 'Level 4', rate: '0.50%' },
-  { level: 'Level 5', rate: '0.50%' },
-  { level: 'Level 6–10', rate: '0.35% each (1.75%)' },
-  { level: 'Level 11–15', rate: '0.30% each (1.50%)' },
-  { level: 'Level 16–20', rate: '0.25% each (1.25%)' },
-  { level: 'Level 21–25', rate: '0.25% each (1.25%)' },
+  { level: 'Level 1',     rate: '25%' },
+  { level: 'Level 2',     rate: '15%' },
+  { level: 'Level 3',     rate: '10%' },
+  { level: 'Levels 4–5',  rate: '5% each' },
+  { level: 'Levels 6–10', rate: '2% each' },
+  { level: 'Levels 11–20', rate: '0.9% each' },
+  { level: 'Level 21',    rate: '1%' },
 ];
 
 const LEVEL_UNLOCK_RULES = [
-  { directs: '1 Direct Referral', unlocked: '2 Levels Unlocked' },
-  { directs: '2 Direct Referrals', unlocked: '4 Levels Unlocked' },
-  { directs: '3 Direct Referrals', unlocked: '6 Levels Unlocked' },
-  { directs: '4 Direct Referrals', unlocked: '8 Levels Unlocked' },
-  { directs: '5 Direct Referrals', unlocked: '10 Levels Unlocked' },
-  { directs: '6 Direct Referrals', unlocked: '12 Levels Unlocked' },
-  { directs: '7 Direct Referrals', unlocked: '14 Levels Unlocked' },
-  { directs: '8 Direct Referrals', unlocked: '16 Levels Unlocked' },
-  { directs: '9 Direct Referrals', unlocked: '18 Levels Unlocked' },
-  { directs: '10+ Direct Referrals', unlocked: 'All 25 Levels Unlocked (Full Tree)' },
+  { directs: '1 Direct Referral',    unlocked: '2 Levels Unlocked' },
+  { directs: '2 Direct Referrals',   unlocked: '4 Levels Unlocked' },
+  { directs: '3 Direct Referrals',   unlocked: '6 Levels Unlocked' },
+  { directs: '4 Direct Referrals',   unlocked: '8 Levels Unlocked' },
+  { directs: '5 Direct Referrals',   unlocked: '10 Levels Unlocked' },
+  { directs: '6 Direct Referrals',   unlocked: '12 Levels Unlocked' },
+  { directs: '7 Direct Referrals',   unlocked: '14 Levels Unlocked' },
+  { directs: '8 Direct Referrals',   unlocked: '16 Levels Unlocked' },
+  { directs: '9 Direct Referrals',   unlocked: '18 Levels Unlocked' },
+  { directs: '10+ Direct Referrals', unlocked: 'All 21 Levels Unlocked (Full Tree)' },
 ];
 
 const SAMPLE_ACHIEVEMENTS = [
@@ -136,13 +134,13 @@ export default function Landing() {
             </div>
 
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-6">
-              25 Levels.
+              21 Levels.
               <br />
               <span className="gradient-text">3X Investor Cap. 5X Networker Cap.</span>
             </h1>
 
 <p className="max-w-3xl mx-auto text-gray-300 text-base sm:text-lg mb-10 leading-relaxed">
-  Choose your activation package from <strong>$100 to $10,000</strong>. Investors earn ROI on their investment up to a 3× income cap of the invested amount, while Networkers/Affiliates earn from the 25‑level affiliate structure up to a 5× income cap.
+  Choose your activation package from <strong>$100 to $10,000</strong>. Investors earn ROI on their investment up to a 3× income cap of the invested amount, while Networkers/Affiliates earn from the 21‑level affiliate structure up to a 5× income cap.
 </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -170,9 +168,9 @@ export default function Landing() {
           {/* Quick Metrics Bar */}
           <div className="mt-12 grid grid-cols-3 gap-4 max-w-4xl mx-auto">
             {[
-              { icon: Percent, label: 'Level Pool Share', value: '10% Across 25L' },
+              { icon: Percent, label: 'Level Pool Share', value: '80% Across 21L' },
               { icon: Shield, label: 'Global Income Cap', value: '5X Total Invested' },
-              { icon: Zap, label: 'Affiliate Network', value: '25 Levels' },
+              { icon: Zap, label: 'Affiliate Network', value: '21 Levels' },
             ].map((m) => (
               <div key={m.label} className="rounded-xl border border-dark-500 bg-dark-800/70 p-4 text-center backdrop-blur-xl">
                 <m.icon className="mx-auto mb-2 text-gold-400" size={20} />
@@ -270,15 +268,15 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 25-Level Income & Unlocking Rules */}
+      {/* 21-Level Income & Unlocking Rules */}
       <section id="investors" className="py-16 bg-dark-800/40 border-y border-dark-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-white mb-2">
-              25-Level <span className="gradient-text">Affiliate Distribution</span>
+              21-Level <span className="gradient-text">Affiliate Structure</span>
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto text-sm">
-              Total 10% level commission pool distributed across 25 generations. Unlocking is strictly unlocked by active direct referrals.
+              SOLVEX provides an 80% total level commission pool distributed across 21 tiers. Ten direct referrals unlock all levels progressively.
             </p>
           </div>
 
@@ -286,7 +284,7 @@ export default function Landing() {
             {/* Rates Table */}
             <div className="rounded-2xl border border-dark-500 bg-dark-800/70 p-6 backdrop-blur-xl">
               <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2">
-                <Layers className="text-gold-400" size={18} /> Level Commission Rates (10% Total)
+                <Layers className="text-gold-400" size={18} /> Level Commission Rates (80% Total)
               </h3>
               <div className="divide-y divide-dark-600 text-xs">
                 {LEVEL_DISTRIBUTION.map((row) => (
@@ -297,7 +295,7 @@ export default function Landing() {
                 ))}
               </div>
               <div className="mt-4 p-3 rounded-xl bg-gold-400/10 border border-gold-400/20 text-xs text-gold-300">
-                L1–L5 carry the highest incentive weights (1.50%, 1.00%, 0.75%, 0.50%, 0.50% = 4.25%).
+                L1 carries the highest weight at 25%, followed by L2 (15%) and L3 (10%).
               </div>
             </div>
 
@@ -315,7 +313,7 @@ export default function Landing() {
                 ))}
               </div>
               <div className="mt-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300">
-                10 direct referrals unlock all 25 generations across your entire organization.
+                10 direct referrals unlock all 21 levels.
               </div>
             </div>
           </div>
@@ -342,7 +340,7 @@ export default function Landing() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
-                <span>Networker/Affiliate accounts continue to earn strictly according to their existing plan structure (daily ROI rates and 25-level affiliate commissions); this phase does not alter Networker earnings or rates in any way.</span>
+                <span>Networker/Affiliate accounts continue to earn strictly according to their existing plan structure (daily ROI rates and 21-level affiliate commissions); this phase does not alter Networker earnings or rates in any way.</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>

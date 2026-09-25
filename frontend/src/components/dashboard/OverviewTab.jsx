@@ -136,7 +136,7 @@ export default function OverviewTab({ stats, user, onRefresh }) {
             <div className="p-3 rounded-xl bg-dark-900 border border-dark-600 text-center min-w-[125px]">
               <span className="text-[10px] text-gray-400 uppercase font-semibold block">Unlocked Levels</span>
               <span className="text-2xl font-black text-gold-400">
-                {unlockedLevels}<span className="text-xs text-gray-500 font-normal"> / 25</span>
+                {unlockedLevels}<span className="text-xs text-gray-500 font-normal"> / 21</span>
               </span>
             </div>
           </div>
@@ -193,7 +193,7 @@ export default function OverviewTab({ stats, user, onRefresh }) {
               <Users size={18} className="text-gold-400" /> Share Your Referral Link
             </h3>
             <p className="text-xs text-gray-400 mt-0.5">
-              Earn 25-level team commissions when friends sign up and trade with your link.
+              Earn 21-level team commissions when friends sign up and trade with your link.
             </p>
             <div className="text-xs text-gray-400 mt-1">
               Code: <span className="text-gold-400 font-mono font-bold">{referralCode}</span>
@@ -305,7 +305,7 @@ export default function OverviewTab({ stats, user, onRefresh }) {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">Unlocked Generations</span>
-                <span className="text-sm font-bold text-gold-400">{unlockedLevels} / 25</span>
+                <span className="text-sm font-bold text-gold-400">{unlockedLevels} / 21</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">Team Business Volume</span>

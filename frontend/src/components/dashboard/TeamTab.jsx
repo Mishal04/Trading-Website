@@ -76,7 +76,7 @@ export default function TeamTab({ user }) {
             <Users className="text-gold-400" size={24} /> My Referral Network
           </h2>
           <p className="text-gray-400 text-sm mt-1">
-            Track your 25-level downline, leg volumes, and 60/40 rule qualifications.
+            Track your 21-level downline, leg volumes, and 60/40 rule qualifications.
           </p>
         </div>
         <button
@@ -108,7 +108,7 @@ export default function TeamTab({ user }) {
               Code: <span className="text-gold-400 font-mono font-bold text-base">{referralCode}</span>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Share this link to earn 25-level team commissions
+              Share this link to earn 21-level team commissions
             </p>
           </div>
           <div className="flex items-center gap-2 max-w-md w-full">
@@ -159,7 +159,7 @@ export default function TeamTab({ user }) {
           <div className="text-3xl font-black text-purple-400">
             ${Number(totalVolume).toLocaleString()}
           </div>
-          <p className="text-xs text-gray-500 mt-2">Combined across all 25 levels</p>
+          <p className="text-xs text-gray-500 mt-2">Combined across all 21 levels</p>
         </div>
 
         <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-6">
@@ -250,8 +250,8 @@ export default function TeamTab({ user }) {
             onChange={(e) => setLevelFilter(e.target.value)}
             className="bg-dark-900 text-gray-300 text-xs rounded-xl px-3 py-2 border border-dark-500 focus:outline-none focus:border-gold-400"
           >
-            <option value="all">All Levels (1–25)</option>
-            {Array.from({ length: 25 }, (_, i) => i + 1).map((lvl) => (
+            <option value="all">All Levels (1–21)</option>
+            {Array.from({ length: 21 }, (_, i) => i + 1).map((lvl) => (
               <option key={lvl} value={String(lvl)}>
                 Level {lvl}{downlineData?.levelCounts?.[lvl] ? ` (${downlineData.levelCounts[lvl]})` : ''}
               </option>

@@ -37,21 +37,20 @@ module.exports = {
     }
   ],
 
-  // 25‑level income distribution (total 10.00%)
+  // 21‑level income distribution (total 80.00%)
   LEVEL_RATES: [
-    1.50, // L1
-    1.00, // L2
-    0.75, // L3
-    0.50, // L4
-    0.50, // L5
-    // L6–L10 (0.35% each)
-    0.35, 0.35, 0.35, 0.35, 0.35,
-    // L11–L15 (0.30% each)
-    0.30, 0.30, 0.30, 0.30, 0.30,
-    // L16–L20 (0.25% each)
-    0.25, 0.25, 0.25, 0.25, 0.25,
-    // L21–L25 (0.25% each)
-    0.25, 0.25, 0.25, 0.25, 0.25
+    25,   // L1
+    15,   // L2
+    10,   // L3
+    5,    // L4
+    5,    // L5
+    // L6–L10 (2% each)
+    2, 2, 2, 2, 2,
+    // L11–L20 (0.9% each)
+    0.9, 0.9, 0.9, 0.9, 0.9,
+    0.9, 0.9, 0.9, 0.9, 0.9,
+    // L21
+    1
   ],
 
   // Level unlocking based on direct referral count
@@ -65,7 +64,7 @@ module.exports = {
     7: 14,
     8: 16,
     9: 18,
-    10: 25
+    10: 21
   },
 
   // Income caps (multiples of investment)
@@ -131,6 +130,6 @@ module.exports = {
 
   // ── Direct referral commission ────────────────────────────────────────────
   // Instant 5% commission credited to referrer on investment approval.
-  // Separate from the 25-level daily profit commission system.
+  // Separate from the 21-level daily profit commission system.
   DIRECT_REFERRAL_COMMISSION_RATE: 0.05
 };

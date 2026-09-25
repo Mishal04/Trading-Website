@@ -13,7 +13,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
-              Trade Smarter | Grow Further. Transparent profit sharing with 25-level commissions and structured achievement rewards.
+              Trade Smarter | Grow Further. Transparent profit sharing with 21-level commissions and structured achievement rewards.
             </p>
           </div>
 
@@ -22,7 +22,7 @@ export default function Footer() {
             <div className="space-y-2 text-sm text-gray-400">
               <a href="/#packages" className="block hover:text-gold-400 transition-colors">Packages</a>
               <a href="/#profit" className="block hover:text-gold-400 transition-colors">Profit Sharing</a>
-              <a href="/#levels" className="block hover:text-gold-400 transition-colors">25-Level Commission</a>
+              <a href="/#levels" className="block hover:text-gold-400 transition-colors">21-Level Commission</a>
               <a href="/#rewards" className="block hover:text-gold-400 transition-colors">Rewards</a>
             </div>
           </div>
