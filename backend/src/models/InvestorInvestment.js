@@ -82,7 +82,8 @@ const investorInvestmentSchema = new mongoose.Schema({
   transactionId: { type: String, default: '', trim: true },
   paymentNote:   { type: String, default: '', trim: true },
   adminNote:     { type: String, default: '' },
-  // Rate tier locked at creation — 'standard' (Oct-Dec 2026) or 'reduced' (Jan 2027+)
+  // Always 'standard' — time-based rate switching was removed; field kept for
+  // schema compatibility with existing records (all existing docs have 'standard').
   rateTier: {
     type: String,
     enum: ['standard', 'reduced'],

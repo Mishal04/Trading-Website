@@ -140,9 +140,7 @@ const createInvestorInvestment = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Amount must be at least $100' });
     }
 
-    // Determine which rate tier applies based on current date
-    const rateTier = getInvestorRateTier(new Date());
-    const pkgInfo = getInvestorPackageInfo(Number(amount), investor.plan, rateTier);
+    const pkgInfo = getInvestorPackageInfo(Number(amount), investor.plan);
     if (!pkgInfo) {
       return res.status(400).json({
         success: false,
@@ -158,7 +156,6 @@ const createInvestorInvestment = async (req, res) => {
       plan:          investor.plan,
       packageNumber: pkgInfo.packageNumber,
       dailyRate:     pkgInfo.dailyRate,
-      rateTier:      pkgInfo.rateTier,
       incomeCap,
       paymentProof:  paymentProof || '',
       transactionId: transactionId || '',
