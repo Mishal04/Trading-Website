@@ -215,7 +215,7 @@ export default function Landing() {
       <InstitutionalTradingSection />
 
       {/* ROI Date Periods */}
-      <section id="profit" className="py-12">
+      <section id="packages" className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-white mb-2">
@@ -271,7 +271,7 @@ export default function Landing() {
       </section>
 
       {/* 25-Level Income & Unlocking Rules */}
-      <section id="levels" className="py-16 bg-dark-800/40 border-y border-dark-600">
+      <section id="investors" className="py-16 bg-dark-800/40 border-y border-dark-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-white mb-2">
