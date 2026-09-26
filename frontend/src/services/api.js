@@ -130,6 +130,7 @@ export const adminAPI = {
   // Investments
   getInvestments:     (params) => api.get('/admin/investments', { params }),
   approveInvestment:  (id)     => api.patch(`/admin/investments/${id}/approve`),
+  approvePlanInvestment: (id)  => api.patch(`/admin/investments/plan/${id}/approve`),  // NEW: Plan A/B investments
   rejectInvestment:   (id, adminNote) =>
     api.patch(`/admin/investments/${id}/reject`, { adminNote }),
 

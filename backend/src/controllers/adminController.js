@@ -201,19 +201,32 @@ const getAllInvestments = async (req, res) => {
     const query = {};
     if (req.query.status) query.status = req.query.status;
 
-    const [total, investments] = await Promise.all([
+    // Fetch both old Investment and new InvestorInvestment models
+    const [oldTotal, oldInvestments, newTotal, newInvestments] = await Promise.all([
       Investment.countDocuments(query),
       Investment.find(query)
         .populate('userId', 'name email referralCode')
+        .sort({ createdAt: -1 }),
+      InvestorInvestment.countDocuments(query),
+      InvestorInvestment.find(query)
+        .populate('userId', 'name email referralCode')
         .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
     ]);
+
+    // Merge and sort by createdAt
+    const allInvestments = [
+      ...oldInvestments.map(inv => ({ ...inv.toObject?.() || inv, _model: 'Investment' })),
+      ...newInvestments.map(inv => ({ ...inv.toObject?.() || inv, _model: 'InvestorInvestment' }))
+    ]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(skip, skip + limit);
+
+    const total = oldTotal + newTotal;
 
     return res.json({
       success: true,
       data: {
-        investments,
+        investments: allInvestments,
         pagination: { total, page, pages: Math.ceil(total / limit), limit }
       }
     });

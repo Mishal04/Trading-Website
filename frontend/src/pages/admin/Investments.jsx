@@ -183,7 +183,12 @@ export default function Investments() {
   const handleApprove = async (inv) => {
     setActionLoading(inv._id);
     try {
-      await adminAPI.approveInvestment(inv._id);
+      // Route to correct approval endpoint based on investment model type
+      if (inv._model === 'InvestorInvestment') {
+        await adminAPI.approvePlanInvestment(inv._id);
+      } else {
+        await adminAPI.approveInvestment(inv._id);
+      }
       toast.success(`Approved ${fmt(inv.amount)} for ${inv.userId?.name}`);
       fetchData();
     } catch (err) {
@@ -310,8 +315,8 @@ export default function Investments() {
 
                       {/* Package */}
                       <td className="px-4 py-3.5">
-                        <div className="text-gray-300">{inv.packageName}</div>
-                        <div className="text-xs text-gray-500">{inv.dailyRate}% / day</div>
+                        <div className="text-gray-300">{inv.packageName || inv.plan ? `Plan ${inv.plan}` : '—'}</div>
+                        <div className="text-xs text-gray-500">{inv.dailyRate ? `${inv.dailyRate}% / day` : inv.plan ? (inv.dailyRate || '—') : '—'}</div>
                       </td>
 
                       {/* Amount */}
