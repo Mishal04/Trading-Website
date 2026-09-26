@@ -21,7 +21,6 @@ import WithdrawTab from '../components/dashboard/WithdrawTab';
 // import TransferTab from '../components/dashboard/TransferTab'; // P2P hidden from UI
 import TeamTab from '../components/dashboard/TeamTab';
 import TransactionsTab from '../components/dashboard/TransactionsTab';
-import NetworkerLocked from '../components/dashboard/NetworkerLocked';
 
 // ─── Helper: check if user has networker access ────────────────────────────────
 export default function Dashboard() {
