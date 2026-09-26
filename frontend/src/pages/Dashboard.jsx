@@ -24,10 +24,6 @@ import TransactionsTab from '../components/dashboard/TransactionsTab';
 import NetworkerLocked from '../components/dashboard/NetworkerLocked';
 
 // ─── Helper: check if user has networker access ────────────────────────────────
-const hasNetworkerAccess = (user) => {
-  return Boolean(user && user.networkerAccessGranted === true);
-};
-
 export default function Dashboard() {
   const { user, logout, setUser } = useAuth();
   const [stats, setStats] = useState(null);
@@ -112,21 +108,6 @@ export default function Dashboard() {
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   {networkerItems.map((item) => {
                     const isActive = location.pathname.startsWith(item.path);
-                    const isLocked = !hasNetworkerAccess(user);
-
-                    if (isLocked) {
-                      return (
-                        <button
-                          key={item.path}
-                          disabled
-                          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap text-gray-500 opacity-50 cursor-not-allowed"
-                          title="Networker section locked. Contact admin to enable."
-                        >
-                          <Lock size={15} />
-                          {item.label}
-                        </button>
-                      );
-                    }
 
                     return (
                       <NavLink
@@ -169,23 +150,9 @@ export default function Dashboard() {
           {/* <Route path="/transfer" element={<TransferTab user={user} onRefresh={fetchStats} />} /> */}{/* P2P hidden from UI */}
           <Route path="/transactions" element={<TransactionsTab />} />
           
-          {/* Networker Section — guarded by lock */}
-          <Route 
-            path="/team" 
-            element={
-              hasNetworkerAccess(user) 
-                ? <TeamTab user={user} />
-                : <NetworkerLocked />
-            } 
-          />
-          <Route 
-            path="/commissions" 
-            element={
-              hasNetworkerAccess(user) 
-                ? <TransactionsTab filterType="commission" />
-                : <NetworkerLocked />
-            } 
-          />
+          {/* Networker Section */}
+          <Route path="/team" element={<TeamTab user={user} />} />
+          <Route path="/commissions" element={<TransactionsTab filterType="commission" />} />
         </Routes>
       </div>
     </div>

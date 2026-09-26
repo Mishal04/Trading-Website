@@ -44,27 +44,55 @@ function getUnlockedLevels(directCount) {
 }
 
 /**
- * Check if user can still earn ROI/level income (not exceeding cap).
- * Cap is 3X for locked users, 5X for users with networkerAccessGranted.
+ * Determine income cap multiplier based on investment and referral status.
+ * NEW LOGIC:
+ * - No investment: cap = 0 (cannot earn)
+ * - Has investment: cap = 3X
+ * - Has investment AND at least one referral who also invested: cap = 5X
  */
-function canEarnMore(user) {
-  // Determine cap multiplier: 3X if no networker access, 5X if networker access granted
-  const capMultiplier = user.networkerAccessGranted ? 5 : 3;
+async function getCapMultiplier(user) {
+  // User must have at least one approved/active investment for any earning
+  if (!user.totalInvested || user.totalInvested <= 0) {
+    return 0; // No cap — cannot earn
+  }
+
+  // Check if user has at least one active referral (direct referral who has invested)
+  const activeReferralCount = await User.countDocuments({
+    referredBy: user._id,
+    totalInvested: { $gt: 0 }
+  });
+
+  // If user has at least one referral who invested, cap is 5X; otherwise 3X
+  return activeReferralCount > 0 ? 5 : 3;
+}
+
+/**
+ * Check if user can still earn ROI/level income (not exceeding cap).
+ * NEW LOGIC:
+ * - Cap = 3X if user has investment but no active referrals
+ * - Cap = 5X if user has investment AND at least one active referral
+ */
+async function canEarnMore(user) {
+  const capMultiplier = await getCapMultiplier(user);
+  if (capMultiplier === 0) return false; // No investment, cannot earn
+  
   const cap = user.totalInvested * capMultiplier;
   return user.totalEarned < cap;
 }
 
 /**
- * Credit ROI to investor, respecting income cap (3X or 5X based on networkerAccessGranted).
+ * Credit ROI to investor, respecting income cap (3X or 5X based on investment + referral status).
  */
 async function creditRoiToInvestor(userId, investmentId, amount) {
   const user = await User.findById(userId);
   if (!user) throw new Error('User not found');
-  if (!canEarnMore(user)) {
+  
+  const canEarn = await canEarnMore(user);
+  if (!canEarn) {
     return { credited: 0, capped: true };
   }
-  // Determine cap multiplier: 3X if no networker access, 5X if networker access granted
-  const capMultiplier = user.networkerAccessGranted ? 5 : 3;
+  
+  const capMultiplier = await getCapMultiplier(user);
   const cap = user.totalInvested * capMultiplier;
   const remaining = cap - user.totalEarned;
   const credit = Math.min(amount, remaining);
@@ -90,14 +118,15 @@ async function creditRoiToInvestor(userId, investmentId, amount) {
 }
 
 /**
- * Credit level commission to upline, respecting income cap (3X or 5X based on networkerAccessGranted).
+ * Credit level commission to upline, respecting income cap (3X or 5X based on investment + referral status).
  */
 async function creditCommissionToUpline(upline, sourceUser, levelIdx, ratePercent, levelAmount, baseAmount) {
-  if (!canEarnMore(upline)) {
+  const canEarn = await canEarnMore(upline);
+  if (!canEarn) {
     return { credited: 0, capped: true };
   }
-  // Determine cap multiplier: 3X if no networker access, 5X if networker access granted
-  const capMultiplier = upline.networkerAccessGranted ? 5 : 3;
+  
+  const capMultiplier = await getCapMultiplier(upline);
   const cap = upline.totalInvested * capMultiplier;
   const remaining = Math.max(0, cap - (upline.totalEarned || 0));
   const credit = Number(Math.min(levelAmount, remaining).toFixed(4));
@@ -182,6 +211,7 @@ async function distributeLevelIncome(sourceUserId, baseAmount) {
 module.exports = {
   getRoiPercent,
   getUnlockedLevels,
+  getCapMultiplier,
   canEarnMore,
   creditRoiToInvestor,
   creditCommissionToUpline,
