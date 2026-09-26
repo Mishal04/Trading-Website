@@ -3,47 +3,61 @@ const profitService = require('../services/profitService');
 const commissionService = require('../services/commissionService');
 
 /**
- * Helper function to check if it's a trading day and within trading hours in Dubai timezone
+ * Helper function to check if commission can be credited in Dubai timezone
  * Dubai timezone: UTC+4 (no DST)
- * Trading window: Saturday-Sunday, 9 PM - 12 AM (21:00 - 00:00)
+ * BLOCKED: Saturday & Sunday (no commissions on weekends)
+ * ALLOWED: Monday-Friday, 9 PM - 12 AM ONLY (21:00 - 23:59 Dubai time)
+ * 
+ * This means commissions are only credited during weekday evenings in Dubai,
+ * never on weekends.
  */
 function isWithinDubaiTradingWindow() {
   // Create Dubai time
   const dubaiTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
   
-  const dayOfWeek = dubaiTime.getDay(); // 0=Sunday, 6=Saturday
+  const dayOfWeek = dubaiTime.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
   const hours = dubaiTime.getHours();
   const minutes = dubaiTime.getMinutes();
 
-  // Check if Saturday (6) or Sunday (0)
-  const isTradingDay = dayOfWeek === 0 || dayOfWeek === 6;
-  
-  // Check if within 21:00 - 23:59 (9 PM - 12 AM)
-  const isWithinTradingHours = (hours === 21 || hours === 22 || hours === 23);
+  // BLOCKED: Don't credit on Saturday (6) or Sunday (0)
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    console.log(`[Dubai Commission Check] Day: ${dayOfWeek} (weekend), Hours: ${hours}:${String(minutes).padStart(2, '0')} — BLOCKED (no commissions on weekends)`);
+    return false;
+  }
 
-  console.log(`[Dubai TZ Check] Day: ${dayOfWeek}, Hours: ${hours}:${String(minutes).padStart(2, '0')}, Trading Day: ${isTradingDay}, Trading Hours: ${isWithinTradingHours}`);
+  // ALLOWED: Monday-Friday (1-5) within 9 PM - 12 AM window
+  const isWithinCreditHours = (hours === 21 || hours === 22 || hours === 23);
+
+  console.log(`[Dubai Commission Check] Day: ${dayOfWeek} (weekday), Hours: ${hours}:${String(minutes).padStart(2, '0')}, WithinWindow: ${isWithinCreditHours} — ${isWithinCreditHours ? 'ALLOWED' : 'BLOCKED'}`);
   
-  return isTradingDay && isWithinTradingHours;
+  return isWithinCreditHours;
 }
 
 /**
- * Helper function to check if current time is within Dubai withdrawal window
- * Withdrawal window: Saturday-Sunday, 9 PM - 12 AM Dubai time only
+ * Helper function to check if withdrawal request can be processed TODAY
+ * Dubai timezone: UTC+4 (no DST)
+ * Cutoff: 12 AM (midnight) Dubai time
+ * 
+ * - Requests submitted before 12 AM (00:00-23:59) are processed same day
+ * - Requests submitted after 12 AM (00:00-00:59, technically next calendar day start) 
+ *   are queued for next day processing
+ * - NOTE: This only checks the HOUR cutoff, not the full minute. 
+ *   In practice, if it's 00:xx (midnight hour), queue for next day.
+ *   Otherwise, process today.
  */
 function isWithinDubaiWithdrawalWindow() {
   // Create Dubai time
   const dubaiTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
   
-  const dayOfWeek = dubaiTime.getDay();
   const hours = dubaiTime.getHours();
-
-  // Check if Saturday (6) or Sunday (0)
-  const isTradingDay = dayOfWeek === 0 || dayOfWeek === 6;
   
-  // Check if within 21:00 - 23:59 (9 PM - 12 AM)
-  const isWithinTradingHours = (hours === 21 || hours === 22 || hours === 23);
+  // If it's 00:xx (midnight hour), withdrawal will be processed next day
+  // Otherwise, it's processed same day
+  const processesToday = hours !== 0;
 
-  return isTradingDay && isWithinTradingHours;
+  console.log(`[Dubai Withdrawal Check] Hours: ${hours}:00 — ${processesToday ? 'SAME DAY' : 'NEXT DAY'}`);
+  
+  return processesToday;
 }
 
 const initCronJobs = () => {

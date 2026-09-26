@@ -6,8 +6,10 @@ const Notification = require('../models/Notification');
 const { isWithinDubaiWithdrawalWindow } = require('../config/cronJobs');
 
 /**
- * Check if current time is within allowed withdrawal window (Sat-Sun, 9 PM - 12 AM Dubai time)
- * Dubai timezone: UTC+4 (no DST)
+ * Check if withdrawal request should be processed today or queued for next day
+ * Rule: Requests submitted before 12 AM Dubai time processed same day
+ *       Requests submitted after 12 AM Dubai time queued for next day
+ * No day-of-week restrictions — withdrawals allowed any day of the week
  */
 const isWithinWithdrawalWindow = () => {
   if (process.env.SKIP_WITHDRAWAL_TIME_CHECK === 'true') {
@@ -38,7 +40,7 @@ const requestWithdrawal = async (req, res) => {
     if (!isWithinWithdrawalWindow()) {
       return res.status(400).json({
         success: false,
-        message: 'Withdrawal requests are only allowed on Saturday-Sunday, 9 PM to 12 AM (Dubai timezone)'
+        message: 'Withdrawal requests submitted after 12 AM Dubai time are processed the next day. Submit before 12 AM for same-day processing.'
       });
     }
 

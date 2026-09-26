@@ -20,3 +20,7 @@ coverage/
 .DS_Store
 .vscode/
 .idea/
+
+# Database backups & sensitive data containing real user financial data
+backups/
+*.backup.json
