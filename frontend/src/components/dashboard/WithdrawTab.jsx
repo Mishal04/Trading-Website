@@ -11,7 +11,8 @@ import {
   CheckCircle2, 
   RefreshCw, 
   ShieldAlert,
-  Send
+  Send,
+  Info
 } from 'lucide-react';
 
 export default function WithdrawTab({ user, onRefresh }) {
@@ -25,24 +26,6 @@ export default function WithdrawTab({ user, onRefresh }) {
 
   const wallet = user?.wallet || { capital: 0, profit: 0, commission: 0 };
   const availableBalance = wallet[type] || 0;
-
-  // Live check for 10:30 PM to 12:00 Midnight window
-  const checkWindowOpen = () => {
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-
-    if (hours === 22 && minutes >= 30) return true;
-    if (hours === 23) return true;
-    return false;
-  };
-
-  const [isOpen, setIsOpen] = useState(checkWindowOpen());
-
-  useEffect(() => {
-    const timer = setInterval(() => setIsOpen(checkWindowOpen()), 10000);
-    return () => clearInterval(timer);
-  }, []);
 
   const fetchHistory = async () => {
     try {
@@ -84,11 +67,6 @@ export default function WithdrawTab({ user, onRefresh }) {
       return;
     }
 
-    if (!isOpen) {
-      toast.error('Withdrawals are strictly allowed only between 10:30 PM and 12:00 Midnight');
-      return;
-    }
-
     try {
       setLoading(true);
       const res = await withdrawalAPI.request({
@@ -122,32 +100,17 @@ export default function WithdrawTab({ user, onRefresh }) {
         </p>
       </div>
 
-      {/* Time Window Notice Banner */}
-      <div className={`rounded-2xl border p-5 backdrop-blur-xl transition-all ${
-        isOpen
-          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-          : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-      }`}>
-        <div className="flex items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-              isOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
-            }`}>
-              <Clock size={20} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-white">Daily Withdrawal Time Window</span>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                  isOpen ? 'bg-emerald-500 text-dark-900' : 'bg-amber-500 text-dark-900'
-                }`}>
-                  {isOpen ? 'Window OPEN' : 'Window CLOSED'}
-                </span>
-              </div>
-              <p className="text-xs text-gray-300 mt-0.5">
-                Allowed request hours: <strong className="text-gold-400">10:30 PM to 12:00 Midnight</strong> daily.
-              </p>
-            </div>
+      {/* Withdrawal Processing Information */}
+      <div className="rounded-2xl border border-blue-500/30 bg-blue-500/5 p-5 backdrop-blur-xl">
+        <div className="flex items-start gap-3">
+          <Info className="text-blue-400 shrink-0 mt-0.5" size={20} />
+          <div>
+            <p className="text-sm font-semibold text-blue-300 mb-1">
+              Withdrawal Processing Information
+            </p>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              Withdrawals are not processed on Saturdays and Sundays. Requests submitted after 12 AM Dubai time are processed the next business day. All other requests are processed normally.
+            </p>
           </div>
         </div>
       </div>
@@ -280,16 +243,12 @@ export default function WithdrawTab({ user, onRefresh }) {
 
           <button
             type="submit"
-            disabled={loading || !isOpen || parseFloat(amount) < 10 || !walletAddress.trim()}
+            disabled={loading || parseFloat(amount) < 20 || !walletAddress.trim()}
             className="w-full py-4 rounded-xl bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 font-extrabold text-base hover:brightness-110 transition-all shadow-xl shadow-gold-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
                 <RefreshCw className="animate-spin" size={18} /> Processing Request...
-              </>
-            ) : !isOpen ? (
-              <>
-                <ShieldAlert size={18} /> Window Closed (Open 10:30 PM - 12:00 Midnight)
               </>
             ) : (
               <>
