@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
+const InvestorInvestment = require('../models/InvestorInvestment');
 const Investment = require('../models/Investment');
 const Withdrawal = require('../models/Withdrawal');
 const Transaction = require('../models/Transaction');
@@ -11,6 +12,7 @@ const profitService = require('../services/profitService');
 const { creditRoiToInvestor, distributeLevelIncome } = require('../services/incomeService');
 const achievementService = require('../services/achievementService');
 const { DIRECT_REFERRAL_COMMISSION_RATE } = require('../../config/constants');
+const { INVESTOR_INCOME_CAP } = require('../../config/investorConstants');
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -920,6 +922,106 @@ const claimAchievements = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/admin/users/:id/credit-roi
+ * Manually credit daily/monthly ROI to a user's Plan A/B investment.
+ * Enforces 3x income cap and handles per-investment cap tracking.
+ *
+ * Request body: { investmentId, amount }
+ * where investmentId is an InvestorInvestment._id with userId set.
+ */
+const creditUserRoi = async (req, res) => {
+  try {
+    const { investmentId, amount } = req.body;
+    const userId = req.params.id;
+
+    if (!investmentId || !amount || Number(amount) <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'investmentId and amount > 0 required'
+      });
+    }
+
+    // Find the specific investment linked to this user
+    const investment = await InvestorInvestment.findOne({
+      _id: investmentId,
+      userId,
+      status: 'active'
+    });
+
+    if (!investment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Active investment not found for this user'
+      });
+    }
+
+    if (investment.capReached) {
+      return res.status(400).json({
+        success: false,
+        message: 'Income cap already reached for this investment'
+      });
+    }
+
+    const roiAmount = Number(amount);
+    const remaining = investment.incomeCap - investment.totalRoiEarned;
+    const credited = Math.min(roiAmount, remaining);
+
+    // Update investment's ROI tracking
+    investment.totalRoiEarned += credited;
+    investment.lastRoiDate = new Date();
+
+    // Check if this investment hit its 3x cap
+    if (investment.totalRoiEarned >= investment.incomeCap) {
+      investment.capReached = true;
+      investment.status = 'completed';
+    }
+
+    await investment.save();
+
+    // Credit to User's wallet.roi and totalRoiEarned
+    await User.findByIdAndUpdate(userId, {
+      $inc: {
+        'wallet.roi': credited,
+        totalRoiEarned: credited
+      }
+    });
+
+    // Create audit transaction
+    await Transaction.create({
+      userId,
+      type: 'roi',
+      amount: credited,
+      status: 'completed',
+      description: `Admin ROI credit of $${credited.toFixed(4)} for investment $${investment.amount}${investment.capReached ? ' (cap reached)' : ''}`,
+      referenceId: investment._id,
+      referenceModel: 'InvestorInvestment'
+    });
+
+    // Notify user
+    await Notification.create({
+      userId,
+      title: 'ROI Credited',
+      message: `$${credited.toFixed(2)} ROI has been credited to your wallet${investment.capReached ? ' (income cap reached)' : ''}.`,
+      type: 'profit'
+    });
+
+    return res.json({
+      success: true,
+      message: `ROI of $${credited.toFixed(4)} credited${investment.capReached ? ' (cap reached)' : ''}`,
+      data: {
+        credited,
+        capReached: investment.capReached,
+        totalEarned: investment.totalRoiEarned,
+        incomeCap: investment.incomeCap
+      }
+    });
+  } catch (error) {
+    console.error('Admin credit user ROI error:', error);
+    return res.status(500).json({ success: false, message: 'Server error crediting ROI' });
+  }
+};
+
 module.exports = {
   getSystemStats,
   getSystemPools,
@@ -941,4 +1043,5 @@ module.exports = {
   claimAchievements,
   toggleNetworkerAccess,
   updateUserPlan,
+  creditUserRoi
 };

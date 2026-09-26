@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import {
   Users as UsersIcon, Search, RefreshCw, AlertCircle,
   ChevronLeft, ChevronRight, CheckCircle2, XCircle,
-  ChevronDown, ChevronUp, Wallet,
+  ChevronDown, ChevronUp, Wallet, Lock, Unlock,
 } from 'lucide-react';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -56,6 +56,15 @@ function UserDetail({ user }) {
               <div className="flex justify-between"><span className="text-gray-400">Referral Code</span><span className="font-mono text-xs text-white">{user.referralCode}</span></div>
               <div className="flex justify-between"><span className="text-gray-400">Verified</span><span>{user.isVerified ? <span className="text-emerald-400 text-xs">Yes</span> : <span className="text-red-400 text-xs">No</span>}</span></div>
               <div className="flex justify-between"><span className="text-gray-400">Joined</span><span className="text-xs text-white">{fmtDate(user.createdAt)}</span></div>
+            </div>
+          </div>
+          {/* Networker Access */}
+          <div className="rounded-xl border border-dark-500 bg-dark-800/60 p-4">
+            <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">Networker Access</div>
+            <div className="space-y-1.5">
+              <div className="flex justify-between"><span className="text-gray-400">Status</span><span>{user.networkerAccessGranted ? <span className="text-emerald-400 text-xs font-semibold flex items-center gap-1"><Unlock size={12} /> Granted</span> : <span className="text-red-400 text-xs font-semibold flex items-center gap-1"><Lock size={12} /> Locked</span>}</span></div>
+              <div className="flex justify-between"><span className="text-gray-400">Granted At</span><span className="text-xs text-white">{user.networkerAccessGrantedAt ? fmtDate(user.networkerAccessGrantedAt) : '—'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-400">Granted By</span><span className="text-xs text-white">{user.networkerAccessGrantedBy ?? '—'}</span></div>
             </div>
           </div>
         </div>
@@ -116,6 +125,20 @@ export default function Users() {
     }
   };
 
+  const handleToggleNetworkerAccess = async (user) => {
+    setActionLoading(`networker-${user._id}`);
+    try {
+      const grant = !user.networkerAccessGranted;
+      await adminAPI.toggleNetworkerAccess(user._id, grant);
+      toast.success(`Networker access ${grant ? 'granted' : 'revoked'} successfully`);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message ?? 'Action failed');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -164,6 +187,7 @@ export default function Users() {
                 <th className="px-4 py-3 text-right">Total Invested</th>
                 <th className="px-4 py-3 text-right">Wallet Capital</th>
                 <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Networker</th>
                 <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
@@ -180,7 +204,7 @@ export default function Users() {
                 ))
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-16 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-16 text-center text-gray-500">
                     No users found{search ? ` matching "${search}"` : ''}.
                   </td>
                 </tr>
@@ -188,6 +212,7 @@ export default function Users() {
                 users.flatMap((u) => {
                   const isExpanded = expandedId === u._id;
                   const isActioning = actionLoading === u._id;
+                  const isNetworkerActioning = actionLoading === `networker-${u._id}`;
                   const rows = [
                     <tr
                       key={u._id}
@@ -233,19 +258,45 @@ export default function Users() {
                           {u.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
+                      {/* Networker Access */}
+                      <td className="px-4 py-3.5">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                          u.networkerAccessGranted
+                            ? 'bg-purple-400/10 text-purple-400 border-purple-400/20'
+                            : 'bg-gray-400/10 text-gray-400 border-gray-400/20'
+                        }`}>
+                          {u.networkerAccessGranted ? <Unlock size={11} /> : <Lock size={11} />}
+                          {u.networkerAccessGranted ? 'Granted' : 'Locked'}
+                        </span>
+                      </td>
                       {/* Actions */}
                       <td className="px-4 py-3.5">
-                        <button
-                          onClick={() => handleToggle(u)}
-                          disabled={isActioning}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors disabled:opacity-50 ${
-                            u.isActive
-                              ? 'bg-red-500/15 border-red-500/30 text-red-400 hover:bg-red-500/25'
-                              : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25'
-                          }`}
-                        >
-                          {isActioning ? '…' : u.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleToggle(u)}
+                            disabled={isActioning || isNetworkerActioning}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors disabled:opacity-50 ${
+                              u.isActive
+                                ? 'bg-red-500/15 border-red-500/30 text-red-400 hover:bg-red-500/25'
+                                : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25'
+                            }`}
+                            title={u.isActive ? 'Deactivate account' : 'Activate account'}
+                          >
+                            {isActioning ? '…' : u.isActive ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button
+                            onClick={() => handleToggleNetworkerAccess(u)}
+                            disabled={isActioning || isNetworkerActioning}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors disabled:opacity-50 ${
+                              u.networkerAccessGranted
+                                ? 'bg-purple-500/15 border-purple-500/30 text-purple-400 hover:bg-purple-500/25'
+                                : 'bg-gray-500/15 border-gray-500/30 text-gray-400 hover:bg-gray-500/25'
+                            }`}
+                            title={u.networkerAccessGranted ? 'Revoke networker access' : 'Grant networker access'}
+                          >
+                            {isNetworkerActioning ? '…' : u.networkerAccessGranted ? 'Revoke' : 'Grant'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ];

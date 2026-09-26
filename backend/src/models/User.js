@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
   referralCode: {
     type: String,
     unique: true,
-    required: true
+    sparse: true  // Allow multiple docs without the field; unique only applies to non-null values
   },
   referredBy: {
     type: mongoose.Schema.Types.ObjectId,

@@ -21,7 +21,8 @@ const {
   checkAchievements,
   claimAchievements,
   toggleNetworkerAccess,
-  updateUserPlan
+  updateUserPlan,
+  creditUserRoi
 } = require('../controllers/adminController');
 
 // Validation for ROI credit
@@ -46,6 +47,7 @@ router.patch('/users/:id/toggle',              toggleUserActive);
 router.patch('/users/:id/role',                updateUserRole);
 router.patch('/users/:id/networker-access',    toggleNetworkerAccess);
 router.patch('/users/:id/plan',                updateUserPlan);
+router.post('/users/:id/credit-roi',           creditUserRoi);  // NEW: Credit ROI to user's Plan A/B investment
 
 // ── Achievements ─────────────────────────────────────────────────────────────
 router.post('/achievements/check/:userId', checkAchievements);

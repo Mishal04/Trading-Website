@@ -1,10 +1,12 @@
 const { validationResult } = require('express-validator');
 const Investment = require('../models/Investment');
+const InvestorInvestment = require('../models/InvestorInvestment');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
 const commissionService = require('../services/commissionService');
 const { USER_PACKAGES } = require('../../config/constants');
+const { getInvestorPackageInfo, INVESTOR_INCOME_CAP } = require('../../config/investorConstants');
 
 /**
   POST /api/investments/create
@@ -214,9 +216,112 @@ const withdrawInvestment = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/investments/plan
+ * Create a unified Plan A/B investment for a User (Phase 2).
+ * Uses InvestorInvestment model with userId ref.
+ */
+const createPlanInvestment = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors: errors.array()
+    });
+  }
+
+  try {
+    const { amount, paymentProof, transactionId, paymentNote } = req.body;
+    const userId = req.user._id;
+
+    if (amount < 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Minimum investment amount is $100'
+      });
+    }
+
+    const numAmount = Number(amount);
+
+    // Get user's current plan
+    const user = await User.findById(userId).select('plan joinDate totalInvested');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Look up package info using Plan A/B logic
+    const pkgInfo = getInvestorPackageInfo(numAmount, user.plan);
+    if (!pkgInfo) {
+      return res.status(400).json({
+        success: false,
+        message: `$${numAmount} is not a valid investment amount for Plan ${user.plan}. Valid amounts: Plan A ($100-900), Plan B ($1000-5000, $6000-9000, $10000-25000)`
+      });
+    }
+
+    const incomeCap = Number((numAmount * INVESTOR_INCOME_CAP).toFixed(4));
+
+    // Create InvestorInvestment record linked to User via userId
+    const investment = new InvestorInvestment({
+      userId,                    // NEW: Phase 2 user model link
+      investorId: null,          // NULL: legacy investor portal (not used here)
+      amount: numAmount,
+      plan: user.plan,
+      packageNumber: pkgInfo.packageNumber,
+      dailyRate: pkgInfo.dailyRate,
+      incomeCap,
+      paymentProof: (paymentProof || '').trim(),
+      transactionId: (transactionId || '').trim(),
+      paymentNote: (paymentNote || '').trim(),
+      status: 'pending'          // Admin must approve
+    });
+
+    await investment.save();
+
+    // If this is user's first investment, set joinDate
+    const updateFields = { $inc: { totalInvested: numAmount } };
+    if (!user.joinDate) {
+      updateFields.$set = { joinDate: new Date() };
+    }
+    await User.findByIdAndUpdate(userId, updateFields);
+
+    // Record Transaction for audit
+    await Transaction.create({
+      userId,
+      type: 'investment',
+      amount: numAmount,
+      status: 'pending',
+      description: `Plan ${user.plan} investment of $${numAmount} (package ${pkgInfo.packageNumber}, ${(pkgInfo.dailyRate * 100).toFixed(4)}% daily) — awaiting admin approval`,
+      referenceId: investment._id,
+      referenceModel: 'InvestorInvestment'
+    });
+
+    // Notify user
+    await Notification.create({
+      userId,
+      title: 'Investment Submitted',
+      message: `Your Plan ${user.plan} investment of $${numAmount} is under review. You will be notified once approved.`,
+      type: 'info'
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Investment submitted successfully. Awaiting admin approval.',
+      data: { investment }
+    });
+  } catch (error) {
+    console.error('Create plan investment error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while creating investment'
+    });
+  }
+};
+
 module.exports = {
   createInvestment,
   getMyInvestments,
   getInvestmentById,
-  withdrawInvestment
+  withdrawInvestment,
+  createPlanInvestment
 };

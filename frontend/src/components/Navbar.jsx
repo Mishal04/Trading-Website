@@ -58,13 +58,6 @@ export default function Navbar() {
 
           {/* Auth buttons */}
           <div className="hidden md:flex items-center gap-2">
-            <Link
-              to="/investor/login"
-              title="For Investor Plan A/B accounts — fixed ROI packages"
-              className="px-4 py-2 text-xs font-semibold rounded-lg border border-gold-500/50 text-gold-400 hover:bg-gold-500/10 hover:border-gold-400 transition-all"
-            >
-              Investor Portal
-            </Link>
             {user ? (
               <>
                 {user.accountType === 'admin' && (
@@ -95,10 +88,9 @@ export default function Navbar() {
               <>
                 <Link
                   to="/login"
-                  title="For regular member / referral network accounts"
                   className="px-4 py-2 text-xs font-semibold rounded-lg border border-gold-500/50 text-gold-400 hover:bg-gold-500/10 hover:border-gold-400 transition-all"
                 >
-                  User Portal
+                  Login
                 </Link>
                 <Link
                   to="/register"
@@ -169,18 +161,11 @@ export default function Navbar() {
             ) : (
               <>
                 <Link
-                  to="/investor/login"
-                  onClick={() => setOpen(false)}
-                  className="block text-sm font-semibold text-gold-400 py-1 hover:text-gold-300 transition-colors"
-                >
-                  Investor Portal
-                </Link>
-                <Link
                   to="/login"
                   onClick={() => setOpen(false)}
                   className="block text-sm font-semibold text-gold-400 py-1 hover:text-gold-300 transition-colors"
                 >
-                  User Portal
+                  Login
                 </Link>
                 <Link
                   to="/register"

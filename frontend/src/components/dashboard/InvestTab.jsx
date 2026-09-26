@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { investmentAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import {
@@ -40,41 +41,49 @@ const PAYMENT_METHODS = {
   },
 };
 
-// ─── discrete package definitions (4 tiers) ──────────────────────────────────
-// ASSUMPTION: Tier 4 amounts ($10k/$15k/$20k/$25k) — client must confirm exact list.
+// ─── discrete package definitions (4 dollar tiers matching landing page) ────
+// Rates are Plan-dependent: locked at investment time based on user's plan
 const PACKAGES = [
   {
     id: 1,
-    name: 'Tier 1 Package',
+    label: '$100 - $900',
     amounts: [100, 200, 300, 900],
-    rate: '0.75% Daily',
+    ratesPerPlan: {
+      A: '1.00% Daily',   // Plan A (Phase 1)
+      B: '0.75% Daily'    // Plan B (Phase 2+)
+    },
     color: 'from-blue-500/20 to-blue-600/5 border-blue-500/30 text-blue-400',
-    badge: 'Starter',
   },
   {
     id: 2,
-    name: 'Tier 2 Package',
+    label: '$1,000 - $5,000',
     amounts: [1000, 2000, 3000, 5000],
-    rate: '1.00% Daily',
+    ratesPerPlan: {
+      A: '1.00% Daily',   // Plan A (Phase 1)
+      B: '0.75% Daily'    // Plan B (Phase 2+)
+    },
     color: 'from-gold-500/20 to-gold-600/5 border-gold-500/40 text-gold-400',
-    badge: 'Popular',
     featured: true,
   },
   {
     id: 3,
-    name: 'Tier 3 Package',
+    label: '$6,000 - $9,000',
     amounts: [6000, 7000, 8000, 9000],
-    rate: '1.25% Daily',
+    ratesPerPlan: {
+      A: '1.00% Daily',   // Plan A (Phase 1)
+      B: '0.75% Daily'    // Plan B (Phase 2+)
+    },
     color: 'from-purple-500/20 to-purple-600/5 border-purple-500/30 text-purple-400',
-    badge: 'Growth',
   },
   {
     id: 4,
-    name: 'Tier 4 Package',
+    label: '$10,000 - $25,000',
     amounts: [10000, 15000, 20000, 25000],
-    rate: '1.50% Daily',
+    ratesPerPlan: {
+      A: '1.25% Daily',   // Plan A (Phase 1)
+      B: '1.00% Daily'    // Plan B (Phase 2+)
+    },
     color: 'from-emerald-500/20 to-emerald-600/5 border-emerald-500/30 text-emerald-400',
-    badge: 'VIP Elite',
   },
 ];
 
@@ -101,14 +110,15 @@ const StatusBadge = ({ status }) => (
 const getPackageForAmount = (val) => {
   for (const pkg of PACKAGES) {
     if (pkg.amounts.includes(val)) {
-      return { tier: pkg.id, name: pkg.name, ratePercent: parseFloat(pkg.rate) };
+      return { pkgId: pkg.id, label: pkg.label };
     }
   }
-  return { tier: 1, name: 'Tier 1 Package', ratePercent: 0.75 };
+  return { pkgId: 1, label: '$100 - $900' };
 };
 
 // ─── main component ───────────────────────────────────────────────────────────
 export default function InvestTab({ onRefresh }) {
+  const { user } = useAuth();  // Get current user including plan
   const [amount, setAmount]             = useState('1000');
   const [selectedTier, setSelectedTier] = useState(2);
   const [network, setNetwork]           = useState('BEP20');
@@ -143,7 +153,9 @@ export default function InvestTab({ onRefresh }) {
 
   const activePkg = PACKAGES.find(p => p.id === selectedTier);
   const numAmount = parseFloat(amount) || 0;
-  const ratePercent = activePkg ? parseFloat(activePkg.rate) : 0.75;
+  const userPlan = user?.plan || 'A';  // Default to Plan A if not set
+  const rateStr = activePkg ? activePkg.ratesPerPlan[userPlan] : '1.00% Daily';
+  const ratePercent = parseFloat(rateStr);  // Extract numeric value (e.g., "1.00% Daily" → 1.00)
   const estimatedDaily   = (numAmount * ratePercent) / 100;
   const estimatedMonthly = estimatedDaily * 30;
 
@@ -163,7 +175,8 @@ export default function InvestTab({ onRefresh }) {
 
     try {
       setLoading(true);
-      const res = await investmentAPI.create({
+      // Phase 2 endpoint: uses /plan instead of /create
+      const res = await investmentAPI.plan({
         amount:        numAmount,
         transactionId: transactionId.trim(),
         paymentProof:  paymentProof.trim(),
@@ -195,14 +208,15 @@ export default function InvestTab({ onRefresh }) {
           <PiggyBank className="text-gold-400" /> Choose Investment Package
         </h2>
         <p className="text-gray-400 text-sm mt-1">
-          Select a tier, fill in your payment details, and submit. Admin will verify and activate.
+          Select a dollar tier. Your current Plan (<strong>{userPlan === 'A' ? 'Plan A (Phase 1)' : 'Plan B (Phase 2+)'}</strong>) determines your daily rate.
         </p>
       </div>
 
-      {/* Package cards — Tier selector (row 1) */}
+      {/* Package cards — 4 dollar tiers (row 1) */}
       <div className="grid md:grid-cols-4 gap-4">
         {PACKAGES.map((pkg) => {
           const isSelected = selectedTier === pkg.id;
+          const rateForPlan = pkg.ratesPerPlan[userPlan];
           return (
             <div
               key={pkg.id}
@@ -218,16 +232,16 @@ export default function InvestTab({ onRefresh }) {
             >
               {pkg.featured && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gold-400 text-dark-900 text-[10px] font-black uppercase px-3 py-0.5 rounded-full tracking-wider shadow-md">
-                  Most Popular
+                  Recommended
                 </div>
               )}
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-300">{pkg.badge}</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-300">{pkg.label}</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-bold bg-dark-900/60 border ${pkg.color}`}>
-                  {pkg.rate}
+                  {rateForPlan}
                 </span>
               </div>
-              <h3 className="text-base font-extrabold text-white mb-1">{pkg.name}</h3>
+              <h3 className="text-base font-extrabold text-white mb-1">Dollar Tier {pkg.id}</h3>
               <p className="text-xs text-gray-400">
                 ${pkg.amounts[0].toLocaleString()} – ${pkg.amounts[pkg.amounts.length - 1].toLocaleString()}
               </p>
@@ -246,9 +260,9 @@ export default function InvestTab({ onRefresh }) {
         })}
       </div>
 
-      {/* Clarifying note */}
+      {/* Plan info note */}
       <p className="text-[11px] text-gray-500 text-center -mt-4">
-        These are individual investment tier rates for regular User accounts. Rates shown on the public homepage&apos;s &ldquo;Structured ROI Periods&rdquo; apply only to the separate Investor Portal system.
+        Rates are locked at investment time based on your current Plan ({userPlan}). After 6 months, your rate switches to 8–10% monthly.
       </p>
 
       {/* Investment + Payment Proof Form */}
@@ -261,18 +275,18 @@ export default function InvestTab({ onRefresh }) {
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Sparkles size={18} className="text-gold-400" /> Activate Investment
               </h3>
-              <p className="text-xs text-gray-400">Select a tier and amount below. Fill in payment proof so admin can verify.</p>
+              <p className="text-xs text-gray-400">Select a dollar tier and amount below. Fill in payment proof so admin can verify.</p>
             </div>
             <div className="text-right">
-              <span className="text-xs text-gray-400">Package: </span>
-              <span className="text-sm font-bold text-gold-400">{activePkg ? activePkg.name : 'Tier 1 Package'}</span>
+              <span className="text-xs text-gray-400">Tier: </span>
+              <span className="text-sm font-bold text-gold-400">{activePkg ? activePkg.label : '$100 - $900'}</span>
             </div>
           </div>
 
           {/* Amount buttons for selected tier (row 2) */}
           <div>
             <label className="text-xs font-semibold text-gray-400 mb-2 block">
-              Select Amount — {activePkg ? activePkg.name : ''} (USD)
+              Select Amount — {activePkg ? activePkg.label : '$100 - $900'} (USD)
             </label>
             <div className="flex flex-wrap gap-2">
               {(activePkg ? activePkg.amounts : []).map((preset) => (

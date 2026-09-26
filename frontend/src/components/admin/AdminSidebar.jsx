@@ -10,7 +10,6 @@ import {
   LogOut,
   X,
   ShieldCheck,
-  BadgeDollarSign,
 } from 'lucide-react';
 
 const navItems = [
@@ -19,7 +18,6 @@ const navItems = [
   { path: '/admin/withdrawals', label: 'Withdrawals',   icon: ArrowUpRight },
   { path: '/admin/users',       label: 'Users',         icon: Users },
   { path: '/admin/profit',      label: 'Profit Inject', icon: TrendingUp },
-  { path: '/admin/investors',   label: 'Investors',     icon: BadgeDollarSign },
 ];
 
 /**

@@ -6,10 +6,20 @@ const mongoose = require('mongoose');
  * Tracks package, plan, daily ROI, monthly ROI (after 6 months), and principal state.
  */
 const investorInvestmentSchema = new mongoose.Schema({
+  // ── Phase 1 (legacy): Investor Portal separate system ──────────────────────
   investorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Investor',
-    required: true,
+    default: null,
+    index: true
+  },
+  // ── Phase 2 (new): Unified User model system ──────────────────────────────
+  // After migration, investorId will be null and userId will be set.
+  // During migration, either investorId or userId is set (never both).
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
     index: true
   },
   amount: {
@@ -97,6 +107,7 @@ const investorInvestmentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 investorInvestmentSchema.index({ investorId: 1, status: 1 });
+investorInvestmentSchema.index({ userId: 1, status: 1 });
 investorInvestmentSchema.index({ lastRoiDate: 1, status: 1 });
 
 const InvestorInvestment = mongoose.model('InvestorInvestment', investorInvestmentSchema);

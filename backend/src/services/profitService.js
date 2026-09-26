@@ -1,4 +1,5 @@
 const Investment = require('../models/Investment');
+const InvestorInvestment = require('../models/InvestorInvestment');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
@@ -169,6 +170,9 @@ const calculateDailyProfits = async () => {
   let totalProfitDistributed = 0;
 
   try {
+    // ── PASS 1: Legacy User Portal Investment records (old Tier 1-4 system) ────
+    // MUTUALLY EXCLUSIVE: investorId != null, userId not checked
+    // These investments credit to wallet.profit, distribute 21-level commissions
     const investments = await Investment.find({
       isActive: true,
       status: 'active',
@@ -237,6 +241,94 @@ const calculateDailyProfits = async () => {
         totalProfitDistributed += dailyProfitAmount;
       } catch (err) {
         console.error(`Error processing profit for investment ${investment._id}:`, err);
+      }
+    }
+
+    // ── PASS 2: Phase 2 Investor Plan A/B records (new unified User model) ───────
+    // MUTUALLY EXCLUSIVE: userId != null, investorId is null or not checked
+    // These investments credit to wallet.roi, NO commission distribution
+    const investorInvestments = await InvestorInvestment.find({
+      userId: { $ne: null },  // CRITICAL: Must have userId set (Phase 2 records)
+      status: 'active',
+      isActive: true,
+      lastRoiDate: { $lt: startOfToday }
+    }).populate('userId');
+
+    for (const investment of investorInvestments) {
+      try {
+        const investor = investment.userId;
+        if (!investor || !investor.isActive) continue;
+
+        const dailyRoiAmount = Number(((investment.amount * investment.dailyRate) / 100).toFixed(4));
+        if (dailyRoiAmount <= 0) continue;
+
+        // Check if investment's personal cap already reached
+        if (investment.capReached) continue;
+
+        // Atomic guard: update lastRoiDate only if not updated today AND cap not reached
+        const updatedInvestment = await InvestorInvestment.findOneAndUpdate(
+          {
+            _id: investment._id,
+            userId: investor._id,
+            status: 'active',
+            isActive: true,
+            capReached: false,
+            lastRoiDate: { $lt: startOfToday }
+          },
+          {
+            $set: { lastRoiDate: now },
+            $inc: { totalRoiEarned: dailyRoiAmount }
+          },
+          { new: true }
+        );
+
+        if (!updatedInvestment) {
+          // Already processed or cap was reached concurrently
+          continue;
+        }
+
+        // Check if this credit hit the 3x cap on this specific investment
+        let investmentCapReached = false;
+        if (updatedInvestment.totalRoiEarned >= updatedInvestment.incomeCap) {
+          investmentCapReached = true;
+          await InvestorInvestment.findByIdAndUpdate(investment._id, {
+            $set: { capReached: true, status: 'completed' }
+          });
+        }
+
+        // Credit investor's ROI wallet on User model
+        await User.findByIdAndUpdate(investor._id, {
+          $inc: {
+            'wallet.roi': dailyRoiAmount,
+            totalRoiEarned: dailyRoiAmount
+          }
+        });
+
+        // Record ROI transaction
+        await Transaction.create({
+          userId: investor._id,
+          type: 'roi',
+          amount: dailyRoiAmount,
+          status: 'completed',
+          description: `Daily ROI (${(investment.dailyRate * 100).toFixed(4)}%) from Plan ${investment.plan} investment $${investment.amount}${investmentCapReached ? ' (cap reached)' : ''}`,
+          referenceId: investment._id,
+          referenceModel: 'InvestorInvestment'
+        });
+
+        // Send ROI notification
+        await Notification.create({
+          userId: investor._id,
+          title: 'ROI Credited',
+          message: `You earned $${dailyRoiAmount} ROI from your Plan ${investment.plan} investment!${investmentCapReached ? ' (Income cap reached)' : ''}`,
+          type: 'profit'
+        });
+
+        // NO commission distribution for investor ROI (Investor Portal never did this)
+
+        processedCount++;
+        totalProfitDistributed += dailyRoiAmount;
+      } catch (err) {
+        console.error(`Error processing ROI for investor investment ${investment._id}:`, err);
       }
     }
 

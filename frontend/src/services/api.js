@@ -74,7 +74,10 @@ export const authAPI = {
 
 // Investment endpoints
 export const investmentAPI = {
+  // Old endpoint (tier system)
   create: (payload) => api.post('/investments/create', payload),
+  // Phase 2 endpoint (plan system A/B)
+  plan: (payload) => api.post('/investments/plan', payload),
   getMy:  (params)  => api.get('/investments/my', { params }),
   getById: (id)     => api.get(`/investments/${id}`),
   withdraw: (investmentId) => api.post('/investments/withdraw', { investmentId }),
@@ -122,6 +125,7 @@ export const adminAPI = {
   getUsers:       (params) => api.get('/admin/users', { params }),
   toggleUser:     (id)     => api.patch(`/admin/users/${id}/toggle`),
   updateUserRole: (id, data) => api.patch(`/admin/users/${id}/role`, data),
+  toggleNetworkerAccess: (id, grant) => api.patch(`/admin/users/${id}/networker-access`, { grant }),
 
   // Investments
   getInvestments:     (params) => api.get('/admin/investments', { params }),

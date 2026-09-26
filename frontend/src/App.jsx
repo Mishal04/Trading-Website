@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import { InvestorAuthProvider, useInvestorAuth } from './context/InvestorAuthContext';
+import { InvestorAuthProvider } from './context/InvestorAuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Landing from './pages/Landing';
@@ -16,12 +16,6 @@ import Investments from './pages/admin/Investments';
 import Withdrawals from './pages/admin/Withdrawals';
 import Users from './pages/admin/Users';
 import ProfitInject from './pages/admin/ProfitInject';
-import AdminInvestors from './pages/admin/AdminInvestors';
-
-// Investor
-import InvestorLogin    from './pages/investor/InvestorLogin';
-import InvestorRegister from './pages/investor/InvestorRegister';
-import InvestorDashboard from './pages/investor/InvestorDashboard';
 
 // ─── Spinner ──────────────────────────────────────────────────────────────────
 function Spinner() {
@@ -65,23 +59,6 @@ function PublicOnly({ children }) {
   return children;
 }
 
-// ── Investor Route Guards ────────────────────────────────────────────────
-
-/** Investor-only private route */
-function InvestorRoute({ children }) {
-  const { investor, loading } = useInvestorAuth();
-  if (loading) return <Spinner />;
-  return investor ? children : <Navigate to="/investor/login" replace />;
-}
-
-/** Investor public-only (login/register) — redirect to dashboard if already in */
-function InvestorPublicOnly({ children }) {
-  const { investor, loading } = useInvestorAuth();
-  if (loading) return null;
-  if (investor) return <Navigate to="/investor/dashboard" replace />;
-  return children;
-}
-
 // ─── Shared public layout (Navbar + Footer) ───────────────────────────────────
 function PublicLayout() {
   return (
@@ -122,15 +99,8 @@ export default function App() {
           <Route path="withdrawals" element={<Withdrawals />} />
           <Route path="users"       element={<Users />} />
           <Route path="profit"      element={<ProfitInject />} />
-          <Route path="investors"   element={<AdminInvestors />} />
           <Route path="*"           element={<Navigate to="/admin" replace />} />
         </Route>
-
-        {/* ── Investor portal — completely separate auth ── */}
-        <Route path="/investor/login"      element={<InvestorPublicOnly><InvestorLogin /></InvestorPublicOnly>} />
-        <Route path="/investor/register"   element={<InvestorPublicOnly><InvestorRegister /></InvestorPublicOnly>} />
-        <Route path="/investor/dashboard"  element={<InvestorRoute><InvestorDashboard /></InvestorRoute>} />
-        <Route path="/investor"            element={<Navigate to="/investor/dashboard" replace />} />
 
         {/* ── Catch-all for any unknown routes ── */}
         <Route path="*" element={<Navigate to="/" replace />} />

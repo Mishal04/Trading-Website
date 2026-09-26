@@ -1,6 +1,5 @@
 const crypto = require('crypto');
 const User = require('../models/User');
-const Investor = require('../models/Investor');
 const { validationResult } = require('express-validator');
 const {
   generateToken,
@@ -140,15 +139,6 @@ const login = async (req, res) => {
 
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
-      // Cross-check: is this email an investor account instead?
-      const investorAccount = await Investor.findOne({ email: email.toLowerCase() });
-      if (investorAccount) {
-        return res.status(401).json({
-          success: false,
-          message: 'This email is registered as an investor. Please use the Investor Login page.'
-        });
-      }
-      // Email not found in either collection — safe to tell the user to register
       return res.status(401).json({ success: false, message: 'No account found with this email. Please register first.' });
     }
 
@@ -159,6 +149,20 @@ const login = async (req, res) => {
 
     if (!user.isActive) {
       return res.status(401).json({ success: false, message: 'Account is deactivated. Please contact support.' });
+    }
+
+    // Ensure old users (from before Phase 1) have a referral code
+    if (!user.referralCode) {
+      const generateUniqueReferralCode = async () => {
+        let code = new User().generateReferralCode();
+        let exists = await User.findOne({ referralCode: code });
+        while (exists) {
+          code = new User().generateReferralCode();
+          exists = await User.findOne({ referralCode: code });
+        }
+        return code;
+      };
+      user.referralCode = await generateUniqueReferralCode();
     }
 
     user.lastLogin = Date.now();

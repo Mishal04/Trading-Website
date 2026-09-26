@@ -137,11 +137,11 @@ export default function Landing() {
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-6">
               21 Levels.
               <br />
-              <span className="gradient-text">3X Investor Cap. 5X Networker Cap.</span>
+              <span className="gradient-text">3X Investor Cap. 3X Networker Cap.</span>
             </h1>
 
 <p className="max-w-3xl mx-auto text-gray-300 text-base sm:text-lg mb-10 leading-relaxed">
-  Choose your activation package from <strong>$100 to $10,000</strong>. Investors earn ROI on their investment up to a 3× income cap of the invested amount, while Networkers/Affiliates earn from the 21‑level affiliate structure up to a 5× income cap.
+  Choose your activation package from <strong>$100 to $10,000</strong>. Investors earn ROI on their investment up to a 3× income cap of the invested amount, while Networkers/Affiliates earn from the 21‑level affiliate structure up to a 3× income cap.
 </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -149,19 +149,13 @@ export default function Landing() {
                 to="/register"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 hover:from-gold-400 hover:to-gold-300 transition-all gold-glow"
               >
-                Start Investing Now <ArrowRight size={18} />
+                Start Now <ArrowRight size={18} />
               </Link>
               <a
-                href="#live-markets"
+                href="#packages"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-semibold border border-gold-400/40 bg-gold-400/5 text-gold-300 hover:border-gold-400 hover:bg-gold-400/15 transition-all"
               >
                 <Activity size={16} /> View Live Charts
-              </a>
-              <a
-                href="#packages"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-semibold border border-dark-500 text-gray-300 hover:border-gold-400 hover:text-gold-400 transition-all"
-              >
-                Explore Packages
               </a>
             </div>
           </div>
@@ -170,7 +164,7 @@ export default function Landing() {
           <div className="mt-12 grid grid-cols-3 gap-4 max-w-4xl mx-auto">
             {[
               { icon: Percent, label: 'Level Pool Share', value: '80% Across 21L' },
-              { icon: Shield, label: 'Global Income Cap', value: '5X Total Invested' },
+              { icon: Shield, label: 'Global Income Cap', value: '3X Total Invested' },
               { icon: Zap, label: 'Affiliate Network', value: '21 Levels' },
             ].map((m) => (
               <div key={m.label} className="rounded-xl border border-dark-500 bg-dark-800/70 p-4 text-center backdrop-blur-xl">
@@ -356,7 +350,7 @@ export default function Landing() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
-                <span>All earnings (ROI + affiliate income + achievement rewards) are subject to a maximum income cap: 3x for Investors and 5x for Networkers, calculated on total activation/investment amount.</span>
+                <span>All earnings (ROI + affiliate income + achievement rewards) are subject to a maximum income cap: 3x for Investors and 3x for Networkers, calculated on total activation/investment amount.</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
@@ -391,7 +385,7 @@ export default function Landing() {
               Maximum <span className="gradient-text">Income Cap</span>
             </h2>
             <p className="text-gray-400 text-sm">
-                              Cap applies to the sum of ROI + Level Income (totalEarned). Investors are capped at 3× their investment, while Networkers have a 5× cap. Achievement rewards do not count toward cap.
+                              Cap applies to the sum of ROI + Level Income (totalEarned). Both Investors and Networkers are capped at 3× their investment. Achievement rewards do not count toward cap.
             </p>
           </div>
 
@@ -426,12 +420,12 @@ export default function Landing() {
       <div className="flex items-center justify-between mb-4">
         <span className="text-xs font-black uppercase text-gold-400 tracking-wider">NETWORKER EARNING LIMIT</span>
         <span className="px-3.5 py-1 rounded-full text-xs font-extrabold bg-gold-400 text-dark-900 shadow-md">
-          5X CAP
+          3X CAP
         </span>
       </div>
-      <h3 className="text-2xl font-black text-white mb-2">500% Total Return Cap</h3>
+      <h3 className="text-2xl font-black text-white mb-2">300% Total Return Cap</h3>
       <p className="text-sm text-gray-300 mb-6 leading-relaxed">
-        Networker/Affiliate accounts earn up to 500% (5 × Total Invested) in cumulative earnings across ROI distributions and referral level commissions. Once the 5X threshold is reached, simply reinvest or add new capital to continue earning.
+        Networker/Affiliate accounts earn up to 300% (3 × Total Invested) in cumulative earnings across ROI distributions and referral level commissions. Once the 3X threshold is reached, simply reinvest or add new capital to continue earning.
       </p>
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">

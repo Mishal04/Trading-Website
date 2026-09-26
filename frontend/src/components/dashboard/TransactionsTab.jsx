@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import api, { commissionAPI, withdrawalAPI } from '../../services/api';
 import { History, Filter, RefreshCw, ArrowUpRight, ArrowDownLeft, Award, Wallet, TrendingUp } from 'lucide-react';
 
-export default function TransactionsTab() {
-  const [filter, setFilter] = useState('all');
+export default function TransactionsTab({ filterType = 'all' }) {
+  const [filter, setFilter] = useState(filterType);
   const [transactions, setTransactions] = useState([]);
   const [fetching, setFetching] = useState(true);
 

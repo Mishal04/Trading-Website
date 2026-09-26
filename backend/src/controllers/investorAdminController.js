@@ -1,4 +1,4 @@
-const Investor = require('../models/Investor');
+const User = require('../models/User');
 const InvestorInvestment = require('../models/InvestorInvestment');
 const {
   getInvestorPackageInfo,
@@ -8,6 +8,7 @@ const {
 } = require('../../config/investorConstants');
 
 // ─── GET /api/admin/investors ─────────────────────────────────────────────────
+// Returns all users with investment/investor activity (including plan, wallet, investments)
 
 const getAllInvestors = async (req, res) => {
   try {
@@ -15,6 +16,7 @@ const getAllInvestors = async (req, res) => {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const skip  = (page - 1) * limit;
 
+    // Query users: search by name/email, filter by plan (if provided)
     const query = {};
     if (req.query.search) {
       query.$or = [
@@ -25,8 +27,8 @@ const getAllInvestors = async (req, res) => {
     if (req.query.plan) query.plan = req.query.plan;
 
     const [total, investors] = await Promise.all([
-      Investor.countDocuments(query),
-      Investor.find(query)
+      User.countDocuments(query),
+      User.find(query)
         .select('-password')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -55,7 +57,7 @@ const updateInvestorPlan = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Plan must be A or B' });
     }
 
-    const investor = await Investor.findById(req.params.id).select('-password');
+    const investor = await User.findById(req.params.id).select('-password');
     if (!investor) {
       return res.status(404).json({ success: false, message: 'Investor not found' });
     }
@@ -78,7 +80,7 @@ const updateInvestorPlan = async (req, res) => {
 
 const toggleInvestorActive = async (req, res) => {
   try {
-    const investor = await Investor.findById(req.params.id).select('-password');
+    const investor = await User.findById(req.params.id).select('-password');
     if (!investor) {
       return res.status(404).json({ success: false, message: 'Investor not found' });
     }
@@ -98,13 +100,18 @@ const toggleInvestorActive = async (req, res) => {
 
 const getInvestorInvestments = async (req, res) => {
   try {
-    const investor = await Investor.findById(req.params.id).select('-password');
+    const investor = await User.findById(req.params.id).select('-password');
     if (!investor) {
       return res.status(404).json({ success: false, message: 'Investor not found' });
     }
 
-    const investments = await InvestorInvestment.find({ investorId: req.params.id })
-      .sort({ createdAt: -1 });
+    // Query investments by userId (Phase 2) and investorId (Phase 1 legacy) for compatibility
+    const investments = await InvestorInvestment.find({
+      $or: [
+        { userId: req.params.id },
+        { investorId: req.params.id }
+      ]
+    }).sort({ createdAt: -1 });
 
     // 6-month switch check
     let sixMonthsReached = false;
@@ -140,16 +147,27 @@ const getAllInvestorInvestments = async (req, res) => {
     const [total, investments] = await Promise.all([
       InvestorInvestment.countDocuments(query),
       InvestorInvestment.find(query)
-        .populate('investorId', 'name email plan')
+        .populate('userId', 'name email plan')
+        .populate('investorId', 'name email plan')  // For legacy Phase 1 support
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
     ]);
 
+    // Map investorId to proper format for backward compatibility
+    const formattedInvestments = investments.map(inv => {
+      const doc = inv.toObject ? inv.toObject() : inv;
+      // Use userId if set (Phase 2), fall back to investorId (Phase 1)
+      if (!doc.investorId && doc.userId) {
+        doc.investorId = doc.userId;
+      }
+      return doc;
+    });
+
     return res.json({
       success: true,
       data: {
-        investments,
+        investments: formattedInvestments,
         pagination: { total, page, pages: Math.ceil(total / limit), limit }
       }
     });
@@ -174,9 +192,11 @@ const approveInvestorInvestment = async (req, res) => {
       });
     }
 
-    const investor = await Investor.findById(investment.investorId);
+    // Determine userId vs investorId (Phase 2 vs Phase 1)
+    const userId = investment.userId || investment.investorId;
+    const investor = await User.findById(userId);
     if (!investor) {
-      return res.status(404).json({ success: false, message: 'Investor not found' });
+      return res.status(404).json({ success: false, message: 'Investor/User not found' });
     }
 
     // Activate investment
@@ -204,7 +224,7 @@ const approveInvestorInvestment = async (req, res) => {
     if (!investor.joinDate) {
       updateFields.$set = { joinDate: new Date() };
     }
-    await Investor.findByIdAndUpdate(investment.investorId, updateFields);
+    await User.findByIdAndUpdate(userId, updateFields);
 
     return res.json({
       success: true,
@@ -256,9 +276,13 @@ const creditInvestorRoi = async (req, res) => {
       return res.status(400).json({ success: false, message: 'investmentId and amount > 0 required' });
     }
 
+    // Query by both userId and investorId for Phase 1/2 compatibility
     const investment = await InvestorInvestment.findOne({
       _id: investmentId,
-      investorId: req.params.id,
+      $or: [
+        { userId: req.params.id },
+        { investorId: req.params.id }
+      ],
       status: 'active'
     });
     if (!investment) {
@@ -287,8 +311,11 @@ const creditInvestorRoi = async (req, res) => {
 
     await investment.save();
 
+    // Determine userId vs investorId (Phase 2 vs Phase 1)
+    const userId = investment.userId || investment.investorId;
+
     // Credit investor ROI wallet
-    await Investor.findByIdAndUpdate(req.params.id, {
+    await User.findByIdAndUpdate(userId, {
       $inc: { 'wallet.roi': credited, totalRoiEarned: credited }
     });
 
