@@ -85,4 +85,22 @@ const hasNetworkerAccess = (user) => {
   return Boolean(user && user.networkerAccessGranted === true);
 };
 
-module.exports = { protect, admin, verified, hasNetworkerAccess };
+/**
+ * networkerAccess — middleware.
+ * 
+ * Checks if the current user has been granted Networker section access by admin.
+ * Returns 403 if access is not granted.
+ * 
+ * Usage: router.get('/my', networkerAccess, getMyCommissions);
+ */
+const networkerAccess = (req, res, next) => {
+  if (!hasNetworkerAccess(req.user)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Networker section is locked. Contact admin to unlock.'
+    });
+  }
+  next();
+};
+
+module.exports = { protect, admin, verified, hasNetworkerAccess, networkerAccess };

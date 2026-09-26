@@ -8,6 +8,7 @@ const {
   toggleUserActive,
   getAllInvestments,
   approveInvestment,
+  approvePlanInvestment,
   rejectInvestment,
   getAllWithdrawals,
   approveWithdrawal,
@@ -54,9 +55,10 @@ router.post('/achievements/check/:userId', checkAchievements);
 router.post('/achievements/claim', claimAchievements);
 
 // ── Investments ──────────────────────────────────────────────────────────────
-router.get('/investments',                  getAllInvestments);
-router.patch('/investments/:id/approve',    approveInvestment);
-router.patch('/investments/:id/reject',     rejectInvestment);
+router.get('/investments',                     getAllInvestments);
+router.patch('/investments/plan/:id/approve',  approvePlanInvestment);  // NEW: Approve Plan A/B investment (must come before /investments/:id/approve)
+router.patch('/investments/:id/approve',       approveInvestment);
+router.patch('/investments/:id/reject',        rejectInvestment);
 
 // ── Withdrawals ──────────────────────────────────────────────────────────────
 router.get('/withdrawals',                  getAllWithdrawals);

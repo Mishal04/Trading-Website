@@ -393,6 +393,96 @@ const rejectInvestment = async (req, res) => {
   }
 };
 
+// ─── PATCH /api/admin/investments/plan/:id/approve ──────────────────────────
+/**
+ * Approve a Plan A/B investment (InvestorInvestment model).
+ * Similar to approveInvestment but for the Phase 2 unified model.
+ */
+const approvePlanInvestment = async (req, res) => {
+  try {
+    const investment = await InvestorInvestment.findById(req.params.id);
+    if (!investment) {
+      return res.status(404).json({ success: false, message: 'Investment not found' });
+    }
+    if (investment.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Investment is already '${investment.status}' — only pending investments can be approved`
+      });
+    }
+
+    // 1. Activate investment
+    investment.status    = 'active';
+    investment.startDate = new Date();
+    investment.approvedBy = req.user._id;
+    investment.approvedAt = new Date();
+    await investment.save();
+
+    // 2. Credit user wallet with investment amount
+    await User.findByIdAndUpdate(investment.userId, {
+      $inc: { 'wallet.capital': investment.amount }
+    });
+
+    // 3. Update the pending transaction to completed
+    await Transaction.findOneAndUpdate(
+      { referenceId: investment._id, referenceModel: 'InvestorInvestment', status: 'pending' },
+      {
+        status: 'completed',
+        description: `Plan ${investment.plan} investment of $${investment.amount} approved`
+      }
+    );
+
+    // 4. Notify investor
+    await Notification.create({
+      userId: investment.userId,
+      title:   'Investment Approved ✓',
+      message: `Your Plan ${investment.plan} investment of $${investment.amount} has been approved and is now active!`,
+      type:    'success'
+    });
+
+    // 5. Credit 5% direct referral commission to referrer
+    const investor = await User.findById(investment.userId);
+    if (investor && investor.referredBy) {
+      const DIRECT_REFERRAL_COMMISSION_RATE = 0.05;
+      const directCommission = Number(
+        (investment.amount * DIRECT_REFERRAL_COMMISSION_RATE).toFixed(4)
+      );
+
+      if (directCommission > 0) {
+        await User.findByIdAndUpdate(investor.referredBy, {
+          $inc: { 'wallet.commission': directCommission }
+        });
+
+        await Transaction.create({
+          userId:         investor.referredBy,
+          type:           'direct_referral',
+          amount:         directCommission,
+          status:         'completed',
+          description:    `5% direct referral commission from ${investor.name || investor.email}'s Plan ${investment.plan} investment of $${investment.amount}`,
+          referenceId:    investment._id,
+          referenceModel: 'InvestorInvestment'
+        });
+
+        await Notification.create({
+          userId:  investor.referredBy,
+          title:   'Direct Referral Commission Earned',
+          message: `You earned $${directCommission.toFixed(2)} (5%) direct commission from your referral's Plan ${investment.plan} investment of $${investment.amount}!`,
+          type:    'commission'
+        });
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Plan ${investment.plan} investment of $${investment.amount} approved successfully`,
+      data: { investment }
+    });
+  } catch (error) {
+    console.error('Admin approve plan investment error:', error);
+    return res.status(500).json({ success: false, message: 'Server error approving investment' });
+  }
+};
+
 // ─── GET /api/admin/withdrawals ──────────────────────────────────────────────
 
 /**
@@ -1030,6 +1120,7 @@ module.exports = {
   updateUserRole,
   getAllInvestments,
   approveInvestment,
+  approvePlanInvestment,
   rejectInvestment,
   getAllWithdrawals,
   approveWithdrawal,

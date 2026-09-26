@@ -5,12 +5,12 @@ const {
   getDownline,
   getTeamStats
 } = require('../controllers/teamController');
-const { protect } = require('../middleware/auth');
+const { protect, networkerAccess } = require('../middleware/auth');
 
 router.use(protect); // Protect all team routes
 
-router.get('/business', getTeamBusiness);
-router.get('/downline', getDownline);
-router.get('/stats', getTeamStats);
+router.get('/business', networkerAccess, getTeamBusiness);
+router.get('/downline', networkerAccess, getDownline);
+router.get('/stats', networkerAccess, getTeamStats);
 
 module.exports = router;
