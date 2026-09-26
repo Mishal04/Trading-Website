@@ -109,7 +109,7 @@ export default function WithdrawTab({ user, onRefresh }) {
               Withdrawal Processing Information
             </p>
             <p className="text-xs text-gray-300 leading-relaxed">
-              Withdrawals are not processed on Saturdays and Sundays. Requests submitted after 12 AM Dubai time are processed the next business day. All other requests are processed normally.
+              Withdrawals are not processed on Saturdays and Sundays. Requests submitted after 12 AM Dubai time (UAE Time) are processed the next business day. All other requests are processed normally.
             </p>
           </div>
         </div>
