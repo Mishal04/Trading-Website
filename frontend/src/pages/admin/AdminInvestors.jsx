@@ -19,9 +19,11 @@ function StatusBadge({ status }) {
 
 function PlanBadge({ plan }) {
   return (
-    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-      plan === 'A' ? 'bg-amber-500/20 text-amber-400' : 'bg-purple-500/20 text-purple-400'
-    }`}>
+    <span
+      title={plan === 'A' ? 'Applicable for the first 6 months' : 'Applicable for the next 6 months'}
+      className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+        plan === 'A' ? 'bg-amber-500/20 text-amber-400' : 'bg-purple-500/20 text-purple-400'
+      }`}>
       Plan {plan}
     </span>
   );

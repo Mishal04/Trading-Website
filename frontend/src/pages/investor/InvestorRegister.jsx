@@ -157,6 +157,7 @@ export default function InvestorRegister() {
             <h2 className="text-xl font-bold text-white">Phase 1 Preview</h2>
             <span className="ml-auto text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-semibold">Default</span>
           </div>
+          <p className="text-[11px] text-amber-400/80 font-semibold mb-3">Applicable for the first 6 months</p>
           <p className="text-gray-400 text-sm mb-5">
             All new investors start on <strong className="text-amber-400">Phase 1</strong>. Admin may adjust your phase after account review.
           </p>

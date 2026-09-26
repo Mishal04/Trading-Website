@@ -32,6 +32,7 @@ const ROI_PERIODS = [
     name: 'Phase 1',
     dates: 'Oct 01, 2026 – Dec 31, 2026',
     desc: 'Plan A',
+    planNote: 'Applicable for the first 6 months',
     phaseNote: 'This phase runs for 6 months from activation.',
     rates: [
       { pkg: '$100, $200, $300, $900',                    rate: '1.00% Daily' },
@@ -45,6 +46,7 @@ const ROI_PERIODS = [
     name: 'Phase 2',
     dates: 'Jan 01, 2027 Onwards',
     desc: 'Plan B',
+    planNote: 'Applicable for the next 6 months',
     rates: [
       { pkg: '$100, $200, $300, $900',                    rate: '0.75% Daily' },
       { pkg: '$1,000, $2,000, $3,000, $5,000',           rate: '0.75% Daily' },
@@ -239,6 +241,9 @@ export default function Landing() {
                   <Calendar size={16} className="text-gold-400" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-1">{period.desc}</h3>
+                {period.planNote && (
+                  <p className="text-[11px] text-amber-400/80 font-semibold mb-0.5">{period.planNote}</p>
+                )}
                 <p className="text-xs font-mono text-gray-400 mb-1">{period.dates}</p>
                 {period.phaseNote && (
                   <p className="text-[11px] text-gray-500 italic mb-6">{period.phaseNote}</p>

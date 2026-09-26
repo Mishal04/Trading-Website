@@ -256,10 +256,13 @@ export default function InvestorDashboard() {
           <div className="space-y-6">
             {/* Plan info */}
             <div className="rounded-3xl border border-white/10 p-6" style={{ background: 'rgba(255,255,255,0.04)' }}>
-              <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+              <h3 className="text-white font-bold mb-1 flex items-center gap-2">
                 <BarChart2 size={18} className="text-amber-400" />
                 Your Phase {investor?.plan === 'A' ? '1' : '2'} — Package Rates
               </h3>
+              <p className="text-[11px] text-amber-400/80 font-semibold mb-4">
+                {investor?.plan === 'A' ? 'Applicable for the first 6 months' : 'Applicable for the next 6 months'}
+              </p>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {planPackages.map(p => (
                   <div key={p.pkg} className="rounded-xl border border-white/8 p-4"
@@ -321,9 +324,12 @@ export default function InvestorDashboard() {
         {activeTab === 'invest' && (
           <div className="rounded-3xl border border-white/10 p-8 max-w-lg" style={{ background: 'rgba(255,255,255,0.04)' }}>
             <h3 className="text-white font-bold text-xl mb-2">New Investment</h3>
-            <p className="text-gray-400 text-sm mb-6">
+            <p className="text-gray-400 text-sm mb-2">
               Invest based on your <strong className="text-amber-400">Phase {investor?.plan === 'A' ? '1' : '2'}</strong> packages.
               Your submission will be reviewed by admin.
+            </p>
+            <p className="text-[11px] text-amber-400/80 font-semibold mb-6">
+              {investor?.plan === 'A' ? 'Applicable for the first 6 months' : 'Applicable for the next 6 months'}
             </p>
 
             <form onSubmit={handleSubmitInvestment} className="space-y-5">
