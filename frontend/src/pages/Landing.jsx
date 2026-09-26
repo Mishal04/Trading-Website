@@ -137,11 +137,11 @@ export default function Landing() {
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-6">
               21 Levels.
               <br />
-              <span className="gradient-text">3X Investor Cap. 3X Networker Cap.</span>
+              <span className="gradient-text">3X Investor Cap. 5X Networker Cap.</span>
             </h1>
 
 <p className="max-w-3xl mx-auto text-gray-300 text-base sm:text-lg mb-10 leading-relaxed">
-  Choose your activation package from <strong>$100 to $10,000</strong>. Investors earn ROI on their investment up to a 3× income cap of the invested amount, while Networkers/Affiliates earn from the 21‑level affiliate structure up to a 3× income cap.
+  Choose your activation package from <strong>$100 to $10,000</strong>. Investors earn ROI on their investment up to a 3× income cap of the invested amount. When you unlock the Networker section by referring someone, your cap increases to 5× and you earn from the 21‑level affiliate structure.
 </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -350,7 +350,7 @@ export default function Landing() {
               </li>
               <li className="flex items-start gap-3">
                 <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
-                <span>All earnings (ROI + affiliate income + achievement rewards) are subject to a maximum income cap: 3x for Investors and 3x for Networkers, calculated on total activation/investment amount.</span>
+                <span>All earnings (ROI + affiliate income + achievement rewards) are subject to a maximum income cap: 3X for Investors and 5X for Networkers, calculated on total activation/investment amount. Unlock Networker by referring someone to increase your cap from 3X to 5X.</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="h-2 w-2 rounded-full bg-gold-400 mt-2 shrink-0"></span>
@@ -385,7 +385,7 @@ export default function Landing() {
               Maximum <span className="gradient-text">Income Cap</span>
             </h2>
             <p className="text-gray-400 text-sm">
-                              Cap applies to the sum of ROI + Level Income (totalEarned). Both Investors and Networkers are capped at 3× their investment. Achievement rewards do not count toward cap.
+              Investors earn up to 3× their investment and are capped at 3X. When you unlock the Networker section by referring someone, your cap increases to 5×. Investors are capped at 3X, Networkers at 5X. Achievement rewards do not count toward cap.
             </p>
           </div>
 
@@ -401,7 +401,7 @@ export default function Landing() {
       </div>
       <h3 className="text-2xl font-black text-white mb-2">300% Total Return Cap</h3>
       <p className="text-sm text-gray-300 mb-6 leading-relaxed">
-        Investor accounts earn up to 300% (3 × Total Invested) in cumulative ROI earnings. Once the 3X threshold is reached, principal is already merged within the 3× returns — reinvest here to continue earning.
+        Investor accounts earn up to 300% (3 × Total Invested) in cumulative ROI and level commission earnings. Once you unlock the Networker section by referring someone, your cap increases to 500% (5X). Stay as an Investor with a 3X cap, or unlock Networker to earn up to 5X.
       </p>
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
@@ -420,12 +420,12 @@ export default function Landing() {
       <div className="flex items-center justify-between mb-4">
         <span className="text-xs font-black uppercase text-gold-400 tracking-wider">NETWORKER EARNING LIMIT</span>
         <span className="px-3.5 py-1 rounded-full text-xs font-extrabold bg-gold-400 text-dark-900 shadow-md">
-          3X CAP
+          5X CAP
         </span>
       </div>
-      <h3 className="text-2xl font-black text-white mb-2">300% Total Return Cap</h3>
+      <h3 className="text-2xl font-black text-white mb-2">500% Total Return Cap</h3>
       <p className="text-sm text-gray-300 mb-6 leading-relaxed">
-        Networker/Affiliate accounts earn up to 300% (3 × Total Invested) in cumulative earnings across ROI distributions and referral level commissions. Once the 3X threshold is reached, simply reinvest or add new capital to continue earning.
+        Networker accounts (unlocked when you refer someone) earn up to 500% (5 × Total Invested) in cumulative earnings across ROI distributions and referral level commissions. Your earning potential increases from 3X to 5X when Networker access is unlocked.
       </p>
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
