@@ -64,4 +64,25 @@ const verified = async (req, res, next) => {
   }
 };
 
-module.exports = { protect, admin, verified };
+/**
+ * hasNetworkerAccess — helper (not middleware).
+ *
+ * Returns true if the user has been explicitly granted Networker section access
+ * by an admin. NEVER checks investment status, directCount, or any other field.
+ *
+ * Usage (future route guards, Phase 3):
+ *   const { hasNetworkerAccess } = require('../middleware/auth');
+ *   if (!hasNetworkerAccess(req.user)) return res.status(403).json(...)
+ *
+ * The 21-level commission engine (commissionService.distributeLevelCommissions)
+ * must NEVER call or import this helper — commission accrues regardless of
+ * Networker access status.
+ *
+ * @param {object} user - A populated User document or plain user object
+ * @returns {boolean}
+ */
+const hasNetworkerAccess = (user) => {
+  return Boolean(user && user.networkerAccessGranted === true);
+};
+
+module.exports = { protect, admin, verified, hasNetworkerAccess };

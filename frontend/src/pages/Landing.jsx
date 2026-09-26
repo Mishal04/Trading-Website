@@ -33,7 +33,6 @@ const ROI_PERIODS = [
     dates: 'Oct 01, 2026 – Dec 31, 2026',
     desc: 'Plan A',
     planNote: 'Applicable for the first 6 months',
-    phaseNote: 'This phase runs for 6 months from activation.',
     rates: [
       { pkg: '$100, $200, $300, $900',                    rate: '1.00% Daily' },
       { pkg: '$1,000, $2,000, $3,000, $5,000',           rate: '1.00% Daily' },

@@ -756,6 +756,82 @@ const manualCommissionAdjustment = async (req, res) => {
   }
 };
 
+// ─── PATCH /api/admin/users/:id/networker-access ─────────────────────────────
+
+/**
+ * Toggle the Networker section access flag for a user.
+ * ONLY an admin can call this — never automatic.
+ * The 21-level commission engine is completely unaffected by this flag.
+ *
+ * Body: { grant: boolean }  — true to grant, false to revoke.
+ * If body is omitted the flag is toggled from its current value.
+ */
+const toggleNetworkerAccess = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Explicit grant/revoke from body, or toggle if not provided
+    const newValue = req.body.grant !== undefined
+      ? Boolean(req.body.grant)
+      : !user.networkerAccessGranted;
+
+    user.networkerAccessGranted   = newValue;
+    user.networkerAccessGrantedAt = newValue ? new Date() : null;
+    user.networkerAccessGrantedBy = newValue ? req.user._id : null;
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: `Networker access ${newValue ? 'granted' : 'revoked'} for ${user.name}`,
+      data: {
+        userId:                   user._id,
+        name:                     user.name,
+        email:                    user.email,
+        networkerAccessGranted:   user.networkerAccessGranted,
+        networkerAccessGrantedAt: user.networkerAccessGrantedAt,
+        networkerAccessGrantedBy: user.networkerAccessGrantedBy
+      }
+    });
+  } catch (error) {
+    console.error('Admin toggle networker access error:', error);
+    return res.status(500).json({ success: false, message: 'Server error toggling networker access' });
+  }
+};
+
+/**
+ * PATCH /api/admin/users/:id/plan
+ * Set the investor plan tier (A or B) for a user.
+ * Mirrors the existing updateInvestorPlan endpoint from investorAdminController.
+ */
+const updateUserPlan = async (req, res) => {
+  try {
+    const { plan } = req.body;
+    if (!plan || !['A', 'B'].includes(plan)) {
+      return res.status(400).json({ success: false, message: 'Plan must be A or B' });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.plan = plan;
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: `User plan updated to ${plan}`,
+      data: { userId: user._id, name: user.name, plan: user.plan }
+    });
+  } catch (error) {
+    console.error('Admin update user plan error:', error);
+    return res.status(500).json({ success: false, message: 'Server error updating user plan' });
+  }
+};
+
 /**
  * PATCH /api/admin/users/:id/role
  * Update user role: 'investor' | 'working_leader'
@@ -863,4 +939,6 @@ module.exports = {
   creditRoi,
   checkAchievements,
   claimAchievements,
+  toggleNetworkerAccess,
+  updateUserPlan,
 };

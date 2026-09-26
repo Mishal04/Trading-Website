@@ -71,9 +71,10 @@ const userSchema = new mongoose.Schema({
     ref: 'User'
   }],
   wallet: {
-    capital: { type: Number, default: 0 },
-    profit: { type: Number, default: 0 },
-    commission: { type: Number, default: 0 }
+    capital:    { type: Number, default: 0 },
+    profit:     { type: Number, default: 0 },
+    commission: { type: Number, default: 0 },
+    roi:        { type: Number, default: 0 }   // Investor ROI balance (Phase 2: absorbed from Investor.wallet.roi)
   },
   lastLogin: Date,
   isActive: { type: Boolean, default: true },
@@ -97,6 +98,34 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['user', 'admin'],
     default: 'user'
+  },
+
+  // ── Phase 2 merge fields: Investor plan data absorbed into User ──────────
+  // Investor plan tier (A = first 6 months, B = next 6 months). Default 'A'.
+  // Set by admin; mirrors Investor.plan from the legacy Investor collection.
+  plan: {
+    type: String,
+    enum: ['A', 'B'],
+    default: 'A'
+  },
+  // Date from which the 6-month plan switch rule is measured.
+  // Set when the user's first investor investment is approved.
+  joinDate: { type: Date, default: null },
+  // Cumulative ROI earned on investor-style investments (3× cap tracking).
+  totalRoiEarned: { type: Number, default: 0 },
+
+  // ── Networker section access ─────────────────────────────────────────────
+  // NEVER toggled automatically — only set by admin via PATCH /api/admin/users/:id/networker-access.
+  // Controls UI/route visibility for the Networker dashboard section ONLY.
+  // The 21-level commission engine reads ancestorPath/isActive/totalInvested —
+  // it NEVER reads this field, so commission accrues regardless of this flag.
+  networkerAccessGranted: { type: Boolean, default: false },
+  // Audit trail for who granted/revoked access and when.
+  networkerAccessGrantedAt: { type: Date, default: null },
+  networkerAccessGrantedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   }
 }, { timestamps: true });
 

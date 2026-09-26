@@ -19,7 +19,9 @@ const {
   creditRoi,
   updateUserRole,
   checkAchievements,
-  claimAchievements
+  claimAchievements,
+  toggleNetworkerAccess,
+  updateUserPlan
 } = require('../controllers/adminController');
 
 // Validation for ROI credit
@@ -39,9 +41,11 @@ router.get('/stats',  getSystemStats);
 router.get('/pools',  getSystemPools);
 
 // ── Users ────────────────────────────────────────────────────────────────────
-router.get('/users',               getAllUsers);
-router.patch('/users/:id/toggle',  toggleUserActive);
-router.patch('/users/:id/role',    updateUserRole);
+router.get('/users',                           getAllUsers);
+router.patch('/users/:id/toggle',              toggleUserActive);
+router.patch('/users/:id/role',                updateUserRole);
+router.patch('/users/:id/networker-access',    toggleNetworkerAccess);
+router.patch('/users/:id/plan',                updateUserPlan);
 
 // ── Achievements ─────────────────────────────────────────────────────────────
 router.post('/achievements/check/:userId', checkAchievements);

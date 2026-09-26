@@ -49,7 +49,9 @@ const getDashboardStats = async (req, res) => {
           unlockedLevels,
           totalInvested: totalInvestments,
           totalEarned,
-          isVerified: user.isVerified
+          isVerified: user.isVerified,
+          plan: user.plan || 'A',
+          networkerAccessGranted: user.networkerAccessGranted || false
         },
         wallet: {
           capital: wallet.capital,
