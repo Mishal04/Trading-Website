@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Invest Form Debug Test</title>
+</head>
+<body>
+  <h1>Testing InvestTab Form Logic</h1>
+  
+  <div id="test-results"></div>
+
+  <script>
+    const results = [];
+    const log = (msg) => {
+      console.log(msg);
+      results.push(msg);
+      document.getElementById('test-results').innerHTML += `<p>${msg}</p>`;
+    };
+
+    // Simulate the form state
+    const formState = {
+      amount: '1000',
+      selectedTier: 2,
+      network: 'BEP20',
+      transactionId: '',
+      paymentProof: '',
+      paymentNote: '',
+      loading: false,
+    };
+
+    // Simulate package lookup
+    const PACKAGES = [
+      { id: 1, amounts: [100, 200, 300, 900] },
+      { id: 2, amounts: [1000, 2000, 3000, 5000] },
+      { id: 3, amounts: [6000, 7000, 8000, 9000] },
+      { id: 4, amounts: [10000, 15000, 20000, 25000] },
+    ];
+
+    const activePkg = PACKAGES.find(p => p.id === formState.selectedTier);
+    const numAmount = parseFloat(formState.amount) || 0;
+
+    log(`✓ Amount parsed: ${numAmount}`);
+    log(`✓ Active package: ${JSON.stringify(activePkg)}`);
+
+    // Test the disabled condition
+    const isButtonDisabled = formState.loading || numAmount < 100 || !formState.transactionId.trim();
+    log(`✓ Button disabled condition: loading=${formState.loading}, amount<100=${numAmount < 100}, noTransactionId=${!formState.transactionId.trim()}`);
+    log(`✓ INITIAL STATE - Button is DISABLED: ${isButtonDisabled}`);
+
+    // Simulate user filling in transaction ID
+    log('\n--- SIMULATING USER INPUT ---');
+    formState.transactionId = 'TXN123456789';
+    
+    const isButtonDisabledAfterInput = formState.loading || numAmount < 100 || !formState.transactionId.trim();
+    log(`✓ After entering transaction ID: "${formState.transactionId}"`);
+    log(`✓ Button is DISABLED: ${isButtonDisabledAfterInput}`);
+    log(`✓ Button should now be ENABLED: ${!isButtonDisabledAfterInput}`);
+
+    // Simulate form submission
+    log('\n--- SIMULATING FORM SUBMIT ---');
+    
+    // Check all validation conditions before submit
+    const validations = {
+      'numAmount >= 100': numAmount >= 100,
+      'transactionId filled': formState.transactionId.trim().length > 0,
+      'loading is false': !formState.loading,
+    };
+    
+    log(`✓ Validation checks before submit:`);
+    Object.entries(validations).forEach(([check, result]) => {
+      log(`  ${check}: ${result}`);
+    });
+
+    const canSubmit = Object.values(validations).every(v => v);
+    log(`✓ CAN SUBMIT: ${canSubmit}`);
+
+    // The issue might be that:
+    // 1. Button is disabled until transactionId is filled (EXPECTED)
+    // 2. But maybe there's no visual feedback to user that they need to fill it
+    // 3. Or maybe the click handler itself has an issue
+
+    log('\n--- CHECKING FOR POTENTIAL ISSUES ---');
+    
+    // Issue 1: Is there any error in the form validation logic?
+    log(`✓ Minimum amount validation: $100 minimum is ${numAmount >= 100 ? 'PASS' : 'FAIL'}`);
+    
+    // Issue 2: Could the API call be failing silently?
+    log(`✓ API endpoint would be called: POST /api/investments/plan`);
+    log(`✓ Payload: { amount: ${numAmount}, transactionId: "TXN123456789", ... }`);
+    
+    // Issue 3: Check if form's onSubmit handler is properly bound
+    log(`✓ Form has onSubmit handler: handleInvest function should be called`);
+    log(`✓ Event.preventDefault() should prevent page reload`);
+    
+    log('\n--- HYPOTHESIS ---');
+    log('MOST LIKELY: The button is disabled until Transaction ID is filled.');
+    log('User sees an unresponsive button and doesn\'t realize they need to fill the Transaction ID field.');
+    log('POSSIBLE FIX: Add clear visual indication that Transaction ID is required to enable button.');
+
+  </script>
+</body>
+</html>

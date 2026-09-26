@@ -161,20 +161,30 @@ export default function InvestTab({ onRefresh }) {
 
   const handleInvest = async (e) => {
     e.preventDefault();
+    console.log('handleInvest called', { transactionId, amount, network });
 
     if (numAmount < 100) {
+      console.warn('Validation failed: amount too low', numAmount);
       toast.error('Minimum investment amount is $100');
       return;
     }
     if (!transactionId.trim()) {
+      console.warn('Validation failed: no transaction ID');
       toast.error('Transaction ID / Reference Number is required');
       return;
     }
 
     const fullNote = [`[Network: ${network}]`, paymentNote.trim()].filter(Boolean).join(' ');
+    console.log('Payload to send:', {
+      amount: numAmount,
+      transactionId: transactionId.trim(),
+      paymentProof: paymentProof.trim(),
+      paymentNote: fullNote,
+    });
 
     try {
       setLoading(true);
+      console.log('Making API call to /investments/plan');
       // Phase 2 endpoint: uses /plan instead of /create
       const res = await investmentAPI.plan({
         amount:        numAmount,
@@ -182,6 +192,7 @@ export default function InvestTab({ onRefresh }) {
         paymentProof:  paymentProof.trim(),
         paymentNote:   fullNote,
       });
+      console.log('API response received:', res);
       toast.success(res.data.message || 'Investment submitted! Awaiting admin approval.');
       // Reset proof fields after submit
       setTransactionId('');
@@ -190,12 +201,20 @@ export default function InvestTab({ onRefresh }) {
       fetchInvestments();
       if (onRefresh) onRefresh();
     } catch (err) {
+      console.error('Investment submission failed:', {
+        status: err.response?.status,
+        message: err.response?.data?.message,
+        errors: err.response?.data?.errors,
+        fullError: err,
+      });
       const msg = err.response?.data?.errors?.[0]?.msg
         || err.response?.data?.message
+        || err.message
         || 'Failed to submit investment';
       toast.error(msg);
     } finally {
       setLoading(false);
+      console.log('handleInvest completed');
     }
   };
 
@@ -493,17 +512,37 @@ export default function InvestTab({ onRefresh }) {
           </div>
 
           {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading || numAmount < 100 || !transactionId.trim()}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 font-extrabold text-base hover:brightness-110 transition-all shadow-xl shadow-gold-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <><RefreshCw className="animate-spin" size={18} /> Submitting…</>
-            ) : (
-              <>Submit Investment (${numAmount.toLocaleString()}) — Pending Review</>
+          <div className="space-y-2">
+            <button
+              type="submit"
+              disabled={loading || numAmount < 100 || !transactionId.trim()}
+              onClick={(e) => {
+                console.log('Submit button clicked', {
+                  loading,
+                  numAmount,
+                  transactionId: transactionId.trim() ? '(filled)' : '(empty)',
+                  amountValid: numAmount >= 100,
+                  allValid: !(loading || numAmount < 100 || !transactionId.trim()),
+                });
+              }}
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 font-extrabold text-base hover:brightness-110 transition-all shadow-xl shadow-gold-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <><RefreshCw className="animate-spin" size={18} /> Submitting…</>
+              ) : (
+                <>Submit Investment (${numAmount.toLocaleString()}) — Pending Review</>
+              )}
+            </button>
+            {(numAmount < 100 || !transactionId.trim()) && (
+              <p className="text-xs text-amber-300 text-center">
+                {!transactionId.trim()
+                  ? '⚠ Fill in Transaction ID above to enable this button'
+                  : numAmount < 100
+                  ? '⚠ Minimum investment is $100'
+                  : ''}
+              </p>
             )}
-          </button>
+          </div>
         </form>
       </div>
 
