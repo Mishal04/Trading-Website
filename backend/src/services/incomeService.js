@@ -45,14 +45,17 @@ function getUnlockedLevels(directCount) {
 
 /**
  * Check if user can still earn ROI/level income (not exceeding cap).
+ * Cap is 3X for locked users, 5X for users with networkerAccessGranted.
  */
 function canEarnMore(user) {
-  const cap = user.getIncomeCap ? user.getIncomeCap() : user.totalInvested * (user.role === 'working_leader' ? constants.INCOME_CAPS.working_leader : constants.INCOME_CAPS.investor);
+  // Determine cap multiplier: 3X if no networker access, 5X if networker access granted
+  const capMultiplier = user.networkerAccessGranted ? 5 : 3;
+  const cap = user.totalInvested * capMultiplier;
   return user.totalEarned < cap;
 }
 
 /**
- * Credit ROI to investor, respecting income cap.
+ * Credit ROI to investor, respecting income cap (3X or 5X based on networkerAccessGranted).
  */
 async function creditRoiToInvestor(userId, investmentId, amount) {
   const user = await User.findById(userId);
@@ -60,7 +63,9 @@ async function creditRoiToInvestor(userId, investmentId, amount) {
   if (!canEarnMore(user)) {
     return { credited: 0, capped: true };
   }
-  const cap = user.getIncomeCap();
+  // Determine cap multiplier: 3X if no networker access, 5X if networker access granted
+  const capMultiplier = user.networkerAccessGranted ? 5 : 3;
+  const cap = user.totalInvested * capMultiplier;
   const remaining = cap - user.totalEarned;
   const credit = Math.min(amount, remaining);
 
@@ -85,13 +90,15 @@ async function creditRoiToInvestor(userId, investmentId, amount) {
 }
 
 /**
- * Credit level commission to upline, respecting income cap.
+ * Credit level commission to upline, respecting income cap (3X or 5X based on networkerAccessGranted).
  */
 async function creditCommissionToUpline(upline, sourceUser, levelIdx, ratePercent, levelAmount, baseAmount) {
   if (!canEarnMore(upline)) {
     return { credited: 0, capped: true };
   }
-  const cap = upline.getIncomeCap ? upline.getIncomeCap() : (upline.totalInvested || 0) * 5;
+  // Determine cap multiplier: 3X if no networker access, 5X if networker access granted
+  const capMultiplier = upline.networkerAccessGranted ? 5 : 3;
+  const cap = upline.totalInvested * capMultiplier;
   const remaining = Math.max(0, cap - (upline.totalEarned || 0));
   const credit = Number(Math.min(levelAmount, remaining).toFixed(4));
   if (credit <= 0) return { credited: 0, capped: true };

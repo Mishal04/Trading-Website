@@ -3,24 +3,18 @@ const Withdrawal = require('../models/Withdrawal');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
+const { isWithinDubaiWithdrawalWindow } = require('../config/cronJobs');
 
 /**
-  Check if current time is within allowed withdrawal window (10:30 PM - 12:00 AM)
+ * Check if current time is within allowed withdrawal window (Sat-Sun, 9 PM - 12 AM Dubai time)
+ * Dubai timezone: UTC+4 (no DST)
  */
 const isWithinWithdrawalWindow = () => {
   if (process.env.SKIP_WITHDRAWAL_TIME_CHECK === 'true') {
     return true;
   }
 
-  const now = new Date();
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-
-  // Allowed: 22:30 to 23:59
-  if (hours === 22 && minutes >= 30) return true;
-  if (hours === 23) return true;
-
-  return false;
+  return isWithinDubaiWithdrawalWindow();
 };
 
 /**
@@ -44,7 +38,7 @@ const requestWithdrawal = async (req, res) => {
     if (!isWithinWithdrawalWindow()) {
       return res.status(400).json({
         success: false,
-        message: 'Withdrawal requests are only allowed between 10:30 PM and 12:00 AM'
+        message: 'Withdrawal requests are only allowed on Saturday-Sunday, 9 PM to 12 AM (Dubai timezone)'
       });
     }
 

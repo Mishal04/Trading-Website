@@ -186,37 +186,58 @@ export default function OverviewTab({ stats, user, onRefresh }) {
         </div>
       </div>
 
-      {/* Referral Banner */}
-      <div className="rounded-2xl border border-gold-500/30 bg-gold-500/5 p-6 backdrop-blur-xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Users size={18} className="text-gold-400" /> Share Your Referral Link
-            </h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Earn 21-level team commissions when friends sign up and trade with your link.
-            </p>
-            <div className="text-xs text-gray-400 mt-1">
-              Code: <span className="text-gold-400 font-mono font-bold">{referralCode}</span>
+      {/* Referral Banner - Only show if user has active investments */}
+      {investments.activeCount > 0 ? (
+        <div className="rounded-2xl border border-gold-500/30 bg-gold-500/5 p-6 backdrop-blur-xl">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Users size={18} className="text-gold-400" /> Share Your Referral Link
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Earn 21-level team commissions when friends sign up and trade with your link.
+              </p>
+              <div className="text-xs text-gray-400 mt-1">
+                Code: <span className="text-gold-400 font-mono font-bold">{referralCode}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 max-w-lg w-full md:w-auto">
+              <input
+                readOnly
+                value={referralUrl}
+                className="flex-1 bg-dark-900/90 rounded-xl px-4 py-2.5 text-xs text-gold-400 border border-dark-500 font-mono focus:outline-none"
+              />
+              <button
+                onClick={copyReferral}
+                className="px-5 py-2.5 rounded-xl bg-gold-400 text-dark-900 font-bold text-xs flex items-center gap-1.5 hover:bg-gold-300 transition-colors shrink-0 shadow-md shadow-gold-500/10"
+              >
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? 'Copied' : 'Copy Link'}
+              </button>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 max-w-lg w-full md:w-auto">
-            <input
-              readOnly
-              value={referralUrl}
-              className="flex-1 bg-dark-900/90 rounded-xl px-4 py-2.5 text-xs text-gold-400 border border-dark-500 font-mono focus:outline-none"
-            />
-            <button
-              onClick={copyReferral}
-              className="px-5 py-2.5 rounded-xl bg-gold-400 text-dark-900 font-bold text-xs flex items-center gap-1.5 hover:bg-gold-300 transition-colors shrink-0 shadow-md shadow-gold-500/10"
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6 backdrop-blur-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Users size={18} className="text-amber-400" /> Unlock Referral Sharing
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Create your first active investment to unlock your referral link and start earning team commissions.
+              </p>
+            </div>
+            <Link
+              to="/dashboard/invest"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 font-bold text-xs flex items-center gap-2 hover:brightness-110 transition-all shadow-lg shadow-gold-500/20 shrink-0"
             >
-              {copied ? <Check size={16} /> : <Copy size={16} />}
-              {copied ? 'Copied' : 'Copy Link'}
-            </button>
+              <PiggyBank size={16} /> Create First Investment
+            </Link>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Portfolio & Quick Stats */}
       <div className="grid lg:grid-cols-3 gap-6">

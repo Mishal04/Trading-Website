@@ -297,11 +297,18 @@ const approveInvestment = async (req, res) => {
       }
     );
 
-    // 6. Notify investor
+    // 6. AUTO-UNLOCK: Grant Networker access when investment becomes active
+    await User.findByIdAndUpdate(investment.userId, {
+      networkerAccessGranted: true,
+      networkerAccessGrantedAt: new Date(),
+      networkerAccessGrantedBy: req.user._id
+    });
+
+    // 7. Notify investor
     await Notification.create({
       userId: investment.userId,
       title:   'Investment Approved ✓',
-      message: `Your investment of $${investment.amount} in ${investment.packageName} has been approved and is now active!`,
+      message: `Your investment of $${investment.amount} in ${investment.packageName} has been approved and is now active! Networker access unlocked.`,
       type:    'success'
     });
 
@@ -445,15 +452,22 @@ const approvePlanInvestment = async (req, res) => {
       }
     );
 
-    // 4. Notify investor
+    // 4. AUTO-UNLOCK: Grant Networker access when investment becomes active
+    await User.findByIdAndUpdate(investment.userId, {
+      networkerAccessGranted: true,
+      networkerAccessGrantedAt: new Date(),
+      networkerAccessGrantedBy: req.user._id
+    });
+
+    // 5. Notify investor
     await Notification.create({
       userId: investment.userId,
       title:   'Investment Approved ✓',
-      message: `Your Plan ${investment.plan} investment of $${investment.amount} has been approved and is now active!`,
+      message: `Your Plan ${investment.plan} investment of $${investment.amount} has been approved and is now active! Networker access unlocked.`,
       type:    'success'
     });
 
-    // 5. Credit 5% direct referral commission to referrer
+    // 6. Credit 5% direct referral commission to referrer
     const investor = await User.findById(investment.userId);
     if (investor && investor.referredBy) {
       const DIRECT_REFERRAL_COMMISSION_RATE = 0.05;
