@@ -30,7 +30,6 @@ import InstitutionalTradingSection from '../components/trading/InstitutionalTrad
 const ROI_PERIODS = [
   {
     name: 'Phase 1',
-    dates: 'Oct 01, 2026 – Dec 31, 2026',
     desc: 'Plan A',
     planNote: 'Applicable for the first 6 months',
     rates: [
@@ -43,7 +42,6 @@ const ROI_PERIODS = [
   },
   {
     name: 'Phase 2',
-    dates: 'Jan 01, 2027 Onwards',
     desc: 'Plan B',
     planNote: 'Applicable for the next 6 months',
     rates: [
@@ -55,7 +53,6 @@ const ROI_PERIODS = [
   },
   {
     name: 'Phase 3',
-    dates: 'Sep 01, 2027 Onwards',
     desc: 'Perpetual Yield Phase',
     rates: [
       { pkg: 'All Packages ($100+)', rate: '8%–10% Monthly' },
