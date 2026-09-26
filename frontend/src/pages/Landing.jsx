@@ -399,9 +399,9 @@ export default function Landing() {
           3X CAP
         </span>
       </div>
-      <h3 className="text-2xl font-black text-white mb-2">300% Total Return Cap</h3>
+      <h3 className="text-2xl font-black text-white mb-2">3X Total Return Cap</h3>
       <p className="text-sm text-gray-300 mb-6 leading-relaxed">
-        Investor accounts earn up to 300% (3 × Total Invested) in cumulative ROI and level commission earnings. Once you unlock the Networker section by referring someone, your cap increases to 500% (5X). Stay as an Investor with a 3X cap, or unlock Networker to earn up to 5X.
+        Investor accounts earn up to 3X their total invested amount in cumulative ROI and level commission earnings. Once you unlock the Networker section by referring someone, your cap increases to 5X. Stay as an Investor with a 3X cap, or unlock Networker to earn up to 5X.
       </p>
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
@@ -423,9 +423,9 @@ export default function Landing() {
           5X CAP
         </span>
       </div>
-      <h3 className="text-2xl font-black text-white mb-2">500% Total Return Cap</h3>
+      <h3 className="text-2xl font-black text-white mb-2">5X Total Return Cap</h3>
       <p className="text-sm text-gray-300 mb-6 leading-relaxed">
-        Networker accounts (unlocked when you refer someone) earn up to 500% (5 × Total Invested) in cumulative earnings across ROI distributions and referral level commissions. Your earning potential increases from 3X to 5X when Networker access is unlocked.
+        Networker accounts (unlocked when you refer someone) earn up to 5X their total invested amount in cumulative earnings across ROI distributions and referral level commissions. Your earning potential increases from 3X to 5X when Networker access is unlocked.
       </p>
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="p-4 rounded-xl bg-dark-900 border border-dark-600 text-xs text-gray-300">
