@@ -43,8 +43,13 @@ const INVESTOR_SWITCH_MONTHS = 6;     // months before switching to monthly mode
 
 /**
  * Returns package details: { packageNumber, dailyRate }.
- * Uses strict discrete-amount validation — amount must exactly match
- * one of the listed values in the package. No range-based checks.
+ * Supports both discrete preset amounts AND any custom amount within a tier's range.
+ * 
+ * Tier ranges:
+ *  Package 1: $100-$900
+ *  Package 2: $1,000-$5,000
+ *  Package 3: $6,000-$9,000
+ *  Package 4: $10,000-$25,000
  */
 function getInvestorPackageInfo(amount, plan) {
   const num = Number(amount);
@@ -52,11 +57,28 @@ function getInvestorPackageInfo(amount, plan) {
 
   let packageNumber = null;
 
-  // Strict discrete match — check every package for an exact match
+  // First: Check if amount is a preset (discrete match)
   for (const [pkgNum, amounts] of Object.entries(INVESTOR_PACKAGES)) {
     if (amounts.includes(num)) {
       packageNumber = Number(pkgNum);
       break;
+    }
+  }
+
+  // Second: If not a preset, check if it falls within any package's range
+  if (!packageNumber) {
+    const ranges = [
+      { pkg: 1, min: 100, max: 900 },
+      { pkg: 2, min: 1000, max: 5000 },
+      { pkg: 3, min: 6000, max: 9000 },
+      { pkg: 4, min: 10000, max: 25000 }
+    ];
+
+    for (const range of ranges) {
+      if (num >= range.min && num <= range.max) {
+        packageNumber = range.pkg;
+        break;
+      }
     }
   }
 

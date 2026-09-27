@@ -108,18 +108,33 @@ const StatusBadge = ({ status }) => (
 
 // ─── package lookup for selected amount ──────────────────────────────────────
 const getPackageForAmount = (val) => {
+  const numVal = parseFloat(val) || 0;
+  
+  // First: check if it's a preset amount
   for (const pkg of PACKAGES) {
-    if (pkg.amounts.includes(val)) {
+    if (pkg.amounts.includes(numVal)) {
       return { pkgId: pkg.id, label: pkg.label };
     }
   }
-  return { pkgId: 1, label: '$100 - $900' };
+  
+  // Second: check if it falls within a tier's range
+  for (const pkg of PACKAGES) {
+    const min = Math.min(...pkg.amounts);
+    const max = Math.max(...pkg.amounts);
+    if (numVal >= min && numVal <= max) {
+      return { pkgId: pkg.id, label: pkg.label };
+    }
+  }
+  
+  // Fallback
+  return { pkgId: 1, label: '$100 - $900', error: 'Amount outside valid ranges' };
 };
 
 // ─── main component ───────────────────────────────────────────────────────────
 export default function InvestTab({ onRefresh }) {
   const { user } = useAuth();  // Get current user including plan
   const [amount, setAmount]             = useState('1000');
+  const [amountError, setAmountError]   = useState('');
   const [selectedTier, setSelectedTier] = useState(2);
   const [network, setNetwork]           = useState('BEP20');
   const [copiedField, setCopiedField]   = useState(null);
@@ -133,6 +148,36 @@ export default function InvestTab({ onRefresh }) {
     setCopiedField(fieldKey);
     toast.success('Copied to clipboard!');
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleAmountChange = (val) => {
+    setAmount(val);
+    
+    // Validate the amount
+    const numVal = parseFloat(val) || 0;
+    if (val.trim() === '') {
+      setAmountError('');
+      return;
+    }
+
+    if (numVal < 100) {
+      setAmountError('Minimum investment is $100');
+      return;
+    }
+
+    // Check if amount is within any tier range
+    const pkgInfo = getPackageForAmount(numVal);
+    if (pkgInfo.error) {
+      setAmountError(`Amount $${numVal} is outside all valid ranges. Valid ranges: $100-$900, $1,000-$5,000, $6,000-$9,000, $10,000-$25,000`);
+      return;
+    }
+
+    // Auto-detect tier for this amount
+    if (pkgInfo.pkgId !== selectedTier) {
+      setSelectedTier(pkgInfo.pkgId);
+    }
+
+    setAmountError('');
   };
   const [myInvestments, setMyInvestments] = useState([]);
   const [fetching, setFetching]         = useState(true);
@@ -168,6 +213,15 @@ export default function InvestTab({ onRefresh }) {
       toast.error('Minimum investment amount is $100');
       return;
     }
+
+    // Check if amount is in valid range
+    const pkgInfo = getPackageForAmount(numAmount);
+    if (pkgInfo.error) {
+      console.warn('Validation failed: amount outside valid ranges', numAmount);
+      toast.error(pkgInfo.error);
+      return;
+    }
+
     if (!transactionId.trim()) {
       console.warn('Validation failed: no transaction ID');
       toast.error('Transaction ID / Reference Number is required');
@@ -302,22 +356,51 @@ export default function InvestTab({ onRefresh }) {
             </div>
           </div>
 
-          {/* Amount buttons for selected tier (row 2) */}
+          {/* Amount input with preset buttons */}
           <div>
             <label className="text-xs font-semibold text-gray-400 mb-2 block">
-              Select Amount — {activePkg ? activePkg.label : '$100 - $900'} (USD)
+              Amount — {activePkg ? activePkg.label : '$100 - $900'} (USD)
             </label>
+            
+            {/* Custom input field */}
+            <div className="mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-gray-300">$</span>
+                <input
+                  type="number"
+                  min="100"
+                  step="1"
+                  value={amount}
+                  onChange={(e) => handleAmountChange(e.target.value)}
+                  placeholder="Enter any amount (e.g. 500, 700)"
+                  className={`flex-1 bg-dark-700 text-white rounded-xl px-4 py-2.5 border text-sm font-semibold focus:outline-none transition-colors ${
+                    amountError
+                      ? 'border-red-500/50 focus:border-red-400'
+                      : 'border-dark-500 focus:border-gold-400'
+                  }`}
+                />
+              </div>
+              {amountError && (
+                <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                  <AlertTriangle size={12} />
+                  {amountError}
+                </p>
+              )}
+            </div>
+
+            {/* Quick preset buttons */}
             <div className="flex flex-wrap gap-2">
               {(activePkg ? activePkg.amounts : []).map((preset) => (
                 <button
                   key={preset}
                   type="button"
-                  onClick={() => setAmount(preset.toString())}
+                  onClick={() => handleAmountChange(preset.toString())}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
                     numAmount === preset
                       ? 'bg-gold-400 text-dark-900 border-gold-400 shadow-md'
                       : 'bg-dark-700 text-gray-300 border-dark-500 hover:border-gold-400/50'
                   }`}
+                  title={`Quick select $${preset.toLocaleString()}`}
                 >
                   ${preset.toLocaleString()}
                 </button>
@@ -515,14 +598,15 @@ export default function InvestTab({ onRefresh }) {
           <div className="space-y-2">
             <button
               type="submit"
-              disabled={loading || numAmount < 100 || !transactionId.trim()}
+              disabled={loading || numAmount < 100 || !transactionId.trim() || !!amountError}
               onClick={(e) => {
                 console.log('Submit button clicked', {
                   loading,
                   numAmount,
                   transactionId: transactionId.trim() ? '(filled)' : '(empty)',
                   amountValid: numAmount >= 100,
-                  allValid: !(loading || numAmount < 100 || !transactionId.trim()),
+                  amountError,
+                  allValid: !(loading || numAmount < 100 || !transactionId.trim() || amountError),
                 });
               }}
               className="w-full py-4 rounded-xl bg-gradient-to-r from-gold-500 to-gold-400 text-dark-900 font-extrabold text-base hover:brightness-110 transition-all shadow-xl shadow-gold-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -533,9 +617,11 @@ export default function InvestTab({ onRefresh }) {
                 <>Submit Investment (${numAmount.toLocaleString()}) — Pending Review</>
               )}
             </button>
-            {(numAmount < 100 || !transactionId.trim()) && (
+            {(numAmount < 100 || !transactionId.trim() || amountError) && (
               <p className="text-xs text-amber-300 text-center">
-                {!transactionId.trim()
+                {amountError
+                  ? `⚠ ${amountError}`
+                  : !transactionId.trim()
                   ? '⚠ Fill in Transaction ID above to enable this button'
                   : numAmount < 100
                   ? '⚠ Minimum investment is $100'
