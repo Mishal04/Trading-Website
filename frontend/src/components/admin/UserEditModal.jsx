@@ -17,6 +17,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
   const [loading, setLoading] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [transLoading, setTransLoading] = useState(false);
+  const [transError, setTransError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [latestCryptoAddress, setLatestCryptoAddress] = useState(null);
 
@@ -80,11 +81,16 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
   const fetchTransactions = async () => {
     if (!user?._id) return;
     setTransLoading(true);
+    setTransError(null);
     try {
       const res = await adminAPI.getUserTransactions(user._id, { limit: 100 });
-      setTransactions(res.data?.data?.transactions || []);
+      
+      // Defensive check: ensure we have an array
+      const txnArray = Array.isArray(res.data?.data?.transactions) ? res.data.data.transactions : [];
+      setTransactions(txnArray);
     } catch (err) {
-      toast.error('Failed to load transactions');
+      setTransError(err.response?.data?.message || 'Failed to load transactions');
+      setTransactions([]);
     } finally {
       setTransLoading(false);
     }
@@ -164,11 +170,14 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
           {tab === 'login' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Email</label>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-dark-700 border border-dark-600">
-                  <Mail size={16} className="text-gray-500" />
-                  <span className="text-white font-mono text-sm">{user.email}</span>
-                </div>
+                <label className="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Email (Editable)</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors"
+                />
+                <p className="text-xs text-gray-600 mt-1">Change email address if user entered it incorrectly at signup</p>
               </div>
 
               <div>
@@ -267,16 +276,6 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Email</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors"
-                />
-              </div>
-
-              <div>
                 <label className="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Phone Number</label>
                 <input
                   type="tel"
@@ -338,31 +337,48 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
           {/* Transactions Tab */}
           {tab === 'transactions' && (
             <div className="space-y-4">
+              {transError && (
+                <div className="p-3 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-sm">
+                  Error loading transactions: {transError}
+                </div>
+              )}
               {transLoading ? (
                 <div className="flex justify-center py-8">
                   <Loader size={20} className="animate-spin text-gold-400" />
                 </div>
-              ) : transactions.length === 0 ? (
+              ) : !Array.isArray(transactions) || transactions.length === 0 ? (
                 <p className="text-center text-gray-500 py-8">No transactions yet</p>
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {transactions.map((txn) => (
-                    <div key={txn._id} className="p-3 rounded-lg bg-dark-700 border border-dark-600 text-sm">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-white capitalize">{txn.type}</span>
-                        <span className={`font-semibold ${
-                          txn.amount >= 0 ? 'text-emerald-400' : 'text-red-400'
-                        }`}>
-                          {txn.amount >= 0 ? '+' : ''}{fmt(txn.amount)}
-                        </span>
+                  {transactions.map((txn) => {
+                    // Defensive: ensure txn has required fields
+                    if (!txn || typeof txn !== 'object') return null;
+                    
+                    const txnType = txn.type || 'unknown';
+                    const txnAmount = typeof txn.amount === 'number' ? txn.amount : 0;
+                    const txnStatus = txn.status || 'pending';
+                    const txnDescription = txn.description || 'Transaction';
+                    const txnDate = txn.createdAt || txn.date || new Date().toISOString();
+                    const txnId = txn._id || Math.random().toString();
+
+                    return (
+                      <div key={txnId} className="p-3 rounded-lg bg-dark-700 border border-dark-600 text-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-white capitalize">{txnType}</span>
+                          <span className={`font-semibold ${
+                            txnAmount >= 0 ? 'text-emerald-400' : 'text-red-400'
+                          }`}>
+                            {txnAmount >= 0 ? '+' : ''}{fmt(txnAmount)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-1">{txnDescription}</p>
+                        <div className="flex items-center justify-between text-xs text-gray-600">
+                          <span className="capitalize">{txnStatus}</span>
+                          <span>{fmtDate(txnDate)}</span>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500 mb-1">{txn.description}</p>
-                      <div className="flex items-center justify-between text-xs text-gray-600">
-                        <span className="capitalize">{txn.status}</span>
-                        <span>{fmtDate(txn.createdAt)}</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -377,7 +393,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
           >
             Cancel
           </button>
-          {tab === 'edit' && (
+          {(tab === 'edit' || tab === 'login') && (
             <button
               onClick={handleSave}
               disabled={loading}
