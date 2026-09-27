@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { adminAPI, withdrawalAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import TransactionErrorBoundary from './TransactionErrorBoundary';
 import {
   X, Save, Mail, Phone, Building2, Plus,
-  ArrowDownUp, Eye, EyeOff, Loader,
+  ArrowDownUp, Eye, EyeOff, Loader, AlertTriangle,
 } from 'lucide-react';
 
 const fmt = (n = 0) =>
@@ -336,52 +337,67 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
 
           {/* Transactions Tab */}
           {tab === 'transactions' && (
-            <div className="space-y-4">
-              {transError && (
-                <div className="p-3 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-sm">
-                  Error loading transactions: {transError}
-                </div>
-              )}
-              {transLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader size={20} className="animate-spin text-gold-400" />
-                </div>
-              ) : !Array.isArray(transactions) || transactions.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">No transactions yet</p>
-              ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {transactions.map((txn) => {
-                    // Defensive: ensure txn has required fields
-                    if (!txn || typeof txn !== 'object') return null;
-                    
-                    const txnType = txn.type || 'unknown';
-                    const txnAmount = typeof txn.amount === 'number' ? txn.amount : 0;
-                    const txnStatus = txn.status || 'pending';
-                    const txnDescription = txn.description || 'Transaction';
-                    const txnDate = txn.createdAt || txn.date || new Date().toISOString();
-                    const txnId = txn._id || Math.random().toString();
+            <TransactionErrorBoundary>
+              <div className="space-y-4">
+                {transError && (
+                  <div className="p-3 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-sm flex items-start gap-2">
+                    <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                    <span>Error loading transactions: {transError}</span>
+                  </div>
+                )}
+                {transLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader size={20} className="animate-spin text-gold-400" />
+                  </div>
+                ) : !Array.isArray(transactions) || transactions.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">No transactions yet</p>
+                ) : (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {transactions.map((txn, idx) => {
+                      // Defensive: ensure txn has required fields
+                      if (!txn || typeof txn !== 'object') {
+                        console.warn('Invalid transaction object at index', idx, txn);
+                        return null;
+                      }
+                      
+                      try {
+                        const txnType = txn.type || 'unknown';
+                        const txnAmount = typeof txn.amount === 'number' ? txn.amount : 0;
+                        const txnStatus = txn.status || 'pending';
+                        const txnDescription = txn.description || 'Transaction';
+                        const txnDate = txn.createdAt || txn.date || new Date().toISOString();
+                        const txnId = txn._id || `txn-${idx}`;
 
-                    return (
-                      <div key={txnId} className="p-3 rounded-lg bg-dark-700 border border-dark-600 text-sm">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold text-white capitalize">{txnType}</span>
-                          <span className={`font-semibold ${
-                            txnAmount >= 0 ? 'text-emerald-400' : 'text-red-400'
-                          }`}>
-                            {txnAmount >= 0 ? '+' : ''}{fmt(txnAmount)}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 mb-1">{txnDescription}</p>
-                        <div className="flex items-center justify-between text-xs text-gray-600">
-                          <span className="capitalize">{txnStatus}</span>
-                          <span>{fmtDate(txnDate)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                        return (
+                          <div key={txnId} className="p-3 rounded-lg bg-dark-700 border border-dark-600 text-sm">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-semibold text-white capitalize">{txnType}</span>
+                              <span className={`font-semibold ${
+                                txnAmount >= 0 ? 'text-emerald-400' : 'text-red-400'
+                              }`}>
+                                {txnAmount >= 0 ? '+' : ''}{fmt(txnAmount)}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 mb-1">{txnDescription}</p>
+                            <div className="flex items-center justify-between text-xs text-gray-600">
+                              <span className="capitalize">{txnStatus}</span>
+                              <span>{fmtDate(txnDate)}</span>
+                            </div>
+                          </div>
+                        );
+                      } catch (err) {
+                        console.error('Error rendering transaction:', err, txn);
+                        return (
+                          <div key={`txn-error-${idx}`} className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                            Failed to render transaction (index: {idx})
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
+              </div>
+            </TransactionErrorBoundary>
           )}
         </div>
 
