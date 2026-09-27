@@ -5,12 +5,12 @@ const {
   getCommissionsByLevel,
   getCommissionSummary
 } = require('../controllers/commissionController');
-const { protect, networkerAccess } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 router.use(protect); // Protect all commission routes
 
-router.get('/my', networkerAccess, getMyCommissions);
-router.get('/summary', networkerAccess, getCommissionSummary);
-router.get('/level/:level', networkerAccess, getCommissionsByLevel);
+router.get('/my', getMyCommissions);
+router.get('/summary', getCommissionSummary);
+router.get('/level/:level', getCommissionsByLevel);
 
 module.exports = router;
