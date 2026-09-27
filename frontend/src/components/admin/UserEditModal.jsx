@@ -7,11 +7,30 @@ import {
   ArrowDownUp, Eye, EyeOff, Loader, AlertTriangle,
 } from 'lucide-react';
 
-const fmt = (n = 0) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
+const fmt = (n = 0) => {
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
+  } catch (err) {
+    return `$${Number(n).toFixed(2)}`;
+  }
+};
 
-const fmtDate = (d) =>
-  d ? new Date(d).toLocaleDateString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+const fmtDate = (d) => {
+  if (!d) return '—';
+  try {
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return '—';
+    
+    // Use more compatible date formatting
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (err) {
+    return '—';
+  }
+};
 
 export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
   const [tab, setTab] = useState('login'); // login, payment, edit, transactions
@@ -368,6 +387,10 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                         const txnDate = txn.createdAt || txn.date || new Date().toISOString();
                         const txnId = txn._id || `txn-${idx}`;
 
+                        // Test formatting functions
+                        const formattedAmount = fmt(txnAmount);
+                        const formattedDate = fmtDate(txnDate);
+
                         return (
                           <div key={txnId} className="p-3 rounded-lg bg-dark-700 border border-dark-600 text-sm">
                             <div className="flex items-center justify-between mb-1">
@@ -375,21 +398,38 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                               <span className={`font-semibold ${
                                 txnAmount >= 0 ? 'text-emerald-400' : 'text-red-400'
                               }`}>
-                                {txnAmount >= 0 ? '+' : ''}{fmt(txnAmount)}
+                                {txnAmount >= 0 ? '+' : ''}{formattedAmount}
                               </span>
                             </div>
                             <p className="text-xs text-gray-500 mb-1">{txnDescription}</p>
                             <div className="flex items-center justify-between text-xs text-gray-600">
                               <span className="capitalize">{txnStatus}</span>
-                              <span>{fmtDate(txnDate)}</span>
+                              <span>{formattedDate}</span>
                             </div>
                           </div>
                         );
                       } catch (err) {
-                        console.error('Error rendering transaction:', err, txn);
+                        console.error('❌ Error rendering transaction at index', idx);
+                        console.error('  Transaction object:', txn);
+                        console.error('  Error type:', err.name);
+                        console.error('  Error message:', err.message);
+                        console.error('  Error stack:', err.stack);
+                        
+                        // Also try to show which field caused the issue
+                        try {
+                          console.error('  txn.type:', txn.type, 'type:', typeof txn.type);
+                          console.error('  txn.amount:', txn.amount, 'type:', typeof txn.amount);
+                          console.error('  txn.status:', txn.status, 'type:', typeof txn.status);
+                          console.error('  txn.description:', txn.description, 'type:', typeof txn.description);
+                          console.error('  txn.createdAt:', txn.createdAt, 'type:', typeof txn.createdAt);
+                          console.error('  txn.date:', txn.date, 'type:', typeof txn.date);
+                          console.error('  txn._id:', txn._id, 'type:', typeof txn._id);
+                        } catch (e) {}
+                        
                         return (
                           <div key={`txn-error-${idx}`} className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
-                            Failed to render transaction (index: {idx})
+                            <div className="font-semibold mb-1">Failed to render transaction {idx}</div>
+                            <div className="text-red-400/80">{err.name}: {err.message}</div>
                           </div>
                         );
                       }
