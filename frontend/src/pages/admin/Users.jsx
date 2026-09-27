@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { adminAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import UserEditModal from '../../components/admin/UserEditModal';
 import {
   Users as UsersIcon, Search, RefreshCw, AlertCircle,
   ChevronLeft, ChevronRight, CheckCircle2, XCircle,
-  ChevronDown, ChevronUp, Wallet, Lock, Unlock,
+  ChevronDown, ChevronUp, Wallet, Lock, Unlock, Edit2,
 } from 'lucide-react';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -81,6 +82,8 @@ export default function Users() {
   const [error, setError]             = useState('');
   const [actionLoading, setActionLoading] = useState('');
   const [expandedId, setExpandedId]   = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const [search, setSearch]   = useState('');
   const [page, setPage]       = useState(1);
@@ -137,6 +140,15 @@ export default function Users() {
     } finally {
       setActionLoading('');
     }
+  };
+
+  const handleOpenEditModal = (user) => {
+    setEditingUser(user);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSaved = () => {
+    fetchData();
   };
 
   return (
@@ -273,6 +285,15 @@ export default function Users() {
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2">
                           <button
+                            onClick={() => handleOpenEditModal(u)}
+                            disabled={isActioning || isNetworkerActioning}
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border bg-blue-500/15 border-blue-500/30 text-blue-400 hover:bg-blue-500/25 transition-colors disabled:opacity-50"
+                            title="Edit user details"
+                          >
+                            <Edit2 size={12} className="inline mr-1" />
+                            Edit
+                          </button>
+                          <button
                             onClick={() => handleToggle(u)}
                             disabled={isActioning || isNetworkerActioning}
                             className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors disabled:opacity-50 ${
@@ -331,6 +352,17 @@ export default function Users() {
           </div>
         )}
       </div>
+
+      {/* Edit User Modal */}
+      <UserEditModal
+        user={editingUser}
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingUser(null);
+        }}
+        onSaved={handleEditSaved}
+      />
     </div>
   );
 }

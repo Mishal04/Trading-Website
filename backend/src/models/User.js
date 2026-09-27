@@ -126,6 +126,19 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     default: null
+  },
+
+  // ── User profile & payment details ───────────────────────────────────────
+  phoneNumber: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  bankDetails: {
+    accountName: { type: String, default: null },
+    accountNumber: { type: String, default: null },
+    bankName: { type: String, default: null },
+    ifscCode: { type: String, default: null }
   }
 }, { timestamps: true });
 

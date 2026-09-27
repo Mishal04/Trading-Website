@@ -45,9 +45,12 @@ const getSystemStats = async (req, res) => {
     const [
       totalUsers,
       activeUsers,
-      totalInvestments,
-      activeInvestmentsCount,
-      pendingInvestmentsCount,
+      totalInvestmentsOld,
+      totalInvestmentsNew,
+      activeInvestmentsOld,
+      activeInvestmentsNew,
+      pendingInvestmentsOld,
+      pendingInvestmentsNew,
       pendingWithdrawalsCount,
       investmentSum,
       profitSum,
@@ -57,8 +60,11 @@ const getSystemStats = async (req, res) => {
       User.countDocuments(),
       User.countDocuments({ totalInvested: { $gt: 0 } }),
       Investment.countDocuments(),
+      InvestorInvestment.countDocuments(),
       Investment.countDocuments({ status: 'active' }),
+      InvestorInvestment.countDocuments({ status: 'active' }),
       Investment.countDocuments({ status: 'pending' }),
+      InvestorInvestment.countDocuments({ status: 'pending' }),
       Withdrawal.countDocuments({ status: 'pending' }),
       Investment.aggregate([
         { $match: { status: 'active' } },
@@ -75,12 +81,16 @@ const getSystemStats = async (req, res) => {
       SystemPool.getSingleton()
     ]);
 
+    const totalInvestmentsCount = totalInvestmentsOld + totalInvestmentsNew;
+    const activeInvestmentsCount = activeInvestmentsOld + activeInvestmentsNew;
+    const pendingInvestmentsCount = pendingInvestmentsOld + pendingInvestmentsNew;
+
     return res.json({
       success: true,
       data: {
         totalUsers,
         activeUsers,
-        totalInvestments,
+        totalInvestments: totalInvestmentsCount,
         activeInvestmentsCount,
         pendingInvestmentsCount,
         totalInvestmentVolume: investmentSum[0]?.total ?? 0,
@@ -1139,6 +1149,133 @@ const creditUserRoi = async (req, res) => {
   }
 };
 
+/**
+ * PATCH /api/admin/users/:id
+ * Update user profile: name, email, phoneNumber, bankDetails
+ * Validates email uniqueness
+ */
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phoneNumber, bankDetails } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Validate and update name if provided
+    if (name !== undefined && name !== null) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ success: false, message: 'Name must be a non-empty string' });
+      }
+      user.name = name.trim();
+    }
+
+    // Validate and update email if provided
+    if (email !== undefined && email !== null) {
+      const trimmedEmail = email.toLowerCase().trim();
+      
+      // Check email format
+      const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+      if (!emailRegex.test(trimmedEmail)) {
+        return res.status(400).json({ success: false, message: 'Invalid email format' });
+      }
+
+      // Check if email is already in use by another user
+      if (user.email !== trimmedEmail) {
+        const existingUser = await User.findOne({ email: trimmedEmail });
+        if (existingUser) {
+          return res.status(409).json({ success: false, message: 'Email already in use' });
+        }
+      }
+
+      user.email = trimmedEmail;
+    }
+
+    // Update phone number if provided
+    if (phoneNumber !== undefined) {
+      user.phoneNumber = phoneNumber ? phoneNumber.trim() : null;
+    }
+
+    // Update bank details if provided
+    if (bankDetails !== undefined && bankDetails !== null) {
+      if (typeof bankDetails !== 'object' || Array.isArray(bankDetails)) {
+        return res.status(400).json({ success: false, message: 'Bank details must be an object' });
+      }
+      
+      user.bankDetails = {
+        accountName: bankDetails.accountName ? bankDetails.accountName.trim() : null,
+        accountNumber: bankDetails.accountNumber ? bankDetails.accountNumber.trim() : null,
+        bankName: bankDetails.bankName ? bankDetails.bankName.trim() : null,
+        ifscCode: bankDetails.ifscCode ? bankDetails.ifscCode.toUpperCase().trim() : null
+      };
+    }
+
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'User profile updated successfully',
+      data: {
+        userId: user._id,
+        name: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        bankDetails: user.bankDetails
+      }
+    });
+  } catch (error) {
+    console.error('Admin update user error:', error);
+    return res.status(500).json({ success: false, message: 'Server error updating user' });
+  }
+};
+
+/**
+ * GET /api/admin/users/:id/transactions
+ * Fetch user's transaction history (deposits + withdrawals + ROI, etc.)
+ * Ordered by date descending (newest first)
+ */
+const getUserTransactions = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { limit = 50, skip = 0 } = req.query;
+
+    // Verify user exists
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const transactions = await Transaction.find({ userId: id })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip(parseInt(skip))
+      .lean();
+
+    const total = await Transaction.countDocuments({ userId: id });
+
+    return res.json({
+      success: true,
+      message: 'User transactions retrieved',
+      data: {
+        userId: id,
+        userName: user.name,
+        transactions,
+        pagination: {
+          total,
+          limit: parseInt(limit),
+          skip: parseInt(skip),
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Admin get user transactions error:', error);
+    return res.status(500).json({ success: false, message: 'Server error fetching transactions' });
+  }
+};
+
 module.exports = {
   getSystemStats,
   getSystemPools,
@@ -1161,5 +1298,7 @@ module.exports = {
   claimAchievements,
   toggleNetworkerAccess,
   updateUserPlan,
-  creditUserRoi
+  creditUserRoi,
+  updateUser,
+  getUserTransactions
 };
