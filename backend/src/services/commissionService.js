@@ -83,68 +83,157 @@ const check6040Qualification = (strongTeam, otherTeam, targetVolume) => {
 };
 
 /**
-  Distribute 21-level commissions when profit is generated
-  Fix: Checks that upline user is active (isActive: true) and has an active investment (totalInvestment > 0)
+  Ensure upline has current unlockedLevels based on directCount
+  
+  This prevents stale unlockedLevels from being used during commission checks.
+  Recalculates from scratch based on current LEVEL_UNLOCK_RULES.
+  
+  @param {Object} upline - User document with directCount field
+  @returns {number} Current unlocked levels
  */
-const distributeLevelCommissions = async (investment, dailyProfitAmount, investor) => {
+const getCurrentUnlockedLevels = (upline) => {
+  const rules = constants.LEVEL_UNLOCK_RULES;
+  const direct = upline.directCount || 0;
+  
+  if (direct >= 10) {
+    return 21;
+  } else if (direct > 0) {
+    return rules[direct] || 0;
+  } else {
+    return 0;
+  }
+};
+
+/**
+  UNIFIED 21-Level Commission Distribution
+  
+  This function is the SINGLE SOURCE OF TRUTH for all 21-level commission distribution.
+  It replaces the duplicate logic in profitService PASS 1 and PASS 2.
+  
+  Handles:
+  - Level unlock checking (unlockedLevels must be >= level)
+  - Active upline validation (isActive + totalInvested > 0)
+  - Income cap enforcement
+  - Commission calculation and logging
+  - Debug logging for verification
+  
+  @param {Object} investment - Investment or InvestorInvestment document
+  @param {number} baseAmount - Daily profit/ROI amount to distribute from
+  @param {Object} investor - User document with ancestorPath
+  @param {string} investmentType - 'Investment' or 'InvestorInvestment' for logging
+  @param {boolean} enforceUnlockedLevels - true for Phase 2 (InvestorInvestment), false for Phase 1 (Investment)
+ */
+const distributeLevelCommissionsWithChecks = async (investment, baseAmount, investor, investmentType = 'Investment', enforceUnlockedLevels = true) => {
   if (!investor.ancestorPath || investor.ancestorPath.length === 0) {
-    return;
+    return; // No ancestors, no commissions
   }
 
   for (let i = 0; i < investor.ancestorPath.length && i < LEVEL_RATES.length; i++) {
     const ancestorId = investor.ancestorPath[i];
     const level = i + 1;
     const ratePercent = LEVEL_RATES[i] || 0;
-    const commissionAmount = Number(((dailyProfitAmount * ratePercent) / 100).toFixed(4));
 
+    if (ratePercent <= 0) continue;
+
+    const commissionAmount = Number(((baseAmount * ratePercent) / 100).toFixed(4));
     if (commissionAmount <= 0) continue;
 
-    // Requirement 3 Fix: Check if upline is active and has totalInvestment > 0
-    const ancestor = await User.findById(ancestorId);
-    if (!ancestor || !ancestor.isActive || (ancestor.totalInvested || 0) <= 0) {
-      continue; // Skip inactive or non-investor upline
-    }
-
-    // Credit ancestor commission wallet
-    await User.findByIdAndUpdate(ancestorId, {
-      $inc: {
-        'wallet.commission': commissionAmount,
-        [`commissions.levelCommissions.${i}`]: commissionAmount
+    try {
+      // Fetch upline with all necessary fields
+      const upline = await User.findById(ancestorId).select('name email isActive totalInvested directCount unlockedLevels role totalEarned');
+      
+      if (!upline) {
+        console.log(`[COMMISSION DEBUG] L${level} | Upline not found (${ancestorId})`);
+        continue;
       }
-    });
 
-    // Log commission
-    await CommissionLog.create({
-      recipientId: ancestorId,
-      sourceUserId: investor._id,
-      investmentId: investment._id,
-      level,
-      commissionType: 'level',
-      rate: ratePercent,
-      baseAmount: dailyProfitAmount,
-      commissionAmount,
-      description: `Level ${level} commission (${ratePercent}%) from ${investor.name}`
-    });
+      if (!upline.isActive) {
+        console.log(`[COMMISSION DEBUG] L${level} | Upline ${upline.name} inactive`);
+        continue;
+      }
 
-    // Create transaction
-    await Transaction.create({
-      userId: ancestorId,
-      type: 'commission',
-      amount: commissionAmount,
-      status: 'completed',
-      description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s investment profit`,
-      referenceId: investment._id,
-      referenceModel: 'Investment'
-    });
+      if ((upline.totalInvested || 0) <= 0) {
+        console.log(`[COMMISSION DEBUG] L${level} | Upline ${upline.name} no investment`);
+        continue;
+      }
 
-    // Create notification
-    await Notification.create({
-      userId: ancestorId,
-      title: 'Commission Received',
-      message: `You earned $${commissionAmount} in Level ${level} commission from your team!`,
-      type: 'commission'
-    });
+      // ENFORCE LEVEL UNLOCK REQUIREMENT (Phase 2 behavior)
+      // For Phase 1 (Investment), this check can be skipped for backwards compatibility
+      // Always recalculate unlockedLevels fresh to avoid stale data
+      if (enforceUnlockedLevels) {
+        const currentUnlocked = getCurrentUnlockedLevels(upline);
+        if (currentUnlocked < level) {
+          console.log(`[COMMISSION DEBUG] L${level} | Upline ${upline.name} locked (currentUnlocked=${currentUnlocked} < level=${level}, directCount=${upline.directCount})`);
+          continue;
+        }
+      }
+
+      // Check income cap for upline if they have reached it
+      if (upline.hasReachedIncomeCap && upline.hasReachedIncomeCap()) {
+        console.log(`[COMMISSION DEBUG] L${level} | Upline ${upline.name} income cap reached (earned=${upline.totalEarned})`);
+        continue;
+      }
+
+      // Credit upline commission wallet
+      await User.findByIdAndUpdate(ancestorId, {
+        $inc: {
+          'wallet.commission': commissionAmount,
+          [`commissions.levelCommissions.${i}`]: commissionAmount,
+          totalEarned: commissionAmount
+        }
+      });
+
+      // Log commission record
+      await CommissionLog.create({
+        recipientId: ancestorId,
+        sourceUserId: investor._id,
+        investmentId: investment._id,
+        level,
+        commissionType: 'level',
+        rate: ratePercent,
+        baseAmount,
+        commissionAmount,
+        description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s ${investmentType} daily earnings`
+      });
+
+      // Create transaction record
+      await Transaction.create({
+        userId: ancestorId,
+        type: 'commission',
+        amount: commissionAmount,
+        status: 'completed',
+        description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s ${investmentType} daily earnings`,
+        referenceId: investment._id,
+        referenceModel: investmentType
+      });
+
+      // Create user notification
+      await Notification.create({
+        userId: ancestorId,
+        title: 'Commission Received',
+        message: `You earned $${commissionAmount.toFixed(2)} in Level ${level} commission from your downline!`,
+        type: 'commission'
+      });
+
+      // Debug logging for verification
+      const currentUnlocked = getCurrentUnlockedLevels(upline);
+      console.log(`[COMMISSION DEBUG] L${level} | Rate=${ratePercent}% | Base=$${baseAmount.toFixed(4)} | Commission=$${commissionAmount.toFixed(4)} | Upline: ${upline.name} | DirectCount: ${upline.directCount} | UnlockedLevels: ${currentUnlocked}`);
+
+    } catch (err) {
+      console.error(`Error distributing L${level} commission for ${investmentType} ${investment._id}:`, err);
+    }
   }
+};
+
+/**
+  Distribute 21-level commissions when profit is generated
+  Fix: Checks that upline user is active (isActive: true) and has an active investment (totalInvestment > 0)
+  LEGACY: Used only for PASS 1 (Investment) records. For Phase 2, use distributeLevelCommissionsWithChecks()
+ */
+const distributeLevelCommissions = async (investment, dailyProfitAmount, investor) => {
+  // DELEGATE TO UNIFIED FUNCTION with enforceUnlockedLevels=false for legacy Investment records
+  // This maintains backward compatibility while consolidating logic
+  return distributeLevelCommissionsWithChecks(investment, dailyProfitAmount, investor, 'Investment', false);
 };
 
 /**
@@ -311,7 +400,9 @@ module.exports = {
   PERFORMANCE_TIERS,
   getInvestmentPackage,
   check6040Qualification,
+  getCurrentUnlockedLevels,
   distributeLevelCommissions,
+  distributeLevelCommissionsWithChecks,
   distributeLeadershipSalary,
   distributePerformanceReward
 };

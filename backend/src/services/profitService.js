@@ -329,89 +329,26 @@ const calculateDailyProfits = async () => {
           type: 'profit'
         });
 
-        // ── DISTRIBUTE 21-LEVEL COMMISSIONS (NEW: adapted from PASS 1 logic) ────────
-        // Apply LEVEL_RATES as percentage of DAILY ROI (not investment amount)
-        // Keep LEVEL_UNLOCK_RULES and cap checks
+        // ── DISTRIBUTE 21-LEVEL COMMISSIONS via unified service ────────────────────
+        // Uses central commission distribution to avoid duplication
+        // Applies LEVEL_RATES as percentage of DAILY ROI (not investment amount)
+        // Respects income cap rules and level unlock requirements
         // SKIP LEVEL COMMISSIONS ON SATURDAY/SUNDAY (but ROI credits daily)
         const dubaiTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
         const isDubaiWeekend = dubaiTime.getDay() === 0 || dubaiTime.getDay() === 6;
         
         if (!isDubaiWeekend && investor.ancestorPath && investor.ancestorPath.length > 0) {
-          const constants = require('../../config/constants');
-          const LEVEL_RATES = constants.LEVEL_RATES;
-          const LEVEL_UNLOCK_RULES = constants.LEVEL_UNLOCK_RULES;
-          const User = require('../models/User');
-          const CommissionLog = require('../models/CommissionLog');
-          const Transaction = require('../models/Transaction');
-          const Notification = require('../models/Notification');
-
-          for (let i = 0; i < investor.ancestorPath.length && i < LEVEL_RATES.length; i++) {
-            try {
-              const ancestorId = investor.ancestorPath[i];
-              const level = i + 1;
-              const ratePercent = LEVEL_RATES[i] || 0;
-
-              // Check if upline has unlocked this level
-              const uplineUser = await User.findById(ancestorId).select('unlockedLevels directCount isActive totalInvested name email');
-              if (!uplineUser || !uplineUser.isActive || (uplineUser.totalInvested || 0) <= 0) {
-                continue; // Skip inactive or non-investor upline
-              }
-
-              // Check if level is unlocked based on unlockedLevels field
-              // unlockedLevels is computed from directCount via LEVEL_UNLOCK_RULES
-              if ((uplineUser.unlockedLevels || 0) < level) {
-                continue; // Level not unlocked
-              }
-
-              // Calculate commission as percentage of DAILY ROI
-              const commissionAmount = Number(((dailyRoiAmount * ratePercent) / 100).toFixed(4));
-              if (commissionAmount <= 0) continue;
-
-              // [COMMISSION DEBUG] Log tree traversal and commission decision
-              console.log(`[COMMISSION DEBUG] L${level}: Upline ${uplineUser.name} unlocked=${uplineUser.unlockedLevels} directs=${uplineUser.directCount} → Rate=${ratePercent}% Amount=$${commissionAmount}`);
-
-              // Credit ancestor commission wallet
-              await User.findByIdAndUpdate(ancestorId, {
-                $inc: {
-                  'wallet.commission': commissionAmount,
-                  [`commissions.levelCommissions.${i}`]: commissionAmount
-                }
-              });
-
-              // Log commission
-              await CommissionLog.create({
-                recipientId: ancestorId,
-                sourceUserId: investor._id,
-                investmentId: investment._id,
-                level,
-                commissionType: 'level',
-                rate: ratePercent,
-                baseAmount: dailyRoiAmount,
-                commissionAmount,
-                description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s Plan ${investment.plan} ROI`
-              });
-
-              // Create transaction
-              await Transaction.create({
-                userId: ancestorId,
-                type: 'commission',
-                amount: commissionAmount,
-                status: 'completed',
-                description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s Plan ${investment.plan} daily ROI`,
-                referenceId: investment._id,
-                referenceModel: 'InvestorInvestment'
-              });
-
-              // Create notification
-              await Notification.create({
-                userId: ancestorId,
-                title: 'Commission Received',
-                message: `You earned $${commissionAmount} in Level ${level} commission from your downline!`,
-                type: 'commission'
-              });
-            } catch (comErr) {
-              console.error(`Error distributing L${i + 1} commission for investment ${investment._id}:`, comErr);
-            }
+          try {
+            // Call unified commission distribution service
+            // This service handles: level unlock checks, income caps, commission logging
+            await commissionService.distributeLevelCommissionsWithChecks(
+              investment,
+              dailyRoiAmount,
+              investor,
+              'InvestorInvestment'
+            );
+          } catch (comErr) {
+            console.error(`Error distributing 21-level commissions for InvestorInvestment ${investment._id}:`, comErr);
           }
         }
 

@@ -480,7 +480,6 @@ const approvePlanInvestment = async (req, res) => {
     // 6. Credit 5% direct referral commission to referrer
     const investor = await User.findById(investment.userId);
     if (investor && investor.referredBy) {
-      const DIRECT_REFERRAL_COMMISSION_RATE = 0.05;
       const directCommission = Number(
         (investment.amount * DIRECT_REFERRAL_COMMISSION_RATE).toFixed(4)
       );
