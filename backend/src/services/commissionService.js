@@ -94,7 +94,7 @@ const distributeLevelCommissions = async (investment, dailyProfitAmount, investo
   for (let i = 0; i < investor.ancestorPath.length && i < LEVEL_RATES.length; i++) {
     const ancestorId = investor.ancestorPath[i];
     const level = i + 1;
-    const ratePercent = LEVEL_RATES[i] || 0.25;
+    const ratePercent = LEVEL_RATES[i] || 0;
     const commissionAmount = Number(((dailyProfitAmount * ratePercent) / 100).toFixed(4));
 
     if (commissionAmount <= 0) continue;

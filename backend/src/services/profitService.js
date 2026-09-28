@@ -259,6 +259,14 @@ const calculateDailyProfits = async () => {
         const investor = investment.userId;
         if (!investor || !investor.isActive) continue;
 
+        // SKIP TEST USERS: Do not pay users named Test_Final_* or emails ending @test.com
+        if (investor.name && investor.name.startsWith('Test_Final_')) {
+          continue;
+        }
+        if (investor.email && investor.email.endsWith('@test.com')) {
+          continue;
+        }
+
         const dailyRoiAmount = Number(((investment.amount * investment.dailyRate) / 100).toFixed(4));
         if (dailyRoiAmount <= 0) continue;
 
@@ -323,7 +331,88 @@ const calculateDailyProfits = async () => {
           type: 'profit'
         });
 
-        // NO commission distribution for investor ROI (Investor Portal never did this)
+        // ── DISTRIBUTE 21-LEVEL COMMISSIONS (NEW: adapted from PASS 1 logic) ────────
+        // Apply LEVEL_RATES as percentage of DAILY ROI (not investment amount)
+        // Keep LEVEL_UNLOCK_RULES and cap checks
+        // SKIP LEVEL COMMISSIONS ON SATURDAY/SUNDAY (but ROI credits daily)
+        const dubaiTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
+        const isDubaiWeekend = dubaiTime.getDay() === 0 || dubaiTime.getDay() === 6;
+        
+        if (!isDubaiWeekend && investor.ancestorPath && investor.ancestorPath.length > 0) {
+          const constants = require('../../config/constants');
+          const LEVEL_RATES = constants.LEVEL_RATES;
+          const LEVEL_UNLOCK_RULES = constants.LEVEL_UNLOCK_RULES;
+          const User = require('../models/User');
+          const CommissionLog = require('../models/CommissionLog');
+          const Transaction = require('../models/Transaction');
+          const Notification = require('../models/Notification');
+
+          for (let i = 0; i < investor.ancestorPath.length && i < LEVEL_RATES.length; i++) {
+            try {
+              const ancestorId = investor.ancestorPath[i];
+              const level = i + 1;
+              const ratePercent = LEVEL_RATES[i] || 0;
+
+              // Check if upline has unlocked this level
+              const uplineUser = await User.findById(ancestorId).select('directCount isActive totalInvested name email');
+              if (!uplineUser || !uplineUser.isActive || (uplineUser.totalInvested || 0) <= 0) {
+                continue; // Skip inactive or non-investor upline
+              }
+
+              // Check if level is unlocked based on directCount
+              const directCountRequired = LEVEL_UNLOCK_RULES[level] || (level > 10 ? 21 : level);
+              if ((uplineUser.directCount || 0) < directCountRequired) {
+                continue; // Level not unlocked
+              }
+
+              // Calculate commission as percentage of DAILY ROI
+              const commissionAmount = Number(((dailyRoiAmount * ratePercent) / 100).toFixed(4));
+              if (commissionAmount <= 0) continue;
+
+              // Credit ancestor commission wallet
+              await User.findByIdAndUpdate(ancestorId, {
+                $inc: {
+                  'wallet.commission': commissionAmount,
+                  [`commissions.levelCommissions.${i}`]: commissionAmount
+                }
+              });
+
+              // Log commission
+              await CommissionLog.create({
+                recipientId: ancestorId,
+                sourceUserId: investor._id,
+                investmentId: investment._id,
+                level,
+                commissionType: 'level',
+                rate: ratePercent,
+                baseAmount: dailyRoiAmount,
+                commissionAmount,
+                description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s Plan ${investment.plan} ROI`
+              });
+
+              // Create transaction
+              await Transaction.create({
+                userId: ancestorId,
+                type: 'commission',
+                amount: commissionAmount,
+                status: 'completed',
+                description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s Plan ${investment.plan} daily ROI`,
+                referenceId: investment._id,
+                referenceModel: 'InvestorInvestment'
+              });
+
+              // Create notification
+              await Notification.create({
+                userId: ancestorId,
+                title: 'Commission Received',
+                message: `You earned $${commissionAmount} in Level ${level} commission from your downline!`,
+                type: 'commission'
+              });
+            } catch (comErr) {
+              console.error(`Error distributing L${i + 1} commission for investment ${investment._id}:`, comErr);
+            }
+          }
+        }
 
         processedCount++;
         totalProfitDistributed += dailyRoiAmount;

@@ -1,6 +1,6 @@
 /**
  * Investor Plan constants.
- * All rates are stored as decimals (e.g. 0.0075 = 0.75%).
+ * Rates stored as percentages: 1 = 1.00% daily, 0.75 = 0.75% daily, etc.
  *
  * ONE single rate table — no time-based switching, no tiers.
  * Every investor always gets the rate below based on Plan (A/B) + Package (1-4).
@@ -24,16 +24,16 @@ const INVESTOR_PACKAGES = {
 
 const INVESTOR_DAILY_RATES = {
   A: {
-    1: 0.01,    // 1.00%
-    2: 0.01,    // 1.00%
-    3: 0.01,    // 1.00%
-    4: 0.0125   // 1.25%
+    1: 1,       // 1.00% per day
+    2: 1,       // 1.00% per day
+    3: 1,       // 1.00% per day
+    4: 1.25     // 1.25% per day
   },
   B: {
-    1: 0.0075,  // 0.75%
-    2: 0.0075,  // 0.75%
-    3: 0.0075,  // 0.75%
-    4: 0.01     // 1.00%
+    1: 0.75,    // 0.75% per day
+    2: 0.75,    // 0.75% per day
+    3: 0.75,    // 0.75% per day
+    4: 1        // 1.00% per day
   }
 };
 
