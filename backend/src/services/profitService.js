@@ -250,14 +250,13 @@ const calculateDailyProfits = async () => {
     const investorInvestments = await InvestorInvestment.find({
       userId: { $ne: null },  // CRITICAL: Must have userId set (Phase 2 records)
       status: 'active',
-      isActive: true,
       lastRoiDate: { $lt: startOfToday }
     }).populate('userId');
 
     for (const investment of investorInvestments) {
       try {
         const investor = investment.userId;
-        if (!investor || !investor.isActive) continue;
+        if (!investor) continue;
 
         // SKIP TEST USERS: Do not pay users named Test_Final_* or emails ending @test.com
         if (investor.name && investor.name.startsWith('Test_Final_')) {
@@ -279,7 +278,6 @@ const calculateDailyProfits = async () => {
             _id: investment._id,
             userId: investor._id,
             status: 'active',
-            isActive: true,
             capReached: false,
             lastRoiDate: { $lt: startOfToday }
           },
@@ -315,7 +313,7 @@ const calculateDailyProfits = async () => {
         // Record ROI transaction
         await Transaction.create({
           userId: investor._id,
-          type: 'roi',
+          type: 'profit',
           amount: dailyRoiAmount,
           status: 'completed',
           description: `Daily ROI (${(investment.dailyRate * 100).toFixed(4)}%) from Plan ${investment.plan} investment $${investment.amount}${investmentCapReached ? ' (cap reached)' : ''}`,

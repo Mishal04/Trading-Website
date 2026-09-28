@@ -1117,7 +1117,7 @@ const creditUserRoi = async (req, res) => {
     // Create audit transaction
     await Transaction.create({
       userId,
-      type: 'roi',
+      type: 'profit',
       amount: credited,
       status: 'completed',
       description: `Admin ROI credit of $${credited.toFixed(4)} for investment $${investment.amount}${investment.capReached ? ' (cap reached)' : ''}`,
