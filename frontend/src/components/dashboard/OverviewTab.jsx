@@ -35,7 +35,7 @@ export default function OverviewTab({ stats, user, onRefresh }) {
   const capRemaining = stats?.incomeCap?.remaining ?? Math.max(0, capAmount - totalEarned);
   const isCapReached = capAmount > 0 && totalEarned >= capAmount;
 
-  const directCount = stats?.user?.directCount ?? stats?.team?.directCount ?? user?.directCount ?? 0;
+  const directCount = stats?.directCount ?? stats?.user?.directCount ?? stats?.team?.directCount ?? user?.directCount ?? 0;
   const unlockedLevels = stats?.user?.unlockedLevels ?? stats?.team?.unlockedLevels ?? user?.unlockedLevels ?? 0;
 
   const copyReferral = () => {
