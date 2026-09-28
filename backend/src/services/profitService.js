@@ -352,20 +352,23 @@ const calculateDailyProfits = async () => {
               const ratePercent = LEVEL_RATES[i] || 0;
 
               // Check if upline has unlocked this level
-              const uplineUser = await User.findById(ancestorId).select('directCount isActive totalInvested name email');
+              const uplineUser = await User.findById(ancestorId).select('unlockedLevels directCount isActive totalInvested name email');
               if (!uplineUser || !uplineUser.isActive || (uplineUser.totalInvested || 0) <= 0) {
                 continue; // Skip inactive or non-investor upline
               }
 
-              // Check if level is unlocked based on directCount
-              const directCountRequired = LEVEL_UNLOCK_RULES[level] || (level > 10 ? 21 : level);
-              if ((uplineUser.directCount || 0) < directCountRequired) {
+              // Check if level is unlocked based on unlockedLevels field
+              // unlockedLevels is computed from directCount via LEVEL_UNLOCK_RULES
+              if ((uplineUser.unlockedLevels || 0) < level) {
                 continue; // Level not unlocked
               }
 
               // Calculate commission as percentage of DAILY ROI
               const commissionAmount = Number(((dailyRoiAmount * ratePercent) / 100).toFixed(4));
               if (commissionAmount <= 0) continue;
+
+              // [COMMISSION DEBUG] Log tree traversal and commission decision
+              console.log(`[COMMISSION DEBUG] L${level}: Upline ${uplineUser.name} unlocked=${uplineUser.unlockedLevels} directs=${uplineUser.directCount} → Rate=${ratePercent}% Amount=$${commissionAmount}`);
 
               // Credit ancestor commission wallet
               await User.findByIdAndUpdate(ancestorId, {
