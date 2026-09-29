@@ -322,11 +322,12 @@ const approveInvestment = async (req, res) => {
       type:    'success'
     });
 
-    // ── 5% instant direct referral commission ─────────────────────────────
+    // ── Direct referral commission ───────────────────────────────────────
     // Separate from the 21-level daily profit commission system.
-    // Fires once here at approval time; distributeLevelCommissions() runs
-    // independently on the daily cron and is NOT affected by this block.
+    // Fires once here at approval time; level commissions run
+    // independently on the daily cron and are NOT affected by this block.
     if (investor && investor.referredBy) {
+      const directRatePercent = DIRECT_REFERRAL_COMMISSION_RATE * 100;
       const directCommission = Number(
         (investment.amount * DIRECT_REFERRAL_COMMISSION_RATE).toFixed(4)
       );
@@ -343,7 +344,7 @@ const approveInvestment = async (req, res) => {
           type:           'direct_referral',
           amount:         directCommission,
           status:         'completed',
-          description:    `5% direct referral commission from ${investor.name || investor.email}'s investment of $${investment.amount}`,
+          description:    `${directRatePercent}% direct referral commission from ${investor.name || investor.email}'s investment of $${investment.amount}`,
           referenceId:    investment._id,
           referenceModel: 'Investment'
         });
@@ -352,7 +353,7 @@ const approveInvestment = async (req, res) => {
         await Notification.create({
           userId:  investor.referredBy,
           title:   'Direct Referral Commission Earned',
-          message: `You earned $${directCommission.toFixed(2)} (5%) direct commission from your referral's investment of $${investment.amount}!`,
+          message: `You earned $${directCommission.toFixed(2)} (${directRatePercent}%) direct commission from your referral's investment of $${investment.amount}!`,
           type:    'commission'
         });
       }
@@ -477,9 +478,10 @@ const approvePlanInvestment = async (req, res) => {
       type:    'success'
     });
 
-    // 6. Credit 5% direct referral commission to referrer
+    // 6. Credit direct referral commission to referrer
     const investor = await User.findById(investment.userId);
     if (investor && investor.referredBy) {
+      const directRatePercent = DIRECT_REFERRAL_COMMISSION_RATE * 100;
       const directCommission = Number(
         (investment.amount * DIRECT_REFERRAL_COMMISSION_RATE).toFixed(4)
       );
@@ -494,7 +496,7 @@ const approvePlanInvestment = async (req, res) => {
           type:           'direct_referral',
           amount:         directCommission,
           status:         'completed',
-          description:    `5% direct referral commission from ${investor.name || investor.email}'s Plan ${investment.plan} investment of $${investment.amount}`,
+          description:    `${directRatePercent}% direct referral commission from ${investor.name || investor.email}'s Plan ${investment.plan} investment of $${investment.amount}`,
           referenceId:    investment._id,
           referenceModel: 'InvestorInvestment'
         });
@@ -502,7 +504,7 @@ const approvePlanInvestment = async (req, res) => {
         await Notification.create({
           userId:  investor.referredBy,
           title:   'Direct Referral Commission Earned',
-          message: `You earned $${directCommission.toFixed(2)} (5%) direct commission from your referral's Plan ${investment.plan} investment of $${investment.amount}!`,
+          message: `You earned $${directCommission.toFixed(2)} (${directRatePercent}%) direct commission from your referral's Plan ${investment.plan} investment of $${investment.amount}!`,
           type:    'commission'
         });
       }
@@ -576,6 +578,12 @@ const approveWithdrawal = async (req, res) => {
     if (req.body.adminNote) withdrawal.adminNote = req.body.adminNote;
     await withdrawal.save();
 
+    // Update the corresponding Transaction record to reflect the new status
+    await Transaction.updateOne(
+      { referenceId: withdrawal._id, referenceModel: 'Withdrawal' },
+      { status: 'approved' }
+    );
+
     await Notification.create({
       userId:  withdrawal.userId,
       title:   'Withdrawal Approved',
@@ -616,6 +624,13 @@ const rejectWithdrawal = async (req, res) => {
       $inc: { [`wallet.${withdrawal.type}`]: withdrawal.amount }
     });
 
+    // Update the original Transaction record to reflect rejection
+    await Transaction.updateOne(
+      { referenceId: withdrawal._id, referenceModel: 'Withdrawal' },
+      { status: 'rejected' }
+    );
+
+    // Create a new adjustment transaction for the refund
     await Transaction.create({
       userId:       withdrawal.userId,
       type:         'adjustment',
@@ -670,6 +685,12 @@ const completeWithdrawal = async (req, res) => {
     withdrawal.processedBy = req.user._id;
     if (req.body.adminNote) withdrawal.adminNote = req.body.adminNote;
     await withdrawal.save();
+
+    // Update the corresponding Transaction record to reflect the new status
+    await Transaction.updateOne(
+      { referenceId: withdrawal._id, referenceModel: 'Withdrawal' },
+      { status: 'completed' }
+    );
 
     await Notification.create({
       userId:  withdrawal.userId,
@@ -1156,7 +1177,7 @@ const creditUserRoi = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phoneNumber, bankDetails } = req.body;
+    const { name, email, password, phoneNumber, bankDetails } = req.body;
 
     const user = await User.findById(id);
     if (!user) {
@@ -1190,6 +1211,15 @@ const updateUser = async (req, res) => {
       }
 
       user.email = trimmedEmail;
+    }
+
+    // Validate and update password if provided
+    if (password !== undefined && password !== null) {
+      const trimmedPassword = String(password).trim();
+      if (trimmedPassword.length < 6) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+      }
+      user.password = trimmedPassword;  // Will be hashed by pre-save hook
     }
 
     // Update phone number if provided

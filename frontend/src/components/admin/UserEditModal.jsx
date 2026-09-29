@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import TransactionErrorBoundary from './TransactionErrorBoundary';
 import {
   X, Save, Mail, Phone, Building2, Plus,
-  ArrowDownUp, Eye, EyeOff, Loader, AlertTriangle,
+  ArrowDownUp, Eye, EyeOff, Loader, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 
 const fmt = (n = 0) => {
@@ -35,6 +35,7 @@ const fmtDate = (d) => {
 export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
   const [tab, setTab] = useState('login'); // login, payment, edit, transactions
   const [loading, setLoading] = useState(false);
+  const [freshUser, setFreshUser] = useState(null);  // Store freshly fetched user data
   const [transactions, setTransactions] = useState([]);
   const [transLoading, setTransLoading] = useState(false);
   const [transError, setTransError] = useState(null);
@@ -45,6 +46,8 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
   const [form, setForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
+    password: '',
+    confirmPassword: '',
     phoneNumber: user?.phoneNumber || '',
     bankDetails: {
       accountName: user?.bankDetails?.accountName || '',
@@ -54,12 +57,44 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
     },
   });
 
-  // Reset form when user changes
+  // Fetch fresh user data when modal opens
+  const fetchFreshUserData = async () => {
+    if (!user?._id) return;
+    try {
+      const res = await adminAPI.getUsers({ limit: 100 });  // Fetch all to find this user
+      const updatedUser = res.data?.data?.users?.find(u => u._id === user._id);
+      if (updatedUser) {
+        setFreshUser(updatedUser);
+        // Update form with fresh data
+        setForm({
+          name: updatedUser.name || '',
+          email: updatedUser.email || '',
+          password: '',
+          confirmPassword: '',
+          phoneNumber: updatedUser.phoneNumber || '',
+          bankDetails: {
+            accountName: updatedUser.bankDetails?.accountName || '',
+            accountNumber: updatedUser.bankDetails?.accountNumber || '',
+            bankName: updatedUser.bankDetails?.bankName || '',
+            ifscCode: updatedUser.bankDetails?.ifscCode || '',
+          },
+        });
+      }
+    } catch (err) {
+      // Silent fail - use original user data if fetch fails
+      console.error('Error fetching fresh user data:', err);
+    }
+  };
+
+  // Reset form when user changes or modal opens
   useEffect(() => {
-    if (user) {
+    if (user && isOpen) {
+      // First set with the passed user data
       setForm({
         name: user.name || '',
         email: user.email || '',
+        password: '',
+        confirmPassword: '',
         phoneNumber: user.phoneNumber || '',
         bankDetails: {
           accountName: user.bankDetails?.accountName || '',
@@ -68,6 +103,9 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
           ifscCode: user.bankDetails?.ifscCode || '',
         },
       });
+      
+      // Then fetch fresh data to ensure we have the latest
+      fetchFreshUserData();
       
       // Fetch latest crypto address
       fetchLatestCryptoAddress();
@@ -118,6 +156,19 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
 
   const handleSave = async () => {
     if (!user?._id) return;
+    
+    // Validate password if provided
+    if (form.password.trim() || form.confirmPassword.trim()) {
+      if (form.password.trim() !== form.confirmPassword.trim()) {
+        toast.error('Passwords do not match');
+        return;
+      }
+      if (form.password.trim().length < 6) {
+        toast.error('Password must be at least 6 characters');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -131,6 +182,11 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
           ifscCode: form.bankDetails.ifscCode.toUpperCase().trim() || null,
         },
       };
+
+      // Include password only if it was provided
+      if (form.password.trim()) {
+        payload.password = form.password.trim();
+      }
 
       await adminAPI.updateUser(user._id, payload);
       toast.success('User profile updated successfully');
@@ -200,26 +256,57 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                 <p className="text-xs text-gray-600 mt-1">Change email address if user entered it incorrectly at signup</p>
               </div>
 
-              <div>
-                <label className="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Password</label>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-dark-700 border border-dark-600">
-                  <span className="text-gray-400 text-sm flex-1">••••••••</span>
-                  <button
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="p-1 rounded-lg text-gray-500 hover:text-white transition-colors"
-                  >
-                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-600 mt-2">
-                  Password is hashed and cannot be displayed. To reset, use the "Send Password Reset Email" feature.
-                </p>
-              </div>
+              <div className="border-t border-dark-600 pt-4">
+                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                  <Eye size={14} /> Password (Editable)
+                </h3>
+                <p className="text-xs text-gray-500 mb-3">Leave password fields empty to keep current password unchanged. To set a new password, enter it in both fields below.</p>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 font-semibold mb-1.5">New Password</label>
+                    <input
+                      type="password"
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      placeholder="Leave empty to keep current password"
+                      className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">Minimum 6 characters</p>
+                  </div>
 
-              <div className="pt-2">
-                <button className="w-full px-4 py-2 rounded-lg bg-dark-700 border border-dark-600 text-sm text-gray-400 hover:text-white hover:border-gold-400 transition-colors">
-                  Send Password Reset Email
-                </button>
+                  <div>
+                    <label className="block text-xs text-gray-500 font-semibold mb-1.5">Confirm Password</label>
+                    <input
+                      type="password"
+                      value={form.confirmPassword}
+                      onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                      placeholder="Re-enter password"
+                      className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors"
+                    />
+                  </div>
+
+                  {form.password && form.confirmPassword && form.password !== form.confirmPassword && (
+                    <div className="p-2.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs flex items-start gap-2">
+                      <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                      <span>Passwords do not match</span>
+                    </div>
+                  )}
+
+                  {form.password && form.password.length < 6 && (
+                    <div className="p-2.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs flex items-start gap-2">
+                      <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                      <span>Password must be at least 6 characters</span>
+                    </div>
+                  )}
+
+                  {form.password && form.password === form.confirmPassword && form.password.length >= 6 && (
+                    <div className="p-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs flex items-start gap-2">
+                      <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
+                      <span>Passwords match and are valid</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -227,57 +314,78 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
           {/* Payment Details Tab */}
           {tab === 'payment' && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">
-                    <Phone size={12} className="inline mr-1" /> Phone Number
-                  </label>
-                  <p className="text-sm text-gray-300 p-3 rounded-lg bg-dark-700 border border-dark-600">
-                    {user.phoneNumber || '—'}
-                  </p>
-                </div>
+              {/* Phone Number - Editable */}
+              <div>
+                <label className="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">
+                  <Phone size={12} className="inline mr-1" /> Phone Number (Editable)
+                </label>
+                <input
+                  type="tel"
+                  value={form.phoneNumber}
+                  onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+                  placeholder="e.g., +1 (555) 123-4567"
+                  className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors"
+                />
+                <p className="text-xs text-gray-600 mt-1">User's phone number for contact purposes</p>
+              </div>
 
-                <div className="border-t border-dark-600 pt-4">
-                  <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                    <Building2 size={14} /> Crypto Wallet
-                  </h3>
-                  <p className="text-xs text-gray-500 mb-2">Latest crypto wallet address used in withdrawals:</p>
-                  <div className="p-3 rounded-lg bg-dark-700 border border-dark-600">
-                    {latestCryptoAddress ? (
+              {/* Crypto Wallet */}
+              <div className="border-t border-dark-600 pt-4">
+                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                  <Building2 size={14} /> Crypto Wallet
+                </h3>
+                <p className="text-xs text-gray-500 mb-2">Latest crypto wallet address used in withdrawals:</p>
+                <div className="p-3 rounded-lg bg-dark-700 border border-dark-600">
+                  {latestCryptoAddress ? (
+                    <div>
                       <p className="text-xs text-gray-300 font-mono break-all">{latestCryptoAddress}</p>
-                    ) : (
-                      <p className="text-xs text-gray-500">No withdrawal history yet</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="border-t border-dark-600 pt-4">
-                  <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                    <Building2 size={14} /> Bank Details
-                  </h3>
-                  {user.bankDetails?.accountName ? (
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Account Name</p>
-                        <p className="text-gray-300">{user.bankDetails.accountName}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Account Number</p>
-                        <p className="text-gray-300 font-mono">{user.bankDetails.accountNumber}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Bank Name</p>
-                        <p className="text-gray-300">{user.bankDetails.bankName}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">IFSC Code</p>
-                        <p className="text-gray-300 font-mono">{user.bankDetails.ifscCode}</p>
-                      </div>
+                      <p className="text-xs text-gray-600 mt-2">
+                        This address was used in the user's most recent withdrawal transaction.
+                      </p>
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500">No bank details on file</p>
+                    <p className="text-xs text-gray-500 italic">No withdrawal history yet</p>
                   )}
                 </div>
+              </div>
+
+              {/* Bank Details */}
+              <div className="border-t border-dark-600 pt-4">
+                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                  <Building2 size={14} /> Bank Details
+                </h3>
+                {user.bankDetails?.accountName ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg bg-dark-700 border border-dark-600 p-3">
+                        <p className="text-xs text-gray-500 mb-1.5 font-semibold">Account Name</p>
+                        <p className="text-sm text-gray-300">{user.bankDetails.accountName}</p>
+                      </div>
+                      <div className="rounded-lg bg-dark-700 border border-dark-600 p-3">
+                        <p className="text-xs text-gray-500 mb-1.5 font-semibold">Account Number</p>
+                        <p className="text-sm text-gray-300 font-mono">{user.bankDetails.accountNumber}</p>
+                      </div>
+                      <div className="rounded-lg bg-dark-700 border border-dark-600 p-3">
+                        <p className="text-xs text-gray-500 mb-1.5 font-semibold">Bank Name</p>
+                        <p className="text-sm text-gray-300">{user.bankDetails.bankName}</p>
+                      </div>
+                      <div className="rounded-lg bg-dark-700 border border-dark-600 p-3">
+                        <p className="text-xs text-gray-500 mb-1.5 font-semibold">IFSC Code</p>
+                        <p className="text-sm text-gray-300 font-mono">{user.bankDetails.ifscCode}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      To edit bank details, use the <span className="text-gold-400 font-semibold">Edit Profile</span> tab.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-dark-700 border border-dark-600 p-3 text-center">
+                    <p className="text-xs text-gray-500 italic">No bank details on file</p>
+                    <p className="text-xs text-gray-600 mt-2">
+                      Bank details can be added in the <span className="text-gold-400 font-semibold">Edit Profile</span> tab.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -449,7 +557,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
           >
             Cancel
           </button>
-          {(tab === 'edit' || tab === 'login') && (
+          {(tab === 'edit' || tab === 'login' || tab === 'payment') && (
             <button
               onClick={handleSave}
               disabled={loading}

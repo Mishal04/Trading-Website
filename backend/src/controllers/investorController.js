@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const Investor = require('../models/Investor');
 const User = require('../models/User');
 const InvestorInvestment = require('../models/InvestorInvestment');
@@ -8,6 +9,12 @@ const {
   INVESTOR_MONTHLY_RATE,
   INVESTOR_SWITCH_MONTHS
 } = require('../../config/investorConstants');
+const {
+  generateVerificationToken
+} = require('../utils/authUtils');
+const {
+  sendVerificationEmail
+} = require('../services/emailService');
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -32,6 +39,15 @@ const safeInvestor = (inv) => ({
   createdAt:    inv.createdAt
 });
 
+/**
+ * SHA-256 hash a raw token before storing it in the database.
+ * The raw token travels in the email link; the DB only holds the hash.
+ * On lookup: hash the incoming token and compare — same as bcrypt for passwords
+ * but faster because these tokens are already high-entropy random values.
+ */
+const hashToken = (rawToken) =>
+  crypto.createHash('sha256').update(rawToken).digest('hex');
+
 // ─── POST /api/investors/auth/register ───────────────────────────────────────
 
 const registerInvestor = async (req, res) => {
@@ -50,6 +66,13 @@ const registerInvestor = async (req, res) => {
       return res.status(400).json({ success: false, message: 'An investor account already exists with this email' });
     }
 
+    // Also check if email exists in User collection
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'An account already exists with this email' });
+    }
+
+    // Create Investor account
     const investor = await Investor.create({
       name: name.trim(),
       email: email.toLowerCase().trim(),
@@ -57,6 +80,23 @@ const registerInvestor = async (req, res) => {
       phone: phone || '',
       plan: 'A'  // default plan; admin can change it later
     });
+
+    // Also create User account for admin panel visibility
+    const user = new User({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password,
+      phoneNumber: phone ? phone.trim() : null,
+      accountType: 'user',
+      role: 'investor'
+    });
+
+    // Generate verification token
+    const rawVerificationToken = generateVerificationToken();
+    user.verificationToken = hashToken(rawVerificationToken);
+    user.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+    await user.save();
 
     const token = generateInvestorToken(investor._id);
 
