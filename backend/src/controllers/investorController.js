@@ -230,10 +230,26 @@ const getInvestorDashboard = async (req, res) => {
   try {
     const investor = req.investor;
 
-    const investments = await InvestorInvestment.find({
+    // Fetch investments from BOTH Phase 1 (investorId) and Phase 2 (userId)
+    // Phase 1: Legacy Investor-based records
+    const phase1Investments = await InvestorInvestment.find({
       investorId: investor._id,
       status: { $in: ['active', 'pending', 'completed'] }
     }).sort({ createdAt: -1 });
+
+    // Phase 2: New User-based records (if investor also has a User account)
+    let phase2Investments = [];
+    if (investor.userId) {
+      phase2Investments = await InvestorInvestment.find({
+        userId: investor.userId,
+        status: { $in: ['active', 'pending', 'completed'] }
+      }).sort({ createdAt: -1 });
+    }
+
+    // Combine all investments
+    const investments = [...phase1Investments, ...phase2Investments].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
 
     // Determine 6-month switch status
     let sixMonthsReached = false;
@@ -246,14 +262,32 @@ const getInvestorDashboard = async (req, res) => {
     const activeInvestments = investments.filter(i => i.status === 'active');
     const pendingInvestments = investments.filter(i => i.status === 'pending');
 
+    // Get wallet data from User model if available (Phase 2), otherwise from Investor model
+    let walletData = investor.wallet;
+    if (investor.userId) {
+      const user = await User.findById(investor.userId).select('wallet');
+      if (user) {
+        walletData = user.wallet;
+      }
+    }
+
+    // Get totalRoiEarned from User model if available (Phase 2), otherwise from Investor model
+    let totalRoiEarned = investor.totalRoiEarned || 0;
+    if (investor.userId) {
+      const user = await User.findById(investor.userId).select('totalRoiEarned');
+      if (user && user.totalRoiEarned) {
+        totalRoiEarned = user.totalRoiEarned;
+      }
+    }
+
     return res.json({
       success: true,
       data: {
         investor: safeInvestor(investor),
-        wallet: investor.wallet,
+        wallet: walletData,  // Now includes wallet.roi if user has Phase 2 investments
         stats: {
           totalInvested: investor.totalInvested,
-          totalRoiEarned: investor.totalRoiEarned,
+          totalRoiEarned,  // Now pulling from User model for Phase 2
           activeCount: activeInvestments.length,
           pendingCount: pendingInvestments.length
         },
