@@ -167,9 +167,11 @@ export default function OverviewTab({ stats, user, onRefresh }) {
             </div>
           </div>
           <div className="text-3xl font-extrabold text-emerald-400">
-            ${Number(wallet.profit || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${Number((wallet.profit || 0) + (wallet.roi || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <p className="text-xs text-gray-500 mt-2">Withdrawable daily returns</p>
+          <p className="text-xs text-gray-500 mt-2">
+            {wallet.roi > 0 ? `Daily returns (${(wallet.roi || 0).toFixed(2)} from investments)` : 'Withdrawable daily returns'}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-purple-500/20 bg-dark-800/80 p-6 backdrop-blur-xl relative group hover:border-purple-500/40 transition-all">

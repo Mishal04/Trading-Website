@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const User = require('../models/User');
 const Investment = require('../models/Investment');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
@@ -58,6 +59,7 @@ const getDashboardStats = async (req, res) => {
           capital: wallet.capital,
           profit: wallet.profit,
           commission: wallet.commission,
+          roi: wallet.roi || 0,  // Add ROI wallet for investor plan investments
           totalBalance
         },
         investments: {
