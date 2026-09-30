@@ -6,8 +6,8 @@ const InvestorInvestment = require('../models/InvestorInvestment');
 const {
   getInvestorPackageInfo,
   INVESTOR_INCOME_CAP,
-  INVESTOR_MONTHLY_RATE,
-  INVESTOR_SWITCH_MONTHS
+  INVESTOR_MONTHLY_RATE_PHASE_3,
+  INVESTOR_PHASE_1_MONTHS
 } = require('../../config/investorConstants');
 const {
   generateVerificationToken
@@ -255,7 +255,7 @@ const getInvestorDashboard = async (req, res) => {
     let sixMonthsReached = false;
     if (investor.joinDate) {
       const switchDate = new Date(investor.joinDate);
-      switchDate.setMonth(switchDate.getMonth() + INVESTOR_SWITCH_MONTHS);
+      switchDate.setMonth(switchDate.getMonth() + INVESTOR_PHASE_1_MONTHS);
       sixMonthsReached = new Date() >= switchDate;
     }
 

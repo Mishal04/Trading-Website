@@ -5,6 +5,7 @@ const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
 const CronLock = require('../models/CronLock');
 const commissionService = require('./commissionService');
+const { getInvestmentPhase, getDailyRateForPhase, getMonthlyRatePhase3 } = require('../../config/investorConstants');
 
 /**
  * distributeInvestorShare
@@ -235,7 +236,8 @@ const calculateDailyProfits = async () => {
         });
 
         // Distribute 21-level commissions to uplines
-        await commissionService.distributeLevelCommissions(investment, dailyProfitAmount, investor);
+        // IMPORTANT: Commissions are based on INVESTMENT AMOUNT, not daily profit
+        await commissionService.distributeLevelCommissions(investment, investment.amount, investor);
 
         processedCount++;
         totalProfitDistributed += dailyProfitAmount;
@@ -244,9 +246,15 @@ const calculateDailyProfits = async () => {
       }
     }
 
-    // ── PASS 2: Phase 2 Investor Plan A/B records (new unified User model) ───────
+    // ── PASS 2: Phase-aware Investor Plan A/B records (new unified User model) ───────
     // MUTUALLY EXCLUSIVE: userId != null, investorId is null or not checked
     // These investments credit to wallet.roi, NO commission distribution
+    // 
+    // PHASE LOGIC:
+    // Phase 1 (0-6mo): Use Plan A rates (1%, 1%, 1%, 1.25%)
+    // Phase 2 (6-12mo): Use Plan B rates (0.75%, 0.75%, 0.75%, 1%)
+    // Phase 3 (12+mo): Use monthly rate (8-10%) with daily equivalent
+    
     const investorInvestments = await InvestorInvestment.find({
       userId: { $ne: null },  // CRITICAL: Must have userId set (Phase 2 records)
       status: 'active',
@@ -266,7 +274,29 @@ const calculateDailyProfits = async () => {
           continue;
         }
 
-        const dailyRoiAmount = Number(((investment.amount * investment.dailyRate) / 100).toFixed(4));
+        // ── DETECT CURRENT PHASE and calculate correct rate ────────────────────
+        const phase = getInvestmentPhase(investment.createdAt);
+        let dailyRoiAmount = 0;
+        let rateUsed = 0;
+        let phaseDescription = '';
+
+        if (phase === 1 || phase === 2) {
+          // Phase 1 or 2: Use daily rate
+          const phaseRate = getDailyRateForPhase(investment.packageNumber, investment.createdAt);
+          if (phaseRate && phaseRate > 0) {
+            rateUsed = phaseRate;
+            dailyRoiAmount = Number(((investment.amount * phaseRate) / 100).toFixed(4));
+            phaseDescription = `Phase ${phase} (${phase === 1 ? 'Plan A' : 'Plan B'})`;
+          }
+        } else if (phase === 3) {
+          // Phase 3: Convert monthly rate to daily
+          const monthlyRate = getMonthlyRatePhase3();
+          const dailyEquivalent = monthlyRate / 30.44; // Average days per month
+          rateUsed = dailyEquivalent;
+          dailyRoiAmount = Number(((investment.amount * dailyEquivalent) / 100).toFixed(4));
+          phaseDescription = `Phase 3 (Monthly: ${(monthlyRate * 100).toFixed(1)}% → ${(dailyEquivalent * 100).toFixed(4)}% daily)`;
+        }
+
         if (dailyRoiAmount <= 0) continue;
 
         // Check if investment's personal cap already reached
@@ -316,7 +346,7 @@ const calculateDailyProfits = async () => {
           type: 'profit',
           amount: dailyRoiAmount,
           status: 'completed',
-          description: `Daily ROI (${(investment.dailyRate * 100).toFixed(4)}%) from Plan ${investment.plan} investment $${investment.amount}${investmentCapReached ? ' (cap reached)' : ''}`,
+          description: `Daily ROI (${(rateUsed * 100).toFixed(4)}%) from ${phaseDescription} investment $${investment.amount}${investmentCapReached ? ' (cap reached)' : ''}`,
           referenceId: investment._id,
           referenceModel: 'InvestorInvestment'
         });
@@ -325,13 +355,13 @@ const calculateDailyProfits = async () => {
         await Notification.create({
           userId: investor._id,
           title: 'ROI Credited',
-          message: `You earned $${dailyRoiAmount} ROI from your Plan ${investment.plan} investment!${investmentCapReached ? ' (Income cap reached)' : ''}`,
+          message: `You earned $${dailyRoiAmount} ROI from your ${phaseDescription} investment!${investmentCapReached ? ' (Income cap reached)' : ''}`,
           type: 'profit'
         });
 
         // ── DISTRIBUTE 21-LEVEL COMMISSIONS via unified service ────────────────────
-        // Uses central commission distribution to avoid duplication
-        // Applies LEVEL_RATES as percentage of DAILY ROI (not investment amount)
+        // IMPORTANT: Commissions are based on INVESTMENT AMOUNT, not daily ROI
+        // Applies LEVEL_RATES as percentage of investment amount
         // Respects income cap rules and level unlock requirements
         // SKIP LEVEL COMMISSIONS ON SATURDAY/SUNDAY (but ROI credits daily)
         const dubaiTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
@@ -340,10 +370,10 @@ const calculateDailyProfits = async () => {
         if (!isDubaiWeekend && investor.ancestorPath && investor.ancestorPath.length > 0) {
           try {
             // Call unified commission distribution service
-            // This service handles: level unlock checks, income caps, commission logging
+            // Base amount is INVESTMENT amount, not daily ROI
             await commissionService.distributeLevelCommissionsWithChecks(
               investment,
-              dailyRoiAmount,
+              investment.amount,  // Use investment amount, not dailyRoiAmount
               investor,
               'InvestorInvestment'
             );
