@@ -83,156 +83,160 @@ const check6040Qualification = (strongTeam, otherTeam, targetVolume) => {
 };
 
 /**
-  Ensure upline has current unlockedLevels based on directCount
+  Check if a level is currently unlocked for an upline.
+  Uses REVERSE unlock order: L21 unlocks first, L1 unlocks last.
   
-  This prevents stale unlockedLevels from being used during commission checks.
-  Recalculates from scratch based on current LEVEL_UNLOCK_RULES.
+  This replaces the old `unlockedLevels >= level` check which assumed L1-first order.
   
   @param {Object} upline - User document with directCount field
-  @returns {number} Current unlocked levels
+  @param {number} level - Network level to check (1-21)
+  @returns {boolean} True if level is unlocked
  */
-const getCurrentUnlockedLevels = (upline) => {
-  const rules = constants.LEVEL_UNLOCK_RULES;
-  const direct = upline.directCount || 0;
-  
-  if (direct >= 10) {
-    return 21;
-  } else if (direct > 0) {
-    return rules[direct] || 0;
-  } else {
-    return 0;
-  }
+const isLevelUnlockedForUpline = (upline, level) => {
+  const directCount = upline.directCount || 0;
+  return constants.isLevelUnlocked(level, directCount);
 };
 
 /**
-  UNIFIED 21-Level Commission Distribution
+  UNIFIED 21-Level Commission Distribution with PERSONAL COMMISSION LEVEL
   
-  This function is the SINGLE SOURCE OF TRUTH for all 21-level commission distribution.
-  It replaces the duplicate logic in profitService PASS 1 and PASS 2.
+  NEW SYSTEM: Each user earns commissions at their PERSONAL commission level,
+  not based on network position.
   
-  Handles:
-  - Level unlock checking (unlockedLevels must be >= level)
-  - Active upline validation (isActive + totalInvested > 0)
-  - Income cap enforcement
-  - Commission calculation and logging
-  - Debug logging for verification
+  Example:
+  - Metha has 2 directs → Personal Level L18 → Earns 0.9% from ALL downline at position 1
+  - User with 10 directs → Personal Level L1 → Earns 25% from ALL downline at position 1
   
   @param {Object} investment - Investment or InvestorInvestment document
   @param {number} baseAmount - Daily profit/ROI amount to distribute from
   @param {Object} investor - User document with ancestorPath
   @param {string} investmentType - 'Investment' or 'InvestorInvestment' for logging
-  @param {boolean} enforceUnlockedLevels - true for Phase 2 (InvestorInvestment), false for Phase 1 (Investment)
+  @param {boolean} enforceUnlockedLevels - Ignored (not used in personal level system)
  */
 const distributeLevelCommissionsWithChecks = async (investment, baseAmount, investor, investmentType = 'Investment', enforceUnlockedLevels = true) => {
   if (!investor.ancestorPath || investor.ancestorPath.length === 0) {
     return; // No ancestors, no commissions
   }
 
-  for (let i = 0; i < investor.ancestorPath.length && i < LEVEL_RATES.length; i++) {
+  for (let i = 0; i < investor.ancestorPath.length; i++) {
     const ancestorId = investor.ancestorPath[i];
-    const level = i + 1;
-    const ratePercent = LEVEL_RATES[i] || 0;
-
-    if (ratePercent <= 0) continue;
-
-    const commissionAmount = Number(((baseAmount * ratePercent) / 100).toFixed(4));
-    if (commissionAmount <= 0) continue;
-
+    const networkPosition = i + 1; // Position in chain (1-21)
+    
     try {
-      // Fetch upline with all necessary fields
-      const upline = await User.findById(ancestorId).select('name email isActive totalInvested directCount unlockedLevels role totalEarned');
+      // Fetch upline
+      const upline = await User.findById(ancestorId).select('name email isActive totalInvested directCount role totalEarned');
       
       if (!upline) {
-        console.log(`[COMMISSION DEBUG] L${level} | Upline not found (${ancestorId})`);
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | Upline not found (${ancestorId})`);
         continue;
       }
 
       if (!upline.isActive) {
-        console.log(`[COMMISSION DEBUG] L${level} | Upline ${upline.name} inactive`);
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | Upline ${upline.name} inactive`);
         continue;
       }
 
       if ((upline.totalInvested || 0) <= 0) {
-        console.log(`[COMMISSION DEBUG] L${level} | Upline ${upline.name} no investment`);
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | Upline ${upline.name} no investment`);
         continue;
       }
 
-      // ENFORCE LEVEL UNLOCK REQUIREMENT (Phase 2 behavior)
-      // For Phase 1 (Investment), this check can be skipped for backwards compatibility
-      // Always recalculate unlockedLevels fresh to avoid stale data
-      if (enforceUnlockedLevels) {
-        const currentUnlocked = getCurrentUnlockedLevels(upline);
-        if (currentUnlocked < level) {
-          console.log(`[COMMISSION DEBUG] L${level} | Upline ${upline.name} locked (currentUnlocked=${currentUnlocked} < level=${level}, directCount=${upline.directCount})`);
-          continue;
-        }
+      // Get ALL unlocked levels for this upline (e.g., [21, 20, 19, ..., 6] for 8 directs)
+      const unlockedLevels = constants.getUnlockedLevelNumbers(upline.directCount || 0);
+      
+      if (!unlockedLevels || unlockedLevels.length === 0) {
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} no unlocked levels (0 directs)`);
+        continue;
       }
 
-      // Check income cap for upline if they have reached it
+      // Determine which levels should be paid at this position
+      // Position 1 gets all unlocked levels, Position 2 gets unlocked levels - 1, etc.
+      const startLevelIndex = Math.min(networkPosition - 1, unlockedLevels.length - 1);
+      const availableLevels = unlockedLevels.slice(startLevelIndex);
+
+      if (availableLevels.length === 0) {
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} no available levels at this depth`);
+        continue;
+      }
+
+      // Check income cap once for the entire upline
       if (upline.hasReachedIncomeCap && upline.hasReachedIncomeCap()) {
-        console.log(`[COMMISSION DEBUG] L${level} | Upline ${upline.name} income cap reached (earned=${upline.totalEarned})`);
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} income cap reached`);
         continue;
       }
 
-      // Credit upline commission wallet
-      await User.findByIdAndUpdate(ancestorId, {
-        $inc: {
-          'wallet.commission': commissionAmount,
-          [`commissions.levelCommissions.${i}`]: commissionAmount,
-          totalEarned: commissionAmount
-        }
-      });
+      let totalCommissionAtPosition = 0;
 
-      // Log commission record
-      await CommissionLog.create({
-        recipientId: ancestorId,
-        sourceUserId: investor._id,
-        investmentId: investment._id,
-        level,
-        commissionType: 'level',
-        rate: ratePercent,
-        baseAmount,
-        commissionAmount,
-        description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s ${investmentType} daily earnings`
-      });
+      // Create commission records for each available level
+      for (const level of availableLevels) {
+        const ratePercent = LEVEL_RATES[level - 1] || 0;
+        if (ratePercent <= 0) continue;
 
-      // Create transaction record
-      await Transaction.create({
-        userId: ancestorId,
-        type: 'commission',
-        amount: commissionAmount,
-        status: 'completed',
-        description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s ${investmentType} daily earnings`,
-        referenceId: investment._id,
-        referenceModel: investmentType
-      });
+        const commissionAmount = Number(((baseAmount * ratePercent) / 100).toFixed(4));
+        if (commissionAmount <= 0) continue;
 
-      // Create user notification
-      await Notification.create({
-        userId: ancestorId,
-        title: 'Commission Received',
-        message: `You earned $${commissionAmount.toFixed(2)} in Level ${level} commission from your downline!`,
-        type: 'commission'
-      });
+        totalCommissionAtPosition += commissionAmount;
 
-      // Debug logging for verification
-      const currentUnlocked = getCurrentUnlockedLevels(upline);
-      console.log(`[COMMISSION DEBUG] L${level} | Rate=${ratePercent}% | Base=$${baseAmount.toFixed(4)} | Commission=$${commissionAmount.toFixed(4)} | Upline: ${upline.name} | DirectCount: ${upline.directCount} | UnlockedLevels: ${currentUnlocked}`);
+        // Log commission for this specific level
+        await CommissionLog.create({
+          recipientId: ancestorId,
+          sourceUserId: investor._id,
+          investmentId: investment._id,
+          level: level,
+          commissionType: 'level',
+          rate: ratePercent,
+          baseAmount,
+          commissionAmount,
+          description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s ${investmentType} daily earnings`
+        });
+
+        // Transaction record for each level
+        await Transaction.create({
+          userId: ancestorId,
+          type: 'commission',
+          amount: commissionAmount,
+          status: 'completed',
+          description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s ${investmentType} daily earnings`,
+          referenceId: investment._id,
+          referenceModel: investmentType
+        });
+
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | L${level} | Rate=${ratePercent}% | Commission=$${commissionAmount.toFixed(4)} | From: ${investor.name}`);
+      }
+
+      // Credit total commission to upline
+      if (totalCommissionAtPosition > 0) {
+        await User.findByIdAndUpdate(ancestorId, {
+          $inc: {
+            'wallet.commission': totalCommissionAtPosition,
+            totalEarned: totalCommissionAtPosition
+          }
+        });
+
+        // Single notification per position with total earned
+        await Notification.create({
+          userId: ancestorId,
+          title: 'Commission Received',
+          message: `You earned $${totalCommissionAtPosition.toFixed(2)} in commissions from your downline (${availableLevels.length} levels)!`,
+          type: 'commission'
+        });
+
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} | Total=$${totalCommissionAtPosition.toFixed(4)} | Levels=${availableLevels.length}`);
+      }
 
     } catch (err) {
-      console.error(`Error distributing L${level} commission for ${investmentType} ${investment._id}:`, err);
+      console.error(`Error at position ${networkPosition}:`, err.message);
+      continue;
     }
   }
 };
 
 /**
   Distribute 21-level commissions when profit is generated
-  Fix: Checks that upline user is active (isActive: true) and has an active investment (totalInvestment > 0)
   LEGACY: Used only for PASS 1 (Investment) records. For Phase 2, use distributeLevelCommissionsWithChecks()
  */
 const distributeLevelCommissions = async (investment, dailyProfitAmount, investor) => {
-  // DELEGATE TO UNIFIED FUNCTION with enforceUnlockedLevels=false for legacy Investment records
-  // This maintains backward compatibility while consolidating logic
+  // DELEGATE TO UNIFIED FUNCTION for legacy Investment records
   return distributeLevelCommissionsWithChecks(investment, dailyProfitAmount, investor, 'Investment', false);
 };
 
@@ -400,7 +404,7 @@ module.exports = {
   PERFORMANCE_TIERS,
   getInvestmentPackage,
   check6040Qualification,
-  getCurrentUnlockedLevels,
+  isLevelUnlockedForUpline,
   distributeLevelCommissions,
   distributeLevelCommissionsWithChecks,
   distributeLeadershipSalary,
