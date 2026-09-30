@@ -53,6 +53,7 @@ const getSystemStats = async (req, res) => {
       pendingInvestmentsNew,
       pendingWithdrawalsCount,
       investmentSum,
+      investorInvestmentSum,
       profitSum,
       commissionSum,
       pool
@@ -67,6 +68,10 @@ const getSystemStats = async (req, res) => {
       InvestorInvestment.countDocuments({ status: 'pending' }),
       Withdrawal.countDocuments({ status: 'pending' }),
       Investment.aggregate([
+        { $match: { status: 'active' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      InvestorInvestment.aggregate([
         { $match: { status: 'active' } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ]),
@@ -93,7 +98,7 @@ const getSystemStats = async (req, res) => {
         totalInvestments: totalInvestmentsCount,
         activeInvestmentsCount,
         pendingInvestmentsCount,
-        totalInvestmentVolume: investmentSum[0]?.total ?? 0,
+        totalInvestmentVolume: (investmentSum[0]?.total ?? 0) + (investorInvestmentSum[0]?.total ?? 0),
         totalProfitDistributed: profitSum[0]?.total ?? 0,
         totalCommissionDistributed: commissionSum[0]?.total ?? 0,
         pendingWithdrawalsCount,
