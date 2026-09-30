@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const commissionService = require('../services/commissionService');
+const constants = require('../../config/constants');
 
 /**
  * GET /api/team/business
@@ -92,7 +93,7 @@ const getDownline = async (req, res) => {
 
     // ── PRIMARY: users who have current user in their ancestorPath ──────────
     const byAncestorPath = await User.find({ ancestorPath: userId })
-      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy')
+      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy directCount')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -104,7 +105,7 @@ const getDownline = async (req, res) => {
       referredBy: userId,
       _id: { $nin: Array.from(foundIds).map((id) => require('mongoose').Types.ObjectId.createFromHexString(id)) },
     })
-      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy')
+      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy directCount')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -125,6 +126,9 @@ const getDownline = async (req, res) => {
           // If not found in ancestorPath but referredBy matches → Level 1
         }
 
+        // Calculate current commission level based on directCount
+        const currentCommissionLevel = constants.getCurrentCommissionLevel(user.directCount || 0);
+
         return {
           id:              user._id,
           name:            user.name,
@@ -136,11 +140,13 @@ const getDownline = async (req, res) => {
           isActive:        user.isActive,
           joinedAt:        user.createdAt,
           level,
+          directCount:     user.directCount || 0,
+          currentCommissionLevel,
         };
       })
       .filter((u) => {
         if (u.level > maxLevel) return false;
-        if (levelFilter && u.level !== levelFilter) return false;
+        // Note: frontend handles currentCommissionLevel filtering
         return true;
       })
       // Sort by level asc, then by join date desc within each level

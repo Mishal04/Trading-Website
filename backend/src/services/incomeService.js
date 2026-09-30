@@ -35,15 +35,6 @@ function getRoiPercent(amount, date = new Date()) {
 }
 
 /**
- * Determine unlocked levels based on direct referral count.
- */
-function getUnlockedLevels(directCount) {
-  if (directCount >= 10) return 21;
-  const rules = constants.LEVEL_UNLOCK_RULES;
-  return rules[directCount] || 0;
-}
-
-/**
  * Determine income cap multiplier based on investment and referral status.
  * NEW LOGIC:
  * - No investment: cap = 0 (cannot earn)
@@ -178,39 +169,42 @@ async function creditCommissionToUpline(upline, sourceUser, levelIdx, ratePercen
 }
 
 /**
- * Distribute level income up the upline chain.
+ * DEPRECATED: Use commissionService.distributeLevelCommissionsWithChecks() instead.
+ * 
+ * This function is kept for backwards compatibility with admin manual credit endpoints.
+ * It delegates to the centralized commission distribution service.
+ * 
+ * Distributes level income using REVERSE commission unlock order:
+ * L21 unlocks first, L1 unlocks last (based on directCount).
  */
 async function distributeLevelIncome(sourceUserId, baseAmount) {
-  const sourceUser = await User.findById(sourceUserId).select('name email ancestorPath role unlockedLevels');
+  // Delegate to centralized commission service
+  const sourceUser = await User.findById(sourceUserId).select('name email ancestorPath directCount _id');
   if (!sourceUser) throw new Error('Source user not found');
-
-  const rates = constants.LEVEL_RATES;
-  const maxLevels = Math.min(rates.length, sourceUser.ancestorPath.length);
-  const results = [];
-
-  for (let i = 0; i < maxLevels; i++) {
-    const uplineId = sourceUser.ancestorPath[i];
-    const levelIdx = i; // 0 = L1
-    const ratePercent = rates[levelIdx];
-    if (!ratePercent) continue;
-    const upline = await User.findById(uplineId);
-    if (!upline || !upline.isActive) continue;
-    if (upline.unlockedLevels < levelIdx + 1) continue;
-    const levelAmount = Number(((baseAmount * ratePercent) / 100).toFixed(4));
-    if (levelAmount <= 0) continue;
-    if (upline.getIncomeCap && upline.hasReachedIncomeCap && upline.hasReachedIncomeCap()) continue;
-
-    const creditInfo = await creditCommissionToUpline(upline, sourceUser, levelIdx, ratePercent, levelAmount, baseAmount);
-    if (creditInfo.credited > 0) {
-      results.push({ uplineId, level: levelIdx + 1, amount: creditInfo.credited });
-    }
-  }
-  return results;
+  
+  // For backwards compatibility, call the centralized service
+  // This ensures single source of truth for commission logic
+  const commissionService = require('./commissionService');
+  
+  // Create a temporary investment-like object for compatibility
+  const tempInvestment = {
+    _id: sourceUser._id,
+    userId: sourceUser._id
+  };
+  
+  await commissionService.distributeLevelCommissionsWithChecks(
+    tempInvestment,
+    baseAmount,
+    sourceUser,
+    'ManualCredit',
+    true
+  );
+  
+  return { success: true, message: 'Commission distributed via centralized service' };
 }
 
 module.exports = {
   getRoiPercent,
-  getUnlockedLevels,
   getCapMultiplier,
   canEarnMore,
   creditRoiToInvestor,

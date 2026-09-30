@@ -34,8 +34,24 @@ const requestWithdrawal = async (req, res) => {
   }
 
   try {
-    const { amount, type, walletAddress } = req.body;
+    const { amount, type, walletAddress, network } = req.body;
     const userId = req.user._id;
+
+    // Validate network
+    if (!network || !['BEP20', 'TRC20'].includes(network)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select a valid network (BEP20 or TRC20)'
+      });
+    }
+
+    // Validate type
+    if (!type || !['capital', 'profit', 'commission'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select a valid withdrawal type'
+      });
+    }
 
     if (!isWithinWithdrawalWindow()) {
       return res.status(400).json({
@@ -52,6 +68,13 @@ const requestWithdrawal = async (req, res) => {
     }
 
     const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
     const userWallet = user.wallet || { capital: 0, profit: 0, commission: 0 };
     const availableBalance = userWallet[type] || 0;
 
@@ -72,8 +95,8 @@ const requestWithdrawal = async (req, res) => {
       userId,
       amount,
       type,
+      network,
       walletAddress: walletAddress || '',
-      network: req.body.network,
       status: 'pending',
       requestedAt: new Date()
     });
@@ -108,7 +131,7 @@ const requestWithdrawal = async (req, res) => {
     console.error('Request withdrawal error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error processing withdrawal request'
+      message: error.message || 'Server error processing withdrawal request'
     });
   }
 };

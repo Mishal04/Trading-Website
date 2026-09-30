@@ -15,10 +15,10 @@ const getDashboardStats = async (req, res) => {
 
     const activeInvestmentsCount = await Investment.countDocuments({ userId, status: 'active' });
     const totalInvestments = user.totalInvested || 0;
-    const totalProfitEarned = user.totalProfitEarned || 0;
+    const totalProfitEarned = (user.totalProfitEarned || 0) + (user.totalRoiEarned || 0);
 
     const wallet = user.wallet || { capital: 0, profit: 0, commission: 0 };
-    const totalBalance = wallet.capital + wallet.profit + wallet.commission;
+    const totalBalance = (wallet.capital || 0) + (wallet.profit || 0) + (wallet.commission || 0) + (wallet.roi || 0);
 
     const recentTransactions = await Transaction.find({ userId })
       .sort({ date: -1 })

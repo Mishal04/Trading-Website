@@ -48,6 +48,8 @@ const register = async (req, res) => {
 
   try {
     const { email, password, referralCode } = req.body;
+    const rawPhone = req.body.phone || req.body.phoneNumber;
+    const phoneNumber = rawPhone ? String(rawPhone).trim() : null;
     const name = req.body.name || req.body.fullName;
 
     const userExists = await User.findOne({ email });
@@ -62,6 +64,7 @@ const register = async (req, res) => {
       name,
       email,
       password,
+      phoneNumber,
       referralCode: await generateUniqueReferralCode()
     });
 

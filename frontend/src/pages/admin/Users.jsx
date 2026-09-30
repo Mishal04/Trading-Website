@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { adminAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import UserEditModal from '../../components/admin/UserEditModal';
+import AdminWalletAdjustment from '../../components/admin/AdminWalletAdjustment';
 import {
   Users as UsersIcon, Search, RefreshCw, AlertCircle,
   ChevronLeft, ChevronRight, CheckCircle2, XCircle,
@@ -16,13 +17,13 @@ const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-US', { dateStyle: 'medium' }) : '—';
 
 // ─── Expanded user detail row ─────────────────────────────────────────────────
-function UserDetail({ user }) {
+function UserDetail({ user, onDataRefresh }) {
   return (
     <tr>
       <td colSpan={7} className="px-4 py-4 bg-dark-700/40 border-b border-dark-600">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
           {/* Wallet */}
-          <div className="rounded-xl border border-dark-500 bg-dark-800/60 p-4">
+          <div className="rounded-xl border border-dark-500 bg-dark-800/60 p-4 space-y-3">
             <div className="flex items-center gap-2 mb-3 text-xs text-gray-500 uppercase tracking-wider font-semibold">
               <Wallet size={12} /> Wallet Balances
             </div>
@@ -30,7 +31,11 @@ function UserDetail({ user }) {
               <div className="flex justify-between"><span className="text-gray-400">Capital</span><span className="font-semibold text-gold-400">{fmt(user.wallet?.capital)}</span></div>
               <div className="flex justify-between"><span className="text-gray-400">Profit</span><span className="font-semibold text-emerald-400">{fmt(user.wallet?.profit)}</span></div>
               <div className="flex justify-between"><span className="text-gray-400">Commission</span><span className="font-semibold text-blue-400">{fmt(user.wallet?.commission)}</span></div>
+              {user.wallet?.roi > 0 && (
+                <div className="flex justify-between"><span className="text-gray-400">ROI</span><span className="font-semibold text-purple-400">{fmt(user.wallet?.roi)}</span></div>
+              )}
             </div>
+            <AdminWalletAdjustment user={user} onAdjustmentComplete={onDataRefresh} />
           </div>
           {/* Investment */}
           <div className="rounded-xl border border-dark-500 bg-dark-800/60 p-4">
@@ -230,6 +235,8 @@ export default function Users() {
                       key={u._id}
                       className={`hover:bg-dark-700/30 transition-colors ${isExpanded ? 'bg-dark-700/20' : ''}`}
                     >
+                      className={`hover:bg-dark-700/30 transition-colors ${isExpanded ? 'bg-dark-700/20' : ''}`}
+                    >
                       {/* Expand toggle */}
                       <td className="px-4 py-3.5">
                         <button
@@ -321,7 +328,7 @@ export default function Users() {
                       </td>
                     </tr>
                   ];
-                  if (isExpanded) rows.push(<UserDetail key={`${u._id}-detail`} user={u} />);
+                  if (isExpanded) rows.push(<UserDetail key={`${u._id}-detail`} user={u} onDataRefresh={fetchData} />);
                   return rows;
                 })
               )}

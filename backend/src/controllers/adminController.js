@@ -1310,6 +1310,186 @@ const getUserTransactions = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/admin/wallet/deposit
+ * Admin deposits funds into a user's wallet
+ * Body: { userId, amount, type: 'capital'|'profit'|'commission'|'roi', reason: string }
+ */
+const adminDepositWallet = async (req, res) => {
+  try {
+    const { userId, amount, type, reason } = req.body;
+    const adminId = req.user._id;
+
+    // Validate inputs
+    if (!userId || !amount || !type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: userId, amount, type'
+      });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Deposit amount must be greater than 0'
+      });
+    }
+
+    if (!['capital', 'profit', 'commission', 'roi'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid wallet type. Must be: capital, profit, commission, or roi'
+      });
+    }
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Deposit funds
+    await User.findByIdAndUpdate(userId, {
+      $inc: { [`wallet.${type}`]: amount }
+    });
+
+    // Create transaction log
+    await Transaction.create({
+      userId,
+      type: 'admin_deposit',
+      amount,
+      status: 'completed',
+      description: `Admin deposit: $${amount} to ${type} wallet${reason ? ' - ' + reason : ''}`,
+      referenceId: adminId,
+      referenceModel: 'User',
+      metadata: { performedBy: adminId, reason: reason || '' }
+    });
+
+    // Send notification to user
+    await Notification.create({
+      userId,
+      title: 'Wallet Deposit',
+      message: `Admin deposited $${amount} to your ${type} wallet.${reason ? ' Reason: ' + reason : ''}`,
+      type: 'success'
+    });
+
+    return res.json({
+      success: true,
+      message: `Successfully deposited $${amount} to ${user.name}'s ${type} wallet`,
+      data: {
+        userId,
+        userName: user.name,
+        amount,
+        type,
+        newBalance: user.wallet[type] + amount
+      }
+    });
+  } catch (error) {
+    console.error('Admin deposit wallet error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error processing deposit'
+    });
+  }
+};
+
+/**
+ * POST /api/admin/wallet/withdraw
+ * Admin withdraws funds from a user's wallet
+ * Body: { userId, amount, type: 'capital'|'profit'|'commission'|'roi', reason: string }
+ */
+const adminWithdrawWallet = async (req, res) => {
+  try {
+    const { userId, amount, type, reason } = req.body;
+    const adminId = req.user._id;
+
+    // Validate inputs
+    if (!userId || !amount || !type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: userId, amount, type'
+      });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Withdrawal amount must be greater than 0'
+      });
+    }
+
+    if (!['capital', 'profit', 'commission', 'roi'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid wallet type. Must be: capital, profit, commission, or roi'
+      });
+    }
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const currentBalance = user.wallet[type] || 0;
+    if (amount > currentBalance) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient balance. Current ${type} balance: $${currentBalance}`
+      });
+    }
+
+    // Withdraw funds
+    await User.findByIdAndUpdate(userId, {
+      $inc: { [`wallet.${type}`]: -amount }
+    });
+
+    // Create transaction log
+    await Transaction.create({
+      userId,
+      type: 'admin_withdrawal',
+      amount,
+      status: 'completed',
+      description: `Admin withdrawal: $${amount} from ${type} wallet${reason ? ' - ' + reason : ''}`,
+      referenceId: adminId,
+      referenceModel: 'User',
+      metadata: { performedBy: adminId, reason: reason || '' }
+    });
+
+    // Send notification to user
+    await Notification.create({
+      userId,
+      title: 'Wallet Withdrawal',
+      message: `Admin withdrew $${amount} from your ${type} wallet.${reason ? ' Reason: ' + reason : ''}`,
+      type: 'warning'
+    });
+
+    return res.json({
+      success: true,
+      message: `Successfully withdrew $${amount} from ${user.name}'s ${type} wallet`,
+      data: {
+        userId,
+        userName: user.name,
+        amount,
+        type,
+        newBalance: currentBalance - amount
+      }
+    });
+  } catch (error) {
+    console.error('Admin withdraw wallet error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error processing withdrawal'
+    });
+  }
+};
+
 module.exports = {
   getSystemStats,
   getSystemPools,
@@ -1334,5 +1514,7 @@ module.exports = {
   updateUserPlan,
   creditUserRoi,
   updateUser,
-  getUserTransactions
+  getUserTransactions,
+  adminDepositWallet,
+  adminWithdrawWallet
 };

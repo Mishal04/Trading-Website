@@ -11,14 +11,14 @@ export default function TransactionsTab({ filterType = 'all' }) {
     try {
       setFetching(true);
       // Attempt GET /transactions first
-      const res = await api.get('/transactions').catch(() => null);
+      const res = await api.get('/transactions', { params: { _t: Date.now() } }).catch(() => null);
       if (res && res.data?.data?.transactions) {
         setTransactions(res.data.data.transactions);
       } else {
         // Fallback: Combine commissions + withdrawals + dashboard transactions
         const [commRes, wthRes] = await Promise.all([
           commissionAPI.getMy().catch(() => null),
-          withdrawalAPI.getHistory().catch(() => null),
+          withdrawalAPI.getHistory({ _t: Date.now() }).catch(() => null),
         ]);
 
         const combined = [];
@@ -60,6 +60,9 @@ export default function TransactionsTab({ filterType = 'all' }) {
 
   useEffect(() => {
     fetchTransactions();
+    // Auto-refresh every 30 seconds to show updated withdrawal statuses
+    const interval = setInterval(fetchTransactions, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const filtered = filter === 'all'

@@ -56,9 +56,22 @@ export default function TeamTab({ user }) {
   useEffect(() => { loadTeamData(); }, []);
 
   const members         = downlineData?.downline ?? [];
+
+  // Compute network level counts for the filter dropdown
+  const networkLevelCounts = {};
+  members.forEach((m) => {
+    const lvl = m.level;
+    if (lvl) {
+      networkLevelCounts[lvl] = (networkLevelCounts[lvl] || 0) + 1;
+    }
+  });
+
   const filteredMembers = levelFilter === 'all'
     ? members
-    : members.filter((m) => m.level === parseInt(levelFilter, 10));
+    : members.filter((m) => {
+        const lvl = parseInt(levelFilter, 10);
+        return m.level === lvl;
+      });
 
   // Stats to show in the header cards — prefer /stats, fallback to /business
   const directCount    = stats?.directCount      ?? business?.legsCount ?? 0;
@@ -66,6 +79,19 @@ export default function TeamTab({ user }) {
   const totalVolume    = business?.totalTeamVolume ?? 0;
   const strongVolume   = business?.strongTeamVolume ?? 0;
   const otherVolume    = business?.otherTeamVolume  ?? 0;
+
+  // Calculate user's current commission level
+  // Formula: current level = 21 - (directCount * 2 - 1) for 1-9 directs
+  // With 10+ directs: all 21 levels unlocked → L1 (25%)
+  const userCurrentLevel = (() => {
+    if (!directCount || directCount <= 0) {
+      return null;
+    }
+    if (directCount >= 10) {
+      return 1;  // All 21 levels unlocked, current level is L1
+    }
+    return 21 - (directCount * 2 - 1);
+  })();
 
   return (
     <div className="space-y-8">
@@ -139,10 +165,10 @@ export default function TeamTab({ user }) {
           <div className="text-xs text-gray-400 mt-1">Total Downline</div>
         </div>
         <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-5 text-center">
-          <div className="text-2xl font-extrabold text-blue-400">
-            ${fetching ? '—' : Number(strongVolume).toLocaleString()}
+          <div className="text-2xl font-extrabold text-emerald-400">
+            {fetching ? '—' : (userCurrentLevel ? `L${userCurrentLevel}` : 'None')}
           </div>
-          <div className="text-xs text-gray-400 mt-1">Strongest Leg</div>
+          <div className="text-xs text-gray-400 mt-1">Your Commission Level</div>
         </div>
         <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-5 text-center">
           <div className="text-2xl font-extrabold text-purple-400">
@@ -242,7 +268,7 @@ export default function TeamTab({ user }) {
               <Award size={18} className="text-gold-400" /> Full Downline Tree
             </h3>
             <p className="text-xs text-gray-400">
-              {fetching ? 'Loading…' : `${downlineData?.totalDownlineCount ?? 0} members across ${Object.keys(downlineData?.levelCounts ?? {}).length} levels`}
+              {fetching ? 'Loading…' : `${downlineData?.totalDownlineCount ?? 0} members across ${Object.keys(networkLevelCounts ?? {}).length} network levels`}
             </p>
           </div>
           <select
@@ -253,7 +279,7 @@ export default function TeamTab({ user }) {
             <option value="all">All Levels (1–21)</option>
             {Array.from({ length: 21 }, (_, i) => i + 1).map((lvl) => (
               <option key={lvl} value={String(lvl)}>
-                Level {lvl}{downlineData?.levelCounts?.[lvl] ? ` (${downlineData.levelCounts[lvl]})` : ''}
+                Level {lvl}{networkLevelCounts[lvl] ? ` (${networkLevelCounts[lvl]})` : ''}
               </option>
             ))}
           </select>
@@ -281,11 +307,12 @@ export default function TeamTab({ user }) {
             <table className="w-full text-left text-xs">
               <thead className="bg-dark-900/80 text-gray-400 uppercase tracking-wider">
                 <tr>
-                  <th className="px-4 py-3 rounded-l-xl">Level</th>
-                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3 rounded-l-xl">Name</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Code</th>
                   <th className="px-4 py-3 text-right">Invested</th>
+                  <th className="px-4 py-3 text-center">Network Lvl</th>
+                  <th className="px-4 py-3 text-center">Commission Lvl</th>
                   <th className="px-4 py-3">Verified</th>
                   <th className="px-4 py-3 rounded-r-xl">Joined</th>
                 </tr>
@@ -293,16 +320,17 @@ export default function TeamTab({ user }) {
               <tbody className="divide-y divide-dark-500/40 text-gray-300">
                 {filteredMembers.map((m) => (
                   <tr key={String(m.id ?? m._id)} className="hover:bg-dark-700/30 transition-colors">
-                    <td className="px-4 py-3.5">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-gold-400/10 text-gold-400 border border-gold-400/20">
-                        L{m.level}
-                      </span>
-                    </td>
                     <td className="px-4 py-3.5 font-bold text-white">{m.name}</td>
                     <td className="px-4 py-3.5 text-gray-400">{m.email}</td>
                     <td className="px-4 py-3.5 font-mono text-gold-300">{m.referralCode}</td>
                     <td className="px-4 py-3.5 text-right font-bold text-emerald-400">
-                      ${Number(m.totalInvestment ?? 0).toLocaleString()}
+                      ${Number(m.totalInvested ?? 0).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3.5 text-center font-semibold text-blue-400">
+                      L{m.level}
+                    </td>
+                    <td className="px-4 py-3.5 text-center font-bold text-gold-400">
+                      {m.currentCommissionLevel ? `L${m.currentCommissionLevel}` : '—'}
                     </td>
                     <td className="px-4 py-3.5">
                       {m.isVerified ? (

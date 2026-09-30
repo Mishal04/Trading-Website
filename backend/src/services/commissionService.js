@@ -141,35 +141,50 @@ const distributeLevelCommissionsWithChecks = async (investment, baseAmount, inve
         continue;
       }
 
-      // Determine which SINGLE level this position should earn from
-      // Position 1 earns from L20, Position 2 from L18, Position 3 from L16, etc.
-      // Formula: level = 22 - (position * 2)
-      // Position 1: 22 - 2 = L20
-      // Position 2: 22 - 4 = L18
-      // Position 3: 22 - 6 = L16
-      // ...
-      // Position 9: 22 - 18 = L4
-      // Position 10: 22 - 20 = L2 (then jumps to L1)
+      // Determine payout level and rate based on upline's directCount
+      // Each direct referral unlocks 2 levels, they earn from the LOWER level
+      // Uses STANDARD level rates from LEVEL_RATES array
+      // 
+      // 1 direct: L21+L20 → earn L20 @ 0.9% (L11-L20 rate)
+      // 2 directs: L19+L18 → earn L18 @ 0.9%
+      // 3 directs: L17+L16 → earn L16 @ 0.9%
+      // 4 directs: L15+L14 → earn L14 @ 0.9%
+      // 5 directs: L13+L12 → earn L12 @ 0.9%
+      // 6 directs: L11+L10 → earn L10 @ 2% (L6-L10 rate)
+      // 7 directs: L9+L8 → earn L8 @ 2%
+      // 8 directs: L7+L6 → earn L6 @ 2%
+      // 9 directs: L5+L4 → earn L4 @ 5% (L4-L5 rate)
+      // 10+ directs: all 21 → earn L1 @ 25%
+      
+      const directCount = upline.directCount || 0;
       
       let payoutLevel;
-      if (networkPosition <= 9) {
-        payoutLevel = 22 - (networkPosition * 2);
+      
+      if (directCount === 0) {
+        // No directs, no commission
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} no unlocked levels (0 directs)`);
+        continue;
+      } else if (directCount >= 10) {
+        payoutLevel = 1; // L1: 25%
       } else {
-        payoutLevel = 1; // Position 10+ gets L1 (25%)
+        // For 1-9 directs, calculate payout level
+        // Formula: payoutLevel = 22 - (directCount * 2)
+        payoutLevel = 22 - (directCount * 2);
       }
 
-      // Verify upline has enough directs to unlock this level
-      const unlockedCount = constants.getUnlockedLevelCount(upline.directCount || 0);
-      const isLevelUnlocked = constants.isLevelUnlocked(payoutLevel, upline.directCount || 0);
-
-      if (!isLevelUnlocked || unlockedCount < networkPosition) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} hasn't unlocked L${payoutLevel} (needs position ${unlockedCount})`);
+      // Get the STANDARD rate for this level from LEVEL_RATES
+      const ratePercent = LEVEL_RATES[payoutLevel - 1];
+      
+      if (!ratePercent || ratePercent <= 0) {
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} invalid rate for L${payoutLevel}`);
         continue;
       }
 
-      // Get rate for this specific level
-      const ratePercent = LEVEL_RATES[payoutLevel - 1] || 0;
-      if (ratePercent <= 0) continue;
+      // Verify upline actually has enough directs to have this level
+      if (directCount < 1 || (directCount < 10 && directCount < Math.ceil((22 - payoutLevel) / 2))) {
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} insufficient directs (${directCount})`);
+        continue;
+      }
 
       const commissionAmount = Number(((baseAmount * ratePercent) / 100).toFixed(4));
       if (commissionAmount <= 0) continue;

@@ -175,13 +175,32 @@ userSchema.methods.hasReachedIncomeCap = function() {
 };
 
 userSchema.methods.recomputeUnlockedLevels = function() {
-  const rules = require('../../config/constants').LEVEL_UNLOCK_RULES;
+  const constants = require('../../config/constants');
   const direct = this.directCount || 0;
-  if (direct >= 10) {
-    this.unlockedLevels = 21;
-  } else {
-    this.unlockedLevels = rules[direct] || 0;
-  }
+  // Store the COUNT of unlocked levels (not which specific levels)
+  // Example: directCount=1 → unlockedLevels=2 (means L21 and L20 are unlocked)
+  this.unlockedLevels = constants.getUnlockedLevelCount(direct);
+};
+
+/**
+ * Check if a specific level is unlocked for this user.
+ * Uses REVERSE unlock order: L21 first, L1 last.
+ * @param {number} level - Network level (1-21)
+ * @returns {boolean}
+ */
+userSchema.methods.isLevelUnlockedForUser = function(level) {
+  const constants = require('../../config/constants');
+  return constants.isLevelUnlocked(level, this.directCount || 0);
+};
+
+/**
+ * Get array of unlocked level numbers for this user.
+ * Example: directCount=1 → [21, 20]
+ * @returns {number[]}
+ */
+userSchema.methods.getUnlockedLevelNumbers = function() {
+  const constants = require('../../config/constants');
+  return constants.getUnlockedLevelNumbers(this.directCount || 0);
 };
 
 
