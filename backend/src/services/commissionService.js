@@ -141,79 +141,86 @@ const distributeLevelCommissionsWithChecks = async (investment, baseAmount, inve
         continue;
       }
 
-      // Get ALL unlocked levels for this upline based on their directCount
-      const unlockedLevels = constants.getUnlockedLevelNumbers(upline.directCount || 0);
+      // Determine which SINGLE level this position should earn from
+      // Position 1 earns from L20, Position 2 from L18, Position 3 from L16, etc.
+      // Formula: level = 22 - (position * 2)
+      // Position 1: 22 - 2 = L20
+      // Position 2: 22 - 4 = L18
+      // Position 3: 22 - 6 = L16
+      // ...
+      // Position 9: 22 - 18 = L4
+      // Position 10: 22 - 20 = L2 (then jumps to L1)
       
-      if (!unlockedLevels || unlockedLevels.length === 0) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} no unlocked levels (0 directs)`);
+      let payoutLevel;
+      if (networkPosition <= 9) {
+        payoutLevel = 22 - (networkPosition * 2);
+      } else {
+        payoutLevel = 1; // Position 10+ gets L1 (25%)
+      }
+
+      // Verify upline has enough directs to unlock this level
+      const unlockedCount = constants.getUnlockedLevelCount(upline.directCount || 0);
+      const isLevelUnlocked = constants.isLevelUnlocked(payoutLevel, upline.directCount || 0);
+
+      if (!isLevelUnlocked || unlockedCount < networkPosition) {
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} hasn't unlocked L${payoutLevel} (needs position ${unlockedCount})`);
         continue;
       }
 
-      // Check income cap once
+      // Get rate for this specific level
+      const ratePercent = LEVEL_RATES[payoutLevel - 1] || 0;
+      if (ratePercent <= 0) continue;
+
+      const commissionAmount = Number(((baseAmount * ratePercent) / 100).toFixed(4));
+      if (commissionAmount <= 0) continue;
+
+      // Check income cap
       if (upline.hasReachedIncomeCap && upline.hasReachedIncomeCap()) {
         console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} income cap reached`);
         continue;
       }
 
-      let totalCommissionAtPosition = 0;
+      // Credit commission
+      await User.findByIdAndUpdate(ancestorId, {
+        $inc: {
+          'wallet.commission': commissionAmount,
+          totalEarned: commissionAmount
+        }
+      });
 
-      // Create commission records for EACH of their unlocked levels
-      // Each upline earns from all their unlocked levels on this downline member's investment
-      for (const level of unlockedLevels) {
-        const ratePercent = LEVEL_RATES[level - 1] || 0;
-        if (ratePercent <= 0) continue;
+      // Log commission for this specific position/level
+      await CommissionLog.create({
+        recipientId: ancestorId,
+        sourceUserId: investor._id,
+        investmentId: investment._id,
+        level: payoutLevel,
+        commissionType: 'level',
+        rate: ratePercent,
+        baseAmount,
+        commissionAmount,
+        description: `Level ${payoutLevel} commission (${ratePercent}%) from position ${networkPosition} (${investor.name}'s ${investmentType} daily earnings)`
+      });
 
-        const commissionAmount = Number(((baseAmount * ratePercent) / 100).toFixed(4));
-        if (commissionAmount <= 0) continue;
+      // Transaction record
+      await Transaction.create({
+        userId: ancestorId,
+        type: 'commission',
+        amount: commissionAmount,
+        status: 'completed',
+        description: `Level ${payoutLevel} commission (${ratePercent}%) from position ${networkPosition} (${investor.name}'s ${investmentType} daily earnings)`,
+        referenceId: investment._id,
+        referenceModel: investmentType
+      });
 
-        totalCommissionAtPosition += commissionAmount;
+      // Notification
+      await Notification.create({
+        userId: ancestorId,
+        title: 'Commission Received',
+        message: `You earned $${commissionAmount.toFixed(2)} in Level ${payoutLevel} commission from ${investor.name}!`,
+        type: 'commission'
+      });
 
-        // Log commission for this specific level
-        await CommissionLog.create({
-          recipientId: ancestorId,
-          sourceUserId: investor._id,
-          investmentId: investment._id,
-          level: level,
-          commissionType: 'level',
-          rate: ratePercent,
-          baseAmount,
-          commissionAmount,
-          description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s ${investmentType} daily earnings`
-        });
-
-        // Transaction record for each level
-        await Transaction.create({
-          userId: ancestorId,
-          type: 'commission',
-          amount: commissionAmount,
-          status: 'completed',
-          description: `Level ${level} commission (${ratePercent}%) from ${investor.name}'s ${investmentType} daily earnings`,
-          referenceId: investment._id,
-          referenceModel: investmentType
-        });
-
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | L${level} | Rate=${ratePercent}% | Commission=$${commissionAmount.toFixed(4)} | From: ${investor.name}`);
-      }
-
-      // Credit total commission to upline
-      if (totalCommissionAtPosition > 0) {
-        await User.findByIdAndUpdate(ancestorId, {
-          $inc: {
-            'wallet.commission': totalCommissionAtPosition,
-            totalEarned: totalCommissionAtPosition
-          }
-        });
-
-        // Single notification per position with total earned
-        await Notification.create({
-          userId: ancestorId,
-          title: 'Commission Received',
-          message: `You earned $${totalCommissionAtPosition.toFixed(2)} in commissions from ${investor.name} (${unlockedLevels.length} levels)!`,
-          type: 'commission'
-        });
-
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} (${unlockedLevels.length} levels) | Total=$${totalCommissionAtPosition.toFixed(4)}`);
-      }
+      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | L${payoutLevel} | Rate=${ratePercent}% | Base=$${baseAmount.toFixed(4)} | Commission=$${commissionAmount.toFixed(4)} | From: ${upline.name}`);
 
     } catch (err) {
       console.error(`Error at position ${networkPosition}:`, err.message);

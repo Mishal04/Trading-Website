@@ -1,161 +1,140 @@
 /**
- * Earnings Breakdown Example
+ * Earnings Breakdown Example - CORRECTED
  * 
  * Scenario: 
  * - User A invests $1000 and refers User B
  * - User B also invests $1000
  * 
- * Shows: Daily profit, direct commission, and level commissions
+ * CORRECTED: Each referral earns from ONE specific level, not all levels
+ * Ref #1: L20 (0.9%)
+ * Ref #2: L18 (0.9%)
+ * Ref #3: L16 (0.9%)
+ * Ref #4: L14 (0.9%)
+ * Ref #5: L12 (2%)
+ * Ref #6: L10 (2%)
+ * Ref #7: L8 (2%)
+ * Ref #8: L7 (2%)
+ * Ref #9: L5 (5%)
+ * Ref #10+: L1 (25%)
  */
 
 const constants = require('../config/constants');
 
 console.log('\n╔════════════════════════════════════════════════════════════════════════╗');
-console.log('║               EARNINGS BREAKDOWN - COMPLETE EXAMPLE                    ║');
+console.log('║           EARNINGS BREAKDOWN - CORRECTED (One Level Per Ref)           ║');
 console.log('╚════════════════════════════════════════════════════════════════════════╝\n');
 
 const INVESTMENT_A = 1000;
 const INVESTMENT_B = 1000;
 
-// Calculate daily ROI based on package rates
-// Assuming Plan A (Investor Plan) with daily ROI rate
-const DAILY_ROI_RATE = 0.01; // 1% daily for $1000 investment
-const DAILY_ROI_A = INVESTMENT_A * DAILY_ROI_RATE;  // User A's daily ROI from own investment
-const DAILY_ROI_B = INVESTMENT_B * DAILY_ROI_RATE;  // User B's daily ROI from own investment
+// Calculate daily ROI 
+const DAILY_ROI_RATE = 0.01; // 1% daily
+const DAILY_ROI_A = INVESTMENT_A * DAILY_ROI_RATE;
+const DAILY_ROI_B = INVESTMENT_B * DAILY_ROI_RATE;
 
 console.log('═══════════════════════════════════════════════════════════════════════════════');
 console.log('SCENARIO: User A invests $1000 and refers User B who also invests $1000');
 console.log('═══════════════════════════════════════════════════════════════════════════════\n');
 
-console.log('USER A (Referrer)');
+console.log('USER A (Referrer with 1 Direct)');
 console.log('─────────────────────────────────────────────────────────────────────────────\n');
-
-console.log('INITIAL STATUS:');
-console.log(`  Investment: $${INVESTMENT_A}`);
-console.log(`  Direct Referrals: 1 (User B)`);
-console.log(`  Unlocked Levels: L21, L20 (2 levels) - just got first direct`);
-const levelCountA = constants.getUnlockedLevelCount(1);
-const unlockedLevelsA = constants.getUnlockedLevelNumbers(1);
-console.log(`  Unlocked Levels Array: [${unlockedLevelsA.join(', ')}]\n`);
 
 console.log('DAILY EARNINGS FROM USER A\'S OWN INVESTMENT:');
+console.log(`  Investment: $${INVESTMENT_A}`);
 console.log(`  Daily ROI Rate: ${DAILY_ROI_RATE * 100}%`);
-console.log(`  Daily ROI Amount: $${DAILY_ROI_A.toFixed(2)}`);
-console.log(`  Monthly ROI (30 days): $${(DAILY_ROI_A * 30).toFixed(2)}`);
-console.log(`  Yearly ROI: $${(DAILY_ROI_A * 365).toFixed(2)}\n`);
+console.log(`  Daily ROI: $${DAILY_ROI_A.toFixed(2)}`);
+console.log(`  Monthly: $${(DAILY_ROI_A * 30).toFixed(2)}`);
+console.log(`  Yearly: $${(DAILY_ROI_A * 365).toFixed(2)}\n`);
 
-console.log('DIRECT REFERRAL COMMISSION (Instant, when User B\'s investment is approved):');
+console.log('ONE-TIME DIRECT REFERRAL COMMISSION:');
 const directCommissionRate = constants.DIRECT_REFERRAL_COMMISSION_RATE;
 const directCommission = INVESTMENT_B * directCommissionRate;
-console.log(`  Rate: ${directCommissionRate * 100}% of referred person's investment`);
-console.log(`  Commission: $${INVESTMENT_B} × ${directCommissionRate * 100}% = $${directCommission.toFixed(2)}`);
-console.log(`  NOTE: Paid ONCE when investment is approved (not daily)\n`);
+console.log(`  Rate: ${directCommissionRate * 100}% of referred investment`);
+console.log(`  Amount: $${INVESTMENT_B} × ${directCommissionRate * 100}% = $${directCommission.toFixed(2)}\n`);
 
-console.log('DAILY LEVEL COMMISSIONS FROM USER B\'S ROI EARNINGS:');
-console.log(`  (This is DAILY, from User B's daily ROI of $${DAILY_ROI_B.toFixed(2)})\n`);
+console.log('DAILY LEVEL COMMISSION FROM USER B (Referral #1):');
+console.log(`  Referral Position: #1`);
+console.log(`  Commission Level: L20 (formula: 22 - (1 × 2) = 20)`);
+const ref1Level = 20;
+const ref1Rate = constants.LEVEL_RATES[ref1Level - 1];
+const ref1Commission = (DAILY_ROI_B * ref1Rate) / 100;
+console.log(`  Rate: ${ref1Rate}%`);
+console.log(`  From User B's daily ROI: ${ref1Rate}% × $${DAILY_ROI_B.toFixed(2)} = $${ref1Commission.toFixed(4)}`);
+console.log(`  Monthly: $${(ref1Commission * 30).toFixed(2)}`);
+console.log(`  Yearly: $${(ref1Commission * 365).toFixed(2)}\n`);
 
-let userALevelCommTotal = 0;
-for (const level of unlockedLevelsA) {
-  const rate = constants.LEVEL_RATES[level - 1];
-  const commission = (DAILY_ROI_B * rate) / 100;
-  userALevelCommTotal += commission;
-  console.log(`  L${String(level).padEnd(2)}: ${String(rate).padEnd(5)}% of $${DAILY_ROI_B.toFixed(2)} = $${commission.toFixed(4)}`);
-}
-console.log(`  ────────────────────────────────────────────────`);
-console.log(`  TOTAL DAILY LEVEL COMMISSION: $${userALevelCommTotal.toFixed(2)}`);
-console.log(`  Monthly Level Commission (30 days): $${(userALevelCommTotal * 30).toFixed(2)}`);
-console.log(`  Yearly Level Commission: $${(userALevelCommTotal * 365).toFixed(2)}\n`);
-
-const userATotalDaily = DAILY_ROI_A + userALevelCommTotal;
+const userATotalDaily = DAILY_ROI_A + ref1Commission;
 console.log('USER A TOTAL DAILY EARNINGS:');
 console.log(`  Own ROI: $${DAILY_ROI_A.toFixed(2)}`);
-console.log(`  Level Commissions: $${userALevelCommTotal.toFixed(2)}`);
+console.log(`  Level Commissions: $${ref1Commission.toFixed(4)}`);
 console.log(`  ────────────────────────`);
-console.log(`  TOTAL DAILY: $${userATotalDaily.toFixed(2)}`);
-console.log(`  Monthly (30 days): $${(userATotalDaily * 30).toFixed(2)}`);
+console.log(`  TOTAL DAILY: $${userATotalDaily.toFixed(4)}`);
+console.log(`  Monthly: $${(userATotalDaily * 30).toFixed(2)}`);
 console.log(`  Yearly: $${(userATotalDaily * 365).toFixed(2)}`);
-console.log(`  Plus one-time Direct Commission: $${directCommission.toFixed(2)}\n`);
+console.log(`  + One-time Direct Bonus: $${directCommission.toFixed(2)}\n`);
 
 console.log('\n═══════════════════════════════════════════════════════════════════════════════');
-console.log('USER B (Referred Person)');
-console.log('─────────────────────────────────────────────────────────────────────────────\n');
-
-console.log('INITIAL STATUS:');
-console.log(`  Investment: $${INVESTMENT_B}`);
-console.log(`  Direct Referrals: 0 (just joined)`);
-console.log(`  Unlocked Levels: None (need 1 direct to unlock L21, L20)`);
-console.log(`  Unlocked Levels Array: []\n`);
-
-console.log('DAILY EARNINGS FROM USER B\'S OWN INVESTMENT:');
-console.log(`  Daily ROI Rate: ${DAILY_ROI_RATE * 100}%`);
-console.log(`  Daily ROI Amount: $${DAILY_ROI_B.toFixed(2)}`);
-console.log(`  Monthly ROI (30 days): $${(DAILY_ROI_B * 30).toFixed(2)}`);
-console.log(`  Yearly ROI: $${(DAILY_ROI_B * 365).toFixed(2)}\n`);
-
-console.log('DIRECT REFERRAL COMMISSION:');
-console.log(`  None yet - User B hasn't referred anyone\n`);
-
-console.log('DAILY LEVEL COMMISSIONS:');
-console.log(`  None - User B has 0 direct referrals, so no unlocked levels\n`);
-
-const userBTotalDaily = DAILY_ROI_B;
-console.log('USER B TOTAL DAILY EARNINGS:');
-console.log(`  Own ROI: $${DAILY_ROI_B.toFixed(2)}`);
-console.log(`  Level Commissions: $0.00`);
-console.log(`  ────────────────────────`);
-console.log(`  TOTAL DAILY: $${userBTotalDaily.toFixed(2)}`);
-console.log(`  Monthly (30 days): $${(userBTotalDaily * 30).toFixed(2)}`);
-console.log(`  Yearly: $${(userBTotalDaily * 365).toFixed(2)}`);
-console.log(`  One-time Direct Commission from User A: $0.00\n`);
-
-console.log('\n═══════════════════════════════════════════════════════════════════════════════');
-console.log('SUMMARY TABLE');
+console.log('EXAMPLE: User A with 8 Direct Referrals (all invest $1000, earn $10 daily)');
 console.log('═══════════════════════════════════════════════════════════════════════════════\n');
 
-console.log('                                  USER A          USER B');
-console.log('─────────────────────────────────────────────────────────────');
-console.log(`Investment Amount:                $${INVESTMENT_A}           $${INVESTMENT_B}`);
-console.log(`Direct Referrals:                 1               0`);
-console.log(`Unlocked Levels:                  2 (L21, L20)    None`);
-console.log('─────────────────────────────────────────────────────────────');
-console.log(`Daily ROI (own investment):       $${DAILY_ROI_A.toFixed(2)}           $${DAILY_ROI_B.toFixed(2)}`);
-console.log(`Daily Level Commission:          $${userALevelCommTotal.toFixed(2)}           $0.00`);
-console.log(`────────────────────────────────────────────────────────────`);
-console.log(`TOTAL DAILY EARNINGS:             $${userATotalDaily.toFixed(2)}           $${userBTotalDaily.toFixed(2)}`);
-console.log('─────────────────────────────────────────────────────────────');
-console.log(`Monthly Earnings (30 days):       $${(userATotalDaily * 30).toFixed(2)}          $${(userBTotalDaily * 30).toFixed(2)}`);
-console.log(`Yearly Earnings (365 days):       $${(userATotalDaily * 365).toFixed(2)}         $${(userBTotalDaily * 365).toFixed(2)}`);
-console.log('─────────────────────────────────────────────────────────────');
-console.log(`One-time Direct Commission:       $${directCommission.toFixed(2)} (paid once)    $0.00`);
-console.log('─────────────────────────────────────────────────────────────\n');
+const referrals = [
+  { num: 1, level: 20, rate: 0.9 },
+  { num: 2, level: 18, rate: 0.9 },
+  { num: 3, level: 16, rate: 0.9 },
+  { num: 4, level: 14, rate: 0.9 },
+  { num: 5, level: 12, rate: 2 },
+  { num: 6, level: 10, rate: 2 },
+  { num: 7, level: 8, rate: 2 },
+  { num: 8, level: 7, rate: 2 }
+];
 
-console.log('═══════════════════════════════════════════════════════════════════════════════');
-console.log('WHAT HAPPENS WHEN USER B REFERS SOMEONE (User C)?');
-console.log('═══════════════════════════════════════════════════════════════════════════════\n');
+console.log('Daily Level Commission Breakdown:\n');
+let totalCommissions = 0;
 
-console.log('User B then gets 1 direct referral and unlocks L21, L20:');
-const unlockedLevelsB = constants.getUnlockedLevelNumbers(1);
-console.log(`  Unlocked Levels: [${unlockedLevelsB.join(', ')}]\n`);
-
-console.log('If User C also invests $1000 with daily ROI of $10:\n');
-
-let userBLevelCommTotal = 0;
-console.log('User B Daily Level Commissions from User C\'s ROI:');
-for (const level of unlockedLevelsB) {
-  const rate = constants.LEVEL_RATES[level - 1];
-  const commission = (DAILY_ROI_B * rate) / 100;
-  userBLevelCommTotal += commission;
-  console.log(`  L${String(level).padEnd(2)}: ${String(rate).padEnd(5)}% of $${DAILY_ROI_B.toFixed(2)} = $${commission.toFixed(4)}`);
+for (const ref of referrals) {
+  const commission = (DAILY_ROI_B * ref.rate) / 100;
+  totalCommissions += commission;
+  console.log(`  Ref #${ref.num}: L${ref.level} (${ref.rate}%) × $${DAILY_ROI_B.toFixed(2)} = $${commission.toFixed(2)}`);
 }
-console.log(`\nUser B\'s NEW daily earnings: $${DAILY_ROI_B.toFixed(2)} (own) + $${userBLevelCommTotal.toFixed(2)} (commissions) = $${(DAILY_ROI_B + userBLevelCommTotal).toFixed(2)}`);
 
-console.log('\n\n═══════════════════════════════════════════════════════════════════════════════');
-console.log('KEY TAKEAWAYS');
-console.log('═══════════════════════════════════════════════════════════════════════════════\n');
-console.log('1. Own ROI: Everyone gets daily ROI from their own investment (1% = $10/day on $1000)');
-console.log('2. Direct Commission: 5% instant bonus when someone you refer gets investment approved');
-console.log('3. Level Commissions: Daily commissions from downline ROI (need 1+ direct to unlock levels)');
-console.log('4. Levels Unlock: 1 direct = 2 levels (L21,L20), 2 directs = 4 levels (L21-L18), etc.');
-console.log('5. Network Effect: Building your downline increases daily earnings exponentially\n');
+console.log(`  ────────────────────────────────────────────────`);
+console.log(`  TOTAL DAILY COMMISSION FROM 8 REFS: $${totalCommissions.toFixed(2)}`);
 
+const ref9Plus = INVESTMENT_B * 0.05; // Ref #9 at L5 (5%)
+const ref10Plus = INVESTMENT_B * 0.25; // Ref #10 at L1 (25%)
+
+console.log(`\n  If add Ref #9 (L5, 5%): +$${ref9Plus.toFixed(2)}/day`);
+console.log(`  If add Ref #10 (L1, 25%): +$${ref10Plus.toFixed(2)}/day`);
+
+console.log(`\nUSER A WITH 8 DIRECTS TOTAL DAILY:`);
+const with8Directs = DAILY_ROI_A + totalCommissions;
+console.log(`  Own ROI: $${DAILY_ROI_A.toFixed(2)}`);
+console.log(`  Commission: $${totalCommissions.toFixed(2)}`);
+console.log(`  TOTAL: $${with8Directs.toFixed(2)}/day`);
+console.log(`  Monthly: $${(with8Directs * 30).toFixed(2)}`);
+
+const with10Directs = DAILY_ROI_A + totalCommissions + ref9Plus + ref10Plus;
+console.log(`\nUSER A WITH 10+ DIRECTS TOTAL DAILY:`);
+console.log(`  Own ROI: $${DAILY_ROI_A.toFixed(2)}`);
+console.log(`  Commission: $${(totalCommissions + ref9Plus + ref10Plus).toFixed(2)}`);
+console.log(`  TOTAL: $${with10Directs.toFixed(2)}/day`);
+console.log(`  Monthly: $${(with10Directs * 30).toFixed(2)}\n`);
+
+console.log('\n═══════════════════════════════════════════════════════════════════════════════');
+console.log('SUMMARY - COMMISSION PER REFERRAL');
 console.log('═══════════════════════════════════════════════════════════════════════════════\n');
+
+const allRefs = [
+  ...referrals,
+  { num: 9, level: 5, rate: 5 },
+  { num: 10, level: 1, rate: 25 }
+];
+
+console.log('Referral #   Level   Rate    Daily Comm    Monthly      Yearly');
+console.log('──────────────────────────────────────────────────────────────');
+for (const ref of allRefs) {
+  const daily = (DAILY_ROI_B * ref.rate) / 100;
+  console.log(`    ${String(ref.num).padEnd(2)}        L${String(ref.level).padEnd(2)}     ${String(ref.rate + '%').padEnd(5)}   $${String(daily.toFixed(2)).padEnd(5)}      $${(daily * 30).toFixed(0).padEnd(6)}     $${(daily * 365).toFixed(0)}`);
+}
+
+console.log('\n═══════════════════════════════════════════════════════════════════════════════\n');
