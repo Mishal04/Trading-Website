@@ -24,19 +24,21 @@ const INVESTOR_PACKAGES = {
 };
 
 // Phase 1 (0-6 months): Plan A
+// $100-900, $1k-5k, $6k-9k = 1.00% | $10k-25k = 1.25%
 const INVESTOR_DAILY_RATES_PHASE_1 = {
-  1: 1,       // 1.00% per day
-  2: 1,       // 1.00% per day
-  3: 1,       // 1.00% per day
-  4: 1.25     // 1.25% per day
+  1: 1.00,    // $100-900 = 1.00% per day
+  2: 1.00,    // $1k-5k = 1.00% per day
+  3: 1.00,    // $6k-9k = 1.00% per day
+  4: 1.25     // $10k-25k = 1.25% per day
 };
 
 // Phase 2 (6-12 months): Plan B
+// $100-900, $1k-5k, $6k-9k = 0.75% | $10k-25k = 1.00%
 const INVESTOR_DAILY_RATES_PHASE_2 = {
-  1: 0.75,    // 0.75% per day
-  2: 0.75,    // 0.75% per day
-  3: 0.75,    // 0.75% per day
-  4: 1        // 1.00% per day
+  1: 0.75,    // $100-900 = 0.75% per day
+  2: 0.75,    // $1k-5k = 0.75% per day
+  3: 0.75,    // $6k-9k = 0.75% per day
+  4: 1.00     // $10k-25k = 1.00% per day
 };
 
 // Legacy structure (for backwards compatibility if needed)
@@ -45,7 +47,7 @@ const INVESTOR_DAILY_RATES = {
   B: INVESTOR_DAILY_RATES_PHASE_2
 };
 
-const INVESTOR_MONTHLY_RATE_PHASE_3 = 0.08;   // 8% per month (Phase 3, 12+ months)
+const INVESTOR_MONTHLY_RATE_PHASE_3 = 0.08;   // 8% per month (can be 8-10% range)
 const INVESTOR_MONTHLY_RATE_MIN = 0.08;       // Minimum 8% per month
 const INVESTOR_MONTHLY_RATE_MAX = 0.10;       // Maximum 10% per month (adjustable by admin)
 
