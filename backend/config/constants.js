@@ -54,17 +54,18 @@ module.exports = {
   ],
 
   // Level unlocking based on direct referral count
+  // Levels unlock from L21 downward (highest earning potential last at L1)
   LEVEL_UNLOCK_RULES: {
-    1: 2,
-    2: 4,
-    3: 6,
-    4: 8,
-    5: 10,
-    6: 12,
-    7: 14,
-    8: 16,
-    9: 18,
-    10: 21
+    1: 2,    // 1 direct: 2 levels (L21, L20)
+    2: 4,    // 2 directs: 4 levels (L21, L20, L19, L18)
+    3: 6,    // 3 directs: 6 levels (L21-L16)
+    4: 8,    // 4 directs: 8 levels (L21-L14)
+    5: 10,   // 5 directs: 10 levels (L21-L12)
+    6: 12,   // 6 directs: 12 levels (L21-L10)
+    7: 14,   // 7 directs: 14 levels (L21-L8)
+    8: 16,   // 8 directs: 16 levels (L21-L6)
+    9: 18,   // 9 directs: 18 levels (L21-L4)
+    10: 21   // 10+ directs: all 21 levels (L21-L1)
   },
 
   // Income caps (multiples of investment)
@@ -131,5 +132,104 @@ module.exports = {
   // ── Direct referral commission ────────────────────────────────────────────
   // Instant 5% commission credited to referrer on investment approval.
   // Separate from the 21-level daily profit commission system.
-  DIRECT_REFERRAL_COMMISSION_RATE: 0.05
+  DIRECT_REFERRAL_COMMISSION_RATE: 0.05,
+
+  // ── Helper functions for level unlock logic ──────────────────────────────
+  // REVERSE UNLOCK ORDER: L21 → L20 → ... → L1
+  // The client wants highest levels to unlock first.
+  
+  /**
+   * Get the count of unlocked levels based on direct referral count.
+   * Returns the NUMBER of levels unlocked (not which levels).
+   * @param {number} directCount
+   * @returns {number} Count of unlocked levels (0-21)
+   */
+  getUnlockedLevelCount(directCount) {
+    if (directCount >= 10) return 21;
+    const rules = this.LEVEL_UNLOCK_RULES;
+    return rules[directCount] || 0;
+  },
+
+  /**
+   * Check if a specific level is unlocked for a given direct count.
+   * Uses REVERSE unlock order: L21 unlocks first, then L20, L19, ... L1 last.
+   * 
+   * Example:
+   *   directCount=1 → 2 levels unlocked → L21, L20 are unlocked
+   *   directCount=2 → 4 levels unlocked → L21, L20, L19, L18 are unlocked
+   *   directCount=8 → 16 levels unlocked → L21-L6 are unlocked
+   *   directCount=10 → 21 levels unlocked → all L1-L21 are unlocked
+   * 
+   * @param {number} level - Network level (1-21)
+   * @param {number} directCount - Number of direct referrals
+   * @returns {boolean} True if level is unlocked
+   */
+  isLevelUnlocked(level, directCount) {
+    if (level < 1 || level > 21) return false;
+    
+    const unlockedCount = this.getUnlockedLevelCount(directCount);
+    if (unlockedCount <= 0) return false;
+    
+    // Unlock from L21 downward: L21 is index 0, L20 is index 1, ..., L1 is index 20
+    // For a level to be unlocked, its reverse index must be within the unlocked count
+    const reverseIndex = 21 - level;
+    return reverseIndex < unlockedCount;
+  },
+
+  /**
+   * Get array of actual level numbers that are unlocked for a given direct count.
+   * Returns in order: [L21, L20, L19, ...] down to the lowest unlocked level.
+   * 
+   * Example:
+   *   directCount=1 → [21, 20]
+   *   directCount=2 → [21, 20, 19, 18]
+   *   directCount=8 → [21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6]
+   *   directCount=10 → [21, 20, 19, ..., 2, 1]
+   * 
+   * @param {number} directCount
+   * @returns {number[]} Array of unlocked level numbers in descending order
+   */
+  getUnlockedLevelNumbers(directCount) {
+    const count = this.getUnlockedLevelCount(directCount);
+    if (count <= 0) return [];
+    // Return levels from 21 down to (21 - count + 1)
+    // Example: count=2 → [21, 20]
+    // Example: count=4 → [21, 20, 19, 18]
+    return Array.from({ length: count }, (_, index) => 21 - index);
+  },
+
+  /**
+   * Get the LOWEST level unlocked (minimum earning potential) for a user.
+   * 
+   * With levels unlocking from L21 → L1, this returns the "frontier" level being approached.
+   * It's used for display purposes (e.g., "Your current level is L18").
+   * 
+   * For commissions, use getUnlockedLevelNumbers() instead to get ALL unlocked levels.
+   * 
+   * Examples:
+   *   directCount=1 → L20 (can earn from L21, L20)
+   *   directCount=2 → L18 (can earn from L21, L20, L19, L18)
+   *   directCount=8 → L6 (can earn from L21, L20, ..., L6)
+   *   directCount=10 → L1 (can earn from all L21-L1)
+   * 
+   * Formula: lowestLevel = 21 - (unlockedCount - 1)
+   * OR: lowestLevel = 22 - unlockedCount
+   * 
+   * @param {number} directCount
+   * @returns {number|null} Lowest unlocked level (1-21) or null if no directs
+   */
+  getCurrentCommissionLevel(directCount) {
+    if (!directCount || directCount <= 0) {
+      return null;  // No levels unlocked
+    }
+    
+    const unlockedCount = this.getUnlockedLevelCount(directCount);
+    if (unlockedCount <= 0) return null;
+    
+    // Lowest level = 22 - unlockedCount
+    // Example: unlockedCount=2 → 22-2=20 (L21, L20)
+    // Example: unlockedCount=4 → 22-4=18 (L21, L20, L19, L18)
+    return 22 - unlockedCount;
+  }
+
 };

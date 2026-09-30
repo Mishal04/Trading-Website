@@ -141,7 +141,7 @@ const distributeLevelCommissionsWithChecks = async (investment, baseAmount, inve
         continue;
       }
 
-      // Get ALL unlocked levels for this upline (e.g., [21, 20, 19, ..., 6] for 8 directs)
+      // Get ALL unlocked levels for this upline based on their directCount
       const unlockedLevels = constants.getUnlockedLevelNumbers(upline.directCount || 0);
       
       if (!unlockedLevels || unlockedLevels.length === 0) {
@@ -149,17 +149,7 @@ const distributeLevelCommissionsWithChecks = async (investment, baseAmount, inve
         continue;
       }
 
-      // Determine which levels should be paid at this position
-      // Position 1 gets all unlocked levels, Position 2 gets unlocked levels - 1, etc.
-      const startLevelIndex = Math.min(networkPosition - 1, unlockedLevels.length - 1);
-      const availableLevels = unlockedLevels.slice(startLevelIndex);
-
-      if (availableLevels.length === 0) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} no available levels at this depth`);
-        continue;
-      }
-
-      // Check income cap once for the entire upline
+      // Check income cap once
       if (upline.hasReachedIncomeCap && upline.hasReachedIncomeCap()) {
         console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} income cap reached`);
         continue;
@@ -167,8 +157,9 @@ const distributeLevelCommissionsWithChecks = async (investment, baseAmount, inve
 
       let totalCommissionAtPosition = 0;
 
-      // Create commission records for each available level
-      for (const level of availableLevels) {
+      // Create commission records for EACH of their unlocked levels
+      // Each upline earns from all their unlocked levels on this downline member's investment
+      for (const level of unlockedLevels) {
         const ratePercent = LEVEL_RATES[level - 1] || 0;
         if (ratePercent <= 0) continue;
 
@@ -217,11 +208,11 @@ const distributeLevelCommissionsWithChecks = async (investment, baseAmount, inve
         await Notification.create({
           userId: ancestorId,
           title: 'Commission Received',
-          message: `You earned $${totalCommissionAtPosition.toFixed(2)} in commissions from your downline (${availableLevels.length} levels)!`,
+          message: `You earned $${totalCommissionAtPosition.toFixed(2)} in commissions from ${investor.name} (${unlockedLevels.length} levels)!`,
           type: 'commission'
         });
 
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} | Total=$${totalCommissionAtPosition.toFixed(4)} | Levels=${availableLevels.length}`);
+        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} (${unlockedLevels.length} levels) | Total=$${totalCommissionAtPosition.toFixed(4)}`);
       }
 
     } catch (err) {
