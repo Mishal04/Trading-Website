@@ -71,16 +71,28 @@ function UserDetail({ user }) {
           {/* Payment Details */}
           <div className="rounded-xl border border-dark-500 bg-dark-800/60 p-4">
             <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">Payment Details</div>
-            {user.bankDetails?.accountName ? (
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between"><span className="text-gray-400">Account Name</span><span className="font-semibold text-white">{user.bankDetails.accountName}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400">Account Number</span><span className="font-mono text-white">{user.bankDetails.accountNumber}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400">Bank Name</span><span className="font-semibold text-white">{user.bankDetails.bankName}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400">IFSC Code</span><span className="font-mono text-white">{user.bankDetails.ifscCode}</span></div>
+            <div className="space-y-2 text-xs">
+              {/* Crypto Wallet */}
+              <div>
+                <p className="text-gray-400 mb-1">Crypto Wallet Address</p>
+                {user.walletAddress ? (
+                  <p className="font-mono text-white break-all bg-dark-900/50 px-2 py-1.5 rounded border border-dark-600">{user.walletAddress}</p>
+                ) : (
+                  <p className="text-gray-500 italic">Not set</p>
+                )}
               </div>
-            ) : (
-              <p className="text-xs text-gray-500 italic">No payment details on file</p>
-            )}
+              {/* Bank Details */}
+              {user.bankDetails?.accountName ? (
+                <div className="border-t border-dark-600 pt-2">
+                  <div className="flex justify-between mb-1"><span className="text-gray-400">Account Name</span><span className="font-semibold text-white">{user.bankDetails.accountName}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-400">Account Number</span><span className="font-mono text-white">{user.bankDetails.accountNumber}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-400">Bank Name</span><span className="font-semibold text-white">{user.bankDetails.bankName}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-400">IFSC Code</span><span className="font-mono text-white">{user.bankDetails.ifscCode}</span></div>
+                </div>
+              ) : (
+                <p className="text-gray-500 italic">No bank details on file</p>
+              )}
+            </div>
           </div>
         </div>
       </td>
