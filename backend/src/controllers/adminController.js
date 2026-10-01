@@ -1608,6 +1608,7 @@ const getImpersonationLogs = async (req, res) => {
 const getUserPaymentInfo = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('📋 getUserPaymentInfo called for user:', id);
     
     const user = await User.findById(id).select('-password');
     if (!user) {
@@ -1620,26 +1621,34 @@ const getUserPaymentInfo = async (req, res) => {
       walletAddress: { $exists: true, $ne: '' }
     }).sort({ requestedAt: -1 });
 
+    console.log('💳 Latest withdrawal:', latestWithdrawal ? `${latestWithdrawal.walletAddress} (${latestWithdrawal.network})` : 'None');
+
     // Get latest investment with transaction ID
     const latestInvestment = await require('../models/Investment').findOne({
       userId: id,
       transactionId: { $exists: true, $ne: '' }
     }).sort({ createdAt: -1 });
 
+    console.log('📊 Latest investment TXN:', latestInvestment ? latestInvestment.transactionId : 'None');
+
+    const responseData = {
+      userId: id,
+      storedWalletAddress: user.walletAddress || null,
+      latestWithdrawalAddress: latestWithdrawal?.walletAddress || null,
+      latestWithdrawalNetwork: latestWithdrawal?.network || null,
+      latestInvestmentTxId: latestInvestment?.transactionId || null,
+      latestInvestmentAmount: latestInvestment?.amount || null,
+      bankDetails: user.bankDetails || null
+    };
+
+    console.log('✅ Returning payment info:', responseData);
+
     return res.json({
       success: true,
-      data: {
-        userId: id,
-        storedWalletAddress: user.walletAddress || null,
-        latestWithdrawalAddress: latestWithdrawal?.walletAddress || null,
-        latestWithdrawalNetwork: latestWithdrawal?.network || null,
-        latestInvestmentTxId: latestInvestment?.transactionId || null,
-        latestInvestmentAmount: latestInvestment?.amount || null,
-        bankDetails: user.bankDetails || null
-      }
+      data: responseData
     });
   } catch (error) {
-    console.error('Get user payment info error:', error);
+    console.error('❌ Get user payment info error:', error);
     return res.status(500).json({ success: false, message: 'Server error fetching payment info' });
   }
 };

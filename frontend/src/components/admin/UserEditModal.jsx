@@ -92,30 +92,38 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
   const fetchUserPaymentInfo = async () => {
     if (!user?._id) return;
     try {
+      console.log('🔍 Fetching payment info for user:', user._id);
       const res = await adminAPI.getUserPaymentInfo(user._id);
+      console.log('✅ Payment info response:', res.data?.data);
       const paymentInfo = res.data?.data;
       
       if (paymentInfo) {
-        // If there's a latest withdrawal wallet address, use it to pre-populate the form
-        if (paymentInfo.latestWithdrawalAddress && !form.walletAddress) {
+        // Always update with latest withdrawal address if available
+        if (paymentInfo.latestWithdrawalAddress) {
+          console.log('💰 Found latest withdrawal address:', paymentInfo.latestWithdrawalAddress);
           setForm(prevForm => ({
             ...prevForm,
             walletAddress: paymentInfo.latestWithdrawalAddress
           }));
           setLatestCryptoAddress(paymentInfo.latestWithdrawalAddress);
+        } else {
+          console.log('⚠️ No latest withdrawal address found');
         }
         
-        // Store payment info for display
-        setLatestCryptoAddress(paymentInfo.latestWithdrawalAddress || paymentInfo.storedWalletAddress);
+        // Also set stored wallet address as reference
+        if (paymentInfo.latestWithdrawalAddress || paymentInfo.storedWalletAddress) {
+          setLatestCryptoAddress(paymentInfo.latestWithdrawalAddress || paymentInfo.storedWalletAddress);
+        }
       }
     } catch (err) {
-      console.error('Error fetching payment info:', err);
+      console.error('❌ Error fetching payment info:', err);
     }
   };
 
   // Reset form when user changes or modal opens
   useEffect(() => {
     if (user && isOpen) {
+      console.log('📋 UserEditModal opened for:', user.name, user._id);
       // First set with the passed user data
       setForm({
         name: user.name || '',
