@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { adminAPI, withdrawalAPI } from '../../services/api';
+import { adminAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import TransactionErrorBoundary from './TransactionErrorBoundary';
 import {
@@ -88,6 +88,31 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
     }
   };
 
+  // Fetch user's payment info (wallet address from withdrawals, TXN ID from investments)
+  const fetchUserPaymentInfo = async () => {
+    if (!user?._id) return;
+    try {
+      const res = await adminAPI.getUserPaymentInfo(user._id);
+      const paymentInfo = res.data?.data;
+      
+      if (paymentInfo) {
+        // If there's a latest withdrawal wallet address, use it to pre-populate the form
+        if (paymentInfo.latestWithdrawalAddress && !form.walletAddress) {
+          setForm(prevForm => ({
+            ...prevForm,
+            walletAddress: paymentInfo.latestWithdrawalAddress
+          }));
+          setLatestCryptoAddress(paymentInfo.latestWithdrawalAddress);
+        }
+        
+        // Store payment info for display
+        setLatestCryptoAddress(paymentInfo.latestWithdrawalAddress || paymentInfo.storedWalletAddress);
+      }
+    } catch (err) {
+      console.error('Error fetching payment info:', err);
+    }
+  };
+
   // Reset form when user changes or modal opens
   useEffect(() => {
     if (user && isOpen) {
@@ -110,8 +135,8 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
       // Then fetch fresh data to ensure we have the latest
       fetchFreshUserData();
       
-      // Fetch latest crypto address
-      fetchLatestCryptoAddress();
+      // Fetch latest payment info (wallet address, transaction IDs, bank details)
+      fetchUserPaymentInfo();
     }
   }, [user, isOpen]);
 
@@ -121,23 +146,6 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
       fetchTransactions();
     }
   }, [tab, isOpen]);
-
-  const fetchLatestCryptoAddress = async () => {
-    if (!user?._id) return;
-    try {
-      // Fetch user's latest withdrawals to get the most recent crypto address
-      const res = await withdrawalAPI.getHistory({ userId: user._id, limit: 100 });
-      const withdrawals = res.data?.data?.withdrawals || [];
-      
-      // Find the latest withdrawal with a walletAddress
-      const latestWithdrawal = withdrawals.find(w => w.walletAddress);
-      if (latestWithdrawal) {
-        setLatestCryptoAddress(latestWithdrawal.walletAddress);
-      }
-    } catch (err) {
-      // Silent fail - crypto address is optional
-    }
-  };
 
   const fetchTransactions = async () => {
     if (!user?._id) return;
@@ -382,11 +390,11 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                   className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-xs mb-2"
                 />
                 <p className="text-xs text-gray-600 mb-2">
-                  Bitcoin or crypto wallet address for withdrawals. You can override the address used in withdrawal transactions.
+                  Bitcoin or crypto wallet address for withdrawals. Auto-populated with latest address from user's withdrawal requests.
                 </p>
                 {latestCryptoAddress && (
                   <p className="text-xs text-gray-500 p-2 rounded-lg bg-dark-700 border border-dark-600">
-                    Last used: <span className="text-gray-300 font-mono break-all">{latestCryptoAddress}</span>
+                    Last withdrawal address: <span className="text-gray-300 font-mono break-all">{latestCryptoAddress}</span>
                   </p>
                 )}
               </div>

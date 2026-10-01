@@ -29,7 +29,8 @@ const {
   adminDepositToUser,
   adminWithdrawFromUser,
   generateImpersonationToken,
-  getImpersonationLogs
+  getImpersonationLogs,
+  getUserPaymentInfo
 } = require('../controllers/adminController');
 
 // Validation for ROI credit
@@ -56,6 +57,7 @@ router.patch('/users/:id/role',                updateUserRole);
 router.patch('/users/:id/networker-access',    toggleNetworkerAccess);
 router.patch('/users/:id/plan',                updateUserPlan);
 router.get('/users/:id/transactions',          getUserTransactions);         // NEW: Get user transaction history
+router.get('/users/:id/payment-info',          getUserPaymentInfo);           // NEW: Get user payment info (wallet, TXN ID, bank details)
 router.post('/users/:id/credit-roi',           creditUserRoi);  // NEW: Credit ROI to user's Plan A/B investment
 router.post('/users/:id/deposit',              adminDepositToUser);  // NEW: Admin deposit to user wallet
 router.post('/users/:id/withdraw',             adminWithdrawFromUser);  // NEW: Admin withdraw from user wallet

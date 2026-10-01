@@ -1600,6 +1600,50 @@ const getImpersonationLogs = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/admin/users/:id/payment-info
+ * Get user's latest payment information for display in admin edit modal
+ * Returns: latest wallet address from withdrawals, latest transaction ID from investments, etc.
+ */
+const getUserPaymentInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const user = await User.findById(id).select('-password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Get latest withdrawal with wallet address
+    const latestWithdrawal = await require('../models/Withdrawal').findOne({
+      userId: id,
+      walletAddress: { $exists: true, $ne: '' }
+    }).sort({ requestedAt: -1 });
+
+    // Get latest investment with transaction ID
+    const latestInvestment = await require('../models/Investment').findOne({
+      userId: id,
+      transactionId: { $exists: true, $ne: '' }
+    }).sort({ createdAt: -1 });
+
+    return res.json({
+      success: true,
+      data: {
+        userId: id,
+        storedWalletAddress: user.walletAddress || null,
+        latestWithdrawalAddress: latestWithdrawal?.walletAddress || null,
+        latestWithdrawalNetwork: latestWithdrawal?.network || null,
+        latestInvestmentTxId: latestInvestment?.transactionId || null,
+        latestInvestmentAmount: latestInvestment?.amount || null,
+        bankDetails: user.bankDetails || null
+      }
+    });
+  } catch (error) {
+    console.error('Get user payment info error:', error);
+    return res.status(500).json({ success: false, message: 'Server error fetching payment info' });
+  }
+};
+
 module.exports = {
   getSystemStats,
   getSystemPools,
@@ -1628,5 +1672,6 @@ module.exports = {
   adminDepositToUser,
   adminWithdrawFromUser,
   generateImpersonationToken,
-  getImpersonationLogs
+  getImpersonationLogs,
+  getUserPaymentInfo
 };

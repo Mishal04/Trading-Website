@@ -125,6 +125,7 @@ export const adminAPI = {
   getUsers:       (params) => api.get('/admin/users', { params }),
   toggleUser:     (id)     => api.patch(`/admin/users/${id}/toggle`),
   updateUserRole: (id, data) => api.patch(`/admin/users/${id}/role`, data),
+  getUserPaymentInfo: (id) => api.get(`/admin/users/${id}/payment-info`),  // NEW: Get user payment info
   toggleNetworkerAccess: (id, grant) => api.patch(`/admin/users/${id}/networker-access`, { grant }),
   updateUser: (id, data) => api.patch(`/admin/users/${id}`, data),
   getUserTransactions: (id, params) => api.get(`/admin/users/${id}/transactions`, { params }),
