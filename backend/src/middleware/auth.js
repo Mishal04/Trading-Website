@@ -9,6 +9,31 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
+      // Check if this is an impersonation token
+      if (decoded.impersonated === true) {
+        // This is an admin impersonating a user
+        req.user = await User.findById(decoded.id).select('-password');
+        req.impersonation = {
+          isImpersonating: true,
+          impersonatedBy: decoded.impersonatedBy,
+          impersonatedByEmail: decoded.impersonatedByEmail,
+          impersonationStarted: decoded.impersonationStarted,
+          expiresIn: decoded.expiresIn
+        };
+        
+        if (!req.user) {
+          return res.status(401).json({ 
+            success: false,
+            message: 'Impersonated user not found' 
+          });
+        }
+        
+        console.log(`🔐 Impersonation session: ${decoded.impersonatedByEmail} → ${req.user.email}`);
+        
+        return next();
+      }
+      
+      // Normal token - not impersonation
       req.user = await User.findById(decoded.id).select('-password');
       
       if (!req.user) {

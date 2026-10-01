@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import TransactionErrorBoundary from './TransactionErrorBoundary';
 import {
   X, Save, Mail, Phone, Building2, Plus,
-  ArrowDownUp, Eye, EyeOff, Loader, AlertTriangle, CheckCircle2,
+  ArrowDownUp, Eye, EyeOff, Loader, AlertTriangle, CheckCircle2, LogIn,
 } from 'lucide-react';
 
 const fmt = (n = 0) => {
@@ -199,6 +199,31 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
     }
   };
 
+  const handleLoginAsUser = async () => {
+    if (!user?._id) return;
+    
+    setLoading(true);
+    try {
+      const res = await adminAPI.generateImpersonationToken(user._id);
+      
+      // Store the impersonation token
+      const impersonationToken = res.data?.data?.token;
+      localStorage.setItem('token', impersonationToken);
+      localStorage.setItem('user', JSON.stringify(res.data?.data?.user));
+      
+      toast.success(`Logged in as ${user.name}`);
+      
+      // Redirect to user dashboard
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to generate impersonation token');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isOpen || !user) return null;
 
   return (
@@ -210,12 +235,23 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
             <h2 className="text-lg font-bold text-white">{user.name}</h2>
             <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-dark-700 transition-colors"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleLoginAsUser}
+              disabled={loading}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-400 text-sm font-semibold hover:bg-blue-500/30 transition-colors disabled:opacity-50"
+              title="Login as this user temporarily (30 min session)"
+            >
+              {loading ? <Loader size={14} className="animate-spin" /> : <LogIn size={14} />}
+              Login as User
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-dark-700 transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}

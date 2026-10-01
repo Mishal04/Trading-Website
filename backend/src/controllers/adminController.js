@@ -1467,6 +1467,133 @@ const adminWithdrawFromUser = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/admin/users/:id/impersonate
+ * Admin generates an impersonation token to temporarily "become" a user
+ * Returns a token that can be used to log in as that user
+ */
+const generateImpersonationToken = async (req, res) => {
+  try {
+    // Check if user is authenticated and is admin
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const { id } = req.params;
+
+    // Verify target user exists
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Import JWT and ImpersonationLog here
+    const jwt = require('jsonwebtoken');
+    const ImpersonationLog = require('../models/ImpersonationLog');
+
+    // Calculate expiry time (30 minutes from now)
+    const expiryTime = new Date(Date.now() + 30 * 60 * 1000);
+
+    // Create special impersonation token with metadata
+    const impersonationToken = jwt.sign(
+      {
+        id: targetUser._id,
+        email: targetUser.email,
+        type: 'user',
+        impersonated: true,
+        impersonatedBy: req.user._id,
+        impersonatedByEmail: req.user.email,
+        impersonationStarted: new Date().toISOString(),
+        expiresIn: '30m'  // 30 minute session
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '30m' }
+    );
+
+    // Create impersonation log entry
+    const impersonationLog = new ImpersonationLog({
+      adminId: req.user._id,
+      adminEmail: req.user.email,
+      userId: targetUser._id,
+      userEmail: targetUser.email,
+      sessionStartTime: new Date(),
+      sessionExpiryTime: expiryTime,
+      status: 'active'
+    });
+
+    await impersonationLog.save();
+
+    console.log(`✅ Admin ${req.user.email} (${req.user._id}) is impersonating ${targetUser.email} (${targetUser._id})`);
+    console.log(`📋 Impersonation log created: ${impersonationLog._id}`);
+
+    return res.json({
+      success: true,
+      message: `Generated impersonation token for ${targetUser.name}`,
+      data: {
+        token: impersonationToken,
+        user: {
+          id: targetUser._id,
+          name: targetUser.name,
+          email: targetUser.email,
+          impersonatedBy: req.user.name,
+          expiresIn: '30 minutes'
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Generate impersonation token error:', error);
+    return res.status(500).json({ success: false, message: 'Server error generating impersonation token' });
+  }
+};
+
+/**
+ * GET /api/admin/impersonation-logs
+ * Retrieve all impersonation sessions with optional filters
+ */
+const getImpersonationLogs = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const { adminId, userId, status, limit = 50, skip = 0 } = req.query;
+    const ImpersonationLog = require('../models/ImpersonationLog');
+
+    // Build filter
+    const filter = {};
+    if (adminId) filter.adminId = adminId;
+    if (userId) filter.userId = userId;
+    if (status) filter.status = status;
+
+    const logs = await ImpersonationLog.find(filter)
+      .sort({ sessionStartTime: -1 })
+      .limit(parseInt(limit))
+      .skip(parseInt(skip))
+      .populate('adminId', 'name email')
+      .populate('userId', 'name email')
+      .lean();
+
+    const total = await ImpersonationLog.countDocuments(filter);
+
+    return res.json({
+      success: true,
+      message: 'Impersonation logs retrieved',
+      data: {
+        logs,
+        pagination: {
+          total,
+          limit: parseInt(limit),
+          skip: parseInt(skip),
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get impersonation logs error:', error);
+    return res.status(500).json({ success: false, message: 'Server error fetching logs' });
+  }
+};
+
 module.exports = {
   getSystemStats,
   getSystemPools,
@@ -1493,5 +1620,7 @@ module.exports = {
   updateUser,
   getUserTransactions,
   adminDepositToUser,
-  adminWithdrawFromUser
+  adminWithdrawFromUser,
+  generateImpersonationToken,
+  getImpersonationLogs
 };

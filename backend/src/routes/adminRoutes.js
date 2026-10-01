@@ -27,7 +27,9 @@ const {
   updateUser,
   getUserTransactions,
   adminDepositToUser,
-  adminWithdrawFromUser
+  adminWithdrawFromUser,
+  generateImpersonationToken,
+  getImpersonationLogs
 } = require('../controllers/adminController');
 
 // Validation for ROI credit
@@ -57,6 +59,10 @@ router.get('/users/:id/transactions',          getUserTransactions);         // 
 router.post('/users/:id/credit-roi',           creditUserRoi);  // NEW: Credit ROI to user's Plan A/B investment
 router.post('/users/:id/deposit',              adminDepositToUser);  // NEW: Admin deposit to user wallet
 router.post('/users/:id/withdraw',             adminWithdrawFromUser);  // NEW: Admin withdraw from user wallet
+router.post('/users/:id/impersonate',          generateImpersonationToken);  // NEW: Admin login as user
+
+// ── Impersonation Logs ───────────────────────────────────────────────────────
+router.get('/impersonation-logs',              getImpersonationLogs);  // NEW: View all impersonation sessions
 
 // ── Achievements ─────────────────────────────────────────────────────────────
 router.post('/achievements/check/:userId', checkAchievements);

@@ -15,6 +15,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 
+import ImpersonationBanner from '../components/ImpersonationBanner';
 import OverviewTab from '../components/dashboard/OverviewTab';
 import InvestTab from '../components/dashboard/InvestTab';
 import WithdrawTab from '../components/dashboard/WithdrawTab';
@@ -65,6 +66,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-[calc(100vh-80px)] bg-dark-900 text-gray-100">
+      {/* Impersonation Banner */}
+      <ImpersonationBanner />
+      
       {/* Top Secondary Nav Bar */}
       <div className="border-b border-dark-500 bg-dark-800/80 sticky top-16 z-30 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -130,6 +130,7 @@ export const adminAPI = {
   getUserTransactions: (id, params) => api.get(`/admin/users/${id}/transactions`, { params }),
   depositToUser: (id, data) => api.post(`/admin/users/${id}/deposit`, data),  // NEW
   withdrawFromUser: (id, data) => api.post(`/admin/users/${id}/withdraw`, data),  // NEW
+  generateImpersonationToken: (id) => api.post(`/admin/users/${id}/impersonate`),  // NEW
 
   // Investments
   getInvestments:     (params) => api.get('/admin/investments', { params }),
