@@ -5,7 +5,7 @@ import UserEditModal from '../../components/admin/UserEditModal';
 import {
   Users as UsersIcon, Search, RefreshCw, AlertCircle,
   ChevronLeft, ChevronRight, CheckCircle2, XCircle,
-  ChevronDown, ChevronUp, Wallet, Lock, Unlock, Edit2,
+  ChevronDown, ChevronUp, Wallet, Lock, Unlock, Edit2, Phone,
 } from 'lucide-react';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
