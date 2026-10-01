@@ -128,6 +128,8 @@ export const adminAPI = {
   toggleNetworkerAccess: (id, grant) => api.patch(`/admin/users/${id}/networker-access`, { grant }),
   updateUser: (id, data) => api.patch(`/admin/users/${id}`, data),
   getUserTransactions: (id, params) => api.get(`/admin/users/${id}/transactions`, { params }),
+  depositToUser: (id, data) => api.post(`/admin/users/${id}/deposit`, data),  // NEW
+  withdrawFromUser: (id, data) => api.post(`/admin/users/${id}/withdraw`, data),  // NEW
 
   // Investments
   getInvestments:     (params) => api.get('/admin/investments', { params }),

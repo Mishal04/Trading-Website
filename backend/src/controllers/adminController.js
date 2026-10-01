@@ -1310,6 +1310,144 @@ const getUserTransactions = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/admin/users/:id/deposit
+ * Admin deposits funds into a user's wallet
+ * Accepts: walletType (capital/profit/commission/roi), amount, note
+ */
+const adminDepositToUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { walletType, amount, note } = req.body;
+
+    // Validation
+    if (!walletType || !['capital', 'profit', 'commission', 'roi'].includes(walletType)) {
+      return res.status(400).json({ success: false, message: 'Valid walletType required: capital, profit, commission, or roi' });
+    }
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Amount must be a positive number' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Add to wallet
+    const previousBalance = user.wallet[walletType] || 0;
+    user.wallet[walletType] = (user.wallet[walletType] || 0) + amount;
+    await user.save();
+
+    // Create transaction record
+    const transaction = new Transaction({
+      userId: id,
+      type: 'admin_deposit',
+      description: `Admin deposit to ${walletType} wallet: ${note || '(no note)'}`,
+      walletType,
+      amount,
+      status: 'completed',
+      metadata: {
+        adminId: req.user._id,
+        adminEmail: req.user.email,
+        note,
+        previousBalance,
+        newBalance: user.wallet[walletType]
+      }
+    });
+    await transaction.save();
+
+    return res.json({
+      success: true,
+      message: `Deposited $${amount} to ${user.name}'s ${walletType} wallet`,
+      data: {
+        userId: id,
+        userName: user.name,
+        walletType,
+        previousBalance,
+        amount,
+        newBalance: user.wallet[walletType],
+        transactionId: transaction._id
+      }
+    });
+  } catch (error) {
+    console.error('Admin deposit to user error:', error);
+    return res.status(500).json({ success: false, message: 'Server error processing deposit' });
+  }
+};
+
+/**
+ * POST /api/admin/users/:id/withdraw
+ * Admin withdraws funds from a user's wallet
+ * Accepts: walletType (capital/profit/commission/roi), amount, note
+ */
+const adminWithdrawFromUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { walletType, amount, note } = req.body;
+
+    // Validation
+    if (!walletType || !['capital', 'profit', 'commission', 'roi'].includes(walletType)) {
+      return res.status(400).json({ success: false, message: 'Valid walletType required: capital, profit, commission, or roi' });
+    }
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Amount must be a positive number' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check sufficient balance
+    const currentBalance = user.wallet[walletType] || 0;
+    if (currentBalance < amount) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient balance. Available: $${currentBalance.toFixed(2)}, Requested: $${amount.toFixed(2)}`
+      });
+    }
+
+    // Deduct from wallet
+    user.wallet[walletType] = currentBalance - amount;
+    await user.save();
+
+    // Create transaction record
+    const transaction = new Transaction({
+      userId: id,
+      type: 'admin_withdrawal',
+      description: `Admin withdrawal from ${walletType} wallet: ${note || '(no note)'}`,
+      walletType,
+      amount: -amount,  // Negative to indicate withdrawal
+      status: 'completed',
+      metadata: {
+        adminId: req.user._id,
+        adminEmail: req.user.email,
+        note,
+        previousBalance: currentBalance,
+        newBalance: user.wallet[walletType]
+      }
+    });
+    await transaction.save();
+
+    return res.json({
+      success: true,
+      message: `Withdrew $${amount} from ${user.name}'s ${walletType} wallet`,
+      data: {
+        userId: id,
+        userName: user.name,
+        walletType,
+        previousBalance: currentBalance,
+        amount,
+        newBalance: user.wallet[walletType],
+        transactionId: transaction._id
+      }
+    });
+  } catch (error) {
+    console.error('Admin withdrawal from user error:', error);
+    return res.status(500).json({ success: false, message: 'Server error processing withdrawal' });
+  }
+};
+
 module.exports = {
   getSystemStats,
   getSystemPools,
@@ -1334,5 +1472,7 @@ module.exports = {
   updateUserPlan,
   creditUserRoi,
   updateUser,
-  getUserTransactions
+  getUserTransactions,
+  adminDepositToUser,
+  adminWithdrawFromUser
 };
