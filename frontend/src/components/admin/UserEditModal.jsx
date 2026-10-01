@@ -395,6 +395,23 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                 <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                   <Building2 size={14} /> Crypto Wallet (Editable)
                 </h3>
+                
+                {/* Show what's in the form */}
+                <div className="mb-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                  <p className="text-xs text-blue-400 font-mono break-all">
+                    Form value: {form.walletAddress || '(empty)'}
+                  </p>
+                </div>
+                
+                {/* Show what's in latestCryptoAddress state */}
+                {latestCryptoAddress && (
+                  <div className="mb-3 p-2 rounded-lg bg-green-500/10 border border-green-500/30">
+                    <p className="text-xs text-green-400 font-mono break-all">
+                      Latest from API: {latestCryptoAddress}
+                    </p>
+                  </div>
+                )}
+                
                 <input
                   type="text"
                   value={form.walletAddress}
