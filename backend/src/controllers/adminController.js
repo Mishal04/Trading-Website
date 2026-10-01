@@ -1325,6 +1325,8 @@ const adminDepositToUser = async (req, res) => {
     const { id } = req.params;
     const { walletType, amount, note } = req.body;
 
+    console.log('📝 Deposit request:', { id, walletType, amount, note, adminId: req.user._id });
+
     // Validation
     if (!walletType || !['capital', 'profit', 'commission', 'roi'].includes(walletType)) {
       return res.status(400).json({ success: false, message: 'Valid walletType required: capital, profit, commission, or roi' });
@@ -1338,10 +1340,14 @@ const adminDepositToUser = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    console.log('👤 Found user:', user.name);
+
     // Add to wallet
     const previousBalance = user.wallet[walletType] || 0;
     user.wallet[walletType] = (user.wallet[walletType] || 0) + amount;
     await user.save();
+
+    console.log('💰 Wallet updated:', { walletType, previousBalance, newBalance: user.wallet[walletType] });
 
     // Create transaction record
     const transaction = new Transaction({
@@ -1361,6 +1367,8 @@ const adminDepositToUser = async (req, res) => {
     });
     await transaction.save();
 
+    console.log('✅ Transaction saved:', transaction._id);
+
     return res.json({
       success: true,
       message: `Deposited $${amount} to ${user.name}'s ${walletType} wallet`,
@@ -1375,7 +1383,8 @@ const adminDepositToUser = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Admin deposit to user error:', error);
+    console.error('❌ Admin deposit to user error:', error.message);
+    console.error('Stack:', error.stack);
     return res.status(500).json({ success: false, message: 'Server error processing deposit' });
   }
 };

@@ -9,7 +9,7 @@ const transactionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['investment', 'profit', 'commission', 'withdrawal', 'adjustment', 'P2P_IN', 'P2P_OUT', 'direct_referral'],
+    enum: ['investment', 'profit', 'commission', 'withdrawal', 'adjustment', 'P2P_IN', 'P2P_OUT', 'direct_referral', 'admin_deposit', 'admin_withdrawal'],
     required: true,
     index: true
   },
@@ -26,6 +26,11 @@ const transactionSchema = new mongoose.Schema({
   description: {
     type: String,
     default: ''
+  },
+  walletType: {
+    type: String,
+    enum: ['capital', 'profit', 'commission', 'roi'],
+    default: null
   },
   referenceId: {
     type: mongoose.Schema.Types.ObjectId,
