@@ -160,10 +160,6 @@ export const adminAPI = {
   // Manual wallet adjustment
   adjustWallet: (data) => api.post('/admin/commission/adjust', data),
 
-  // Wallet deposit/withdraw
-  depositWallet: (userId, data) => api.post(`/admin/wallet/deposit`, { userId, ...data }),
-  withdrawWallet: (userId, data) => api.post(`/admin/wallet/withdraw`, { userId, ...data }),
-
   // ── Investor admin endpoints ──────────────────────────────────────────────
   getInvestors:      (params) => api.get('/admin/investors', { params }),
   updateInvestorPlan:(id, plan) => api.patch(`/admin/investors/${id}/plan`, { plan }),

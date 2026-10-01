@@ -25,9 +25,7 @@ const {
   updateUserPlan,
   creditUserRoi,
   updateUser,
-  getUserTransactions,
-  adminDepositWallet,
-  adminWithdrawWallet
+  getUserTransactions
 } = require('../controllers/adminController');
 
 // Validation for ROI credit
@@ -99,24 +97,5 @@ const validateWalletAdjust = [
     .isLength({ max: 200 }).withMessage('Description must be 200 characters or less'),
 ];
 router.post('/commission/adjust', validateWalletAdjust, manualCommissionAdjustment);
-
-// ── Admin Wallet Deposit/Withdraw ────────────────────────────────────────────
-const validateAdminWalletOp = [
-  body('userId')
-    .notEmpty().withMessage('userId is required')
-    .isMongoId().withMessage('Invalid userId format'),
-  body('amount')
-    .isNumeric().withMessage('Amount must be a number')
-    .custom(val => Number(val) > 0).withMessage('Amount must be greater than 0'),
-  body('type')
-    .isIn(['capital', 'profit', 'commission', 'roi']).withMessage('type must be capital, profit, commission, or roi'),
-  body('reason')
-    .optional()
-    .isString()
-    .trim()
-    .isLength({ max: 500 }).withMessage('Reason must be 500 characters or less')
-];
-router.post('/wallet/deposit', validateAdminWalletOp, adminDepositWallet);
-router.post('/wallet/withdraw', validateAdminWalletOp, adminWithdrawWallet);
 
 module.exports = router;
