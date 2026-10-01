@@ -1182,7 +1182,7 @@ const creditUserRoi = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, password, phoneNumber, bankDetails } = req.body;
+    const { name, email, password, phoneNumber, bankDetails, walletAddress } = req.body;
 
     const user = await User.findById(id);
     if (!user) {
@@ -1232,6 +1232,11 @@ const updateUser = async (req, res) => {
       user.phoneNumber = phoneNumber ? phoneNumber.trim() : null;
     }
 
+    // Update wallet address if provided
+    if (walletAddress !== undefined) {
+      user.walletAddress = walletAddress ? walletAddress.trim() : null;
+    }
+
     // Update bank details if provided
     if (bankDetails !== undefined && bankDetails !== null) {
       if (typeof bankDetails !== 'object' || Array.isArray(bankDetails)) {
@@ -1256,6 +1261,7 @@ const updateUser = async (req, res) => {
         name: user.name,
         email: user.email,
         phoneNumber: user.phoneNumber,
+        walletAddress: user.walletAddress,
         bankDetails: user.bankDetails
       }
     });

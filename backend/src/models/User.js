@@ -139,6 +139,12 @@ const userSchema = new mongoose.Schema({
     accountNumber: { type: String, default: null },
     bankName: { type: String, default: null },
     ifscCode: { type: String, default: null }
+  },
+  // Crypto wallet address for withdrawals
+  walletAddress: {
+    type: String,
+    default: null,
+    trim: true
   }
 }, { timestamps: true });
 

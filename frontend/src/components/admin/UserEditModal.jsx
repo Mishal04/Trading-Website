@@ -49,6 +49,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
     password: '',
     confirmPassword: '',
     phoneNumber: user?.phoneNumber || '',
+    walletAddress: user?.walletAddress || '',
     bankDetails: {
       accountName: user?.bankDetails?.accountName || '',
       accountNumber: user?.bankDetails?.accountNumber || '',
@@ -72,6 +73,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
           password: '',
           confirmPassword: '',
           phoneNumber: updatedUser.phoneNumber || '',
+          walletAddress: updatedUser.walletAddress || '',
           bankDetails: {
             accountName: updatedUser.bankDetails?.accountName || '',
             accountNumber: updatedUser.bankDetails?.accountNumber || '',
@@ -96,6 +98,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
         password: '',
         confirmPassword: '',
         phoneNumber: user.phoneNumber || '',
+        walletAddress: user.walletAddress || '',
         bankDetails: {
           accountName: user.bankDetails?.accountName || '',
           accountNumber: user.bankDetails?.accountNumber || '',
@@ -175,6 +178,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
         name: form.name.trim(),
         email: form.email.trim(),
         phoneNumber: form.phoneNumber.trim() || null,
+        walletAddress: form.walletAddress.trim() || null,
         bankDetails: {
           accountName: form.bankDetails.accountName.trim() || null,
           accountNumber: form.bankDetails.accountNumber.trim() || null,
@@ -368,21 +372,23 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
               {/* Crypto Wallet */}
               <div className="border-t border-dark-600 pt-4">
                 <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                  <Building2 size={14} /> Crypto Wallet
+                  <Building2 size={14} /> Crypto Wallet (Editable)
                 </h3>
-                <p className="text-xs text-gray-500 mb-2">Latest crypto wallet address used in withdrawals:</p>
-                <div className="p-3 rounded-lg bg-dark-700 border border-dark-600">
-                  {latestCryptoAddress ? (
-                    <div>
-                      <p className="text-xs text-gray-300 font-mono break-all">{latestCryptoAddress}</p>
-                      <p className="text-xs text-gray-600 mt-2">
-                        This address was used in the user's most recent withdrawal transaction.
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-500 italic">No withdrawal history yet</p>
-                  )}
-                </div>
+                <input
+                  type="text"
+                  value={form.walletAddress}
+                  onChange={(e) => setForm({ ...form, walletAddress: e.target.value })}
+                  placeholder="e.g., 1A1z7agoat2Bt89ZN0QCnEQxKucbS1..."
+                  className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-xs mb-2"
+                />
+                <p className="text-xs text-gray-600 mb-2">
+                  Bitcoin or crypto wallet address for withdrawals. You can override the address used in withdrawal transactions.
+                </p>
+                {latestCryptoAddress && (
+                  <p className="text-xs text-gray-500 p-2 rounded-lg bg-dark-700 border border-dark-600">
+                    Last used: <span className="text-gray-300 font-mono break-all">{latestCryptoAddress}</span>
+                  </p>
+                )}
               </div>
 
               {/* Bank Details */}
@@ -448,6 +454,18 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                   placeholder="e.g., +1 (555) 123-4567"
                   className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Crypto Wallet Address</label>
+                <input
+                  type="text"
+                  value={form.walletAddress}
+                  onChange={(e) => setForm({ ...form, walletAddress: e.target.value })}
+                  placeholder="e.g., 1A1z7agoat2Bt89ZN0QCnEQxKucbS1..."
+                  className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-sm"
+                />
+                <p className="text-xs text-gray-600 mt-1">Bitcoin or crypto wallet address for withdrawals</p>
               </div>
 
               <div className="border-t border-dark-600 pt-4">
