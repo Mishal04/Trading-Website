@@ -501,15 +501,20 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
 
                         return (
                           <div key={txnId} className="p-3 rounded-lg bg-dark-700 border border-dark-600 text-sm">
-                            <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center justify-between mb-2">
                               <span className="font-semibold text-white capitalize">{txnType}</span>
-                              <span className={`font-semibold ${
+                              <span className={`font-bold text-lg ${
                                 txnAmount >= 0 ? 'text-emerald-400' : 'text-red-400'
                               }`}>
                                 {txnAmount >= 0 ? '+' : ''}{formattedAmount}
                               </span>
                             </div>
-                            <p className="text-xs text-gray-500 mb-1">{txnDescription}</p>
+                            {/* TXN ID */}
+                            <div className="mb-2 p-2 rounded-lg bg-dark-800/60 border border-dark-500">
+                              <p className="text-xs text-gray-500 font-semibold mb-0.5">TXN ID</p>
+                              <p className="font-mono text-xs text-gold-400 break-all">{txnId}</p>
+                            </div>
+                            <p className="text-xs text-gray-500 mb-2">{txnDescription}</p>
                             <div className="flex items-center justify-between text-xs text-gray-600">
                               <span className="capitalize">{txnStatus}</span>
                               <span>{formattedDate}</span>
