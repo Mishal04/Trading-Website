@@ -195,6 +195,7 @@ export default function Users() {
               <tr className="border-b border-dark-500 bg-dark-700/50 text-xs text-gray-500 uppercase tracking-wider">
                 <th className="px-4 py-3 text-left w-8" />
                 <th className="px-4 py-3 text-left">User</th>
+                <th className="px-4 py-3 text-left">Phone Number</th>
                 <th className="px-4 py-3 text-left">Referral Code</th>
                 <th className="px-4 py-3 text-right">Total Invested</th>
                 <th className="px-4 py-3 text-right">Wallet Capital</th>
@@ -207,7 +208,7 @@ export default function Users() {
               {loading ? (
                 Array(8).fill(0).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    {Array(7).fill(0).map((_, j) => (
+                    {Array(8).fill(0).map((_, j) => (
                       <td key={j} className="px-4 py-4">
                         <div className="h-4 bg-dark-600 rounded w-24" />
                       </td>
@@ -216,7 +217,7 @@ export default function Users() {
                 ))
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center text-gray-500">
+                  <td colSpan={9} className="px-4 py-16 text-center text-gray-500">
                     No users found{search ? ` matching "${search}"` : ''}.
                   </td>
                 </tr>
@@ -244,6 +245,13 @@ export default function Users() {
                       <td className="px-4 py-3.5">
                         <div className="font-medium text-white">{u.name}</div>
                         <div className="text-xs text-gray-500">{u.email}</div>
+                      </td>
+                      {/* Phone number */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <Phone size={14} className="text-gray-500" />
+                          <span className="text-white">{u.phoneNumber || '—'}</span>
+                        </div>
                       </td>
                       {/* Referral code */}
                       <td className="px-4 py-3.5">
