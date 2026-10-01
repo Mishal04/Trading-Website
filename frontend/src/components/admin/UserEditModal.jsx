@@ -88,6 +88,9 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
     }
   };
 
+  // State to store payment info from API
+  const [paymentInfo, setPaymentInfo] = useState(null);
+
   // Fetch user's payment info (wallet address from withdrawals, TXN ID from investments)
   const fetchUserPaymentInfo = async () => {
     if (!user?._id) return;
@@ -96,34 +99,27 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
       const res = await adminAPI.getUserPaymentInfo(user._id);
       console.log('✅ [fetchUserPaymentInfo] Response:', res.data?.data);
       
-      const paymentInfo = res.data?.data;
-      if (!paymentInfo) {
-        console.log('⚠️ [fetchUserPaymentInfo] No payment info returned');
-        return;
-      }
-
-      // Display reference address
-      if (paymentInfo.latestWithdrawalAddress) {
-        console.log('💰 [fetchUserPaymentInfo] Setting latestCryptoAddress to:', paymentInfo.latestWithdrawalAddress);
-        setLatestCryptoAddress(paymentInfo.latestWithdrawalAddress);
-        
-        // IMMEDIATELY update form with the wallet address
-        console.log('📝 [fetchUserPaymentInfo] Updating form.walletAddress to:', paymentInfo.latestWithdrawalAddress);
-        setForm(prevForm => {
-          const newForm = {
-            ...prevForm,
-            walletAddress: paymentInfo.latestWithdrawalAddress
-          };
-          console.log('✅ [fetchUserPaymentInfo] Form updated:', newForm.walletAddress);
-          return newForm;
-        });
-      } else {
-        console.log('⚠️ [fetchUserPaymentInfo] No latest withdrawal address found');
+      const paymentData = res.data?.data;
+      if (paymentData) {
+        console.log('💰 [fetchUserPaymentInfo] Storing payment info:', paymentData);
+        setPaymentInfo(paymentData); // Store in state
+        setLatestCryptoAddress(paymentData.latestWithdrawalAddress);
       }
     } catch (err) {
       console.error('❌ [fetchUserPaymentInfo] Error:', err);
     }
   };
+
+  // Update form with payment info whenever paymentInfo changes
+  useEffect(() => {
+    if (paymentInfo?.latestWithdrawalAddress) {
+      console.log('📝 [useEffect] Updating form with latest withdrawal address:', paymentInfo.latestWithdrawalAddress);
+      setForm(prevForm => ({
+        ...prevForm,
+        walletAddress: paymentInfo.latestWithdrawalAddress
+      }));
+    }
+  }, [paymentInfo]);
 
   // Reset form when user changes or modal opens
   useEffect(() => {
