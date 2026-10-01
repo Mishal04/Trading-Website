@@ -92,31 +92,36 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
   const fetchUserPaymentInfo = async () => {
     if (!user?._id) return;
     try {
-      console.log('🔍 Fetching payment info for user:', user._id);
+      console.log('🔍 [fetchUserPaymentInfo] Fetching payment info for user:', user._id);
       const res = await adminAPI.getUserPaymentInfo(user._id);
-      console.log('✅ Payment info response:', res.data?.data);
-      const paymentInfo = res.data?.data;
+      console.log('✅ [fetchUserPaymentInfo] Response:', res.data?.data);
       
-      if (paymentInfo) {
-        // Always update with latest withdrawal address if available
-        if (paymentInfo.latestWithdrawalAddress) {
-          console.log('💰 Found latest withdrawal address:', paymentInfo.latestWithdrawalAddress);
-          setForm(prevForm => ({
+      const paymentInfo = res.data?.data;
+      if (!paymentInfo) {
+        console.log('⚠️ [fetchUserPaymentInfo] No payment info returned');
+        return;
+      }
+
+      // Display reference address
+      if (paymentInfo.latestWithdrawalAddress) {
+        console.log('💰 [fetchUserPaymentInfo] Setting latestCryptoAddress to:', paymentInfo.latestWithdrawalAddress);
+        setLatestCryptoAddress(paymentInfo.latestWithdrawalAddress);
+        
+        // IMMEDIATELY update form with the wallet address
+        console.log('📝 [fetchUserPaymentInfo] Updating form.walletAddress to:', paymentInfo.latestWithdrawalAddress);
+        setForm(prevForm => {
+          const newForm = {
             ...prevForm,
             walletAddress: paymentInfo.latestWithdrawalAddress
-          }));
-          setLatestCryptoAddress(paymentInfo.latestWithdrawalAddress);
-        } else {
-          console.log('⚠️ No latest withdrawal address found');
-        }
-        
-        // Also set stored wallet address as reference
-        if (paymentInfo.latestWithdrawalAddress || paymentInfo.storedWalletAddress) {
-          setLatestCryptoAddress(paymentInfo.latestWithdrawalAddress || paymentInfo.storedWalletAddress);
-        }
+          };
+          console.log('✅ [fetchUserPaymentInfo] Form updated:', newForm.walletAddress);
+          return newForm;
+        });
+      } else {
+        console.log('⚠️ [fetchUserPaymentInfo] No latest withdrawal address found');
       }
     } catch (err) {
-      console.error('❌ Error fetching payment info:', err);
+      console.error('❌ [fetchUserPaymentInfo] Error:', err);
     }
   };
 
