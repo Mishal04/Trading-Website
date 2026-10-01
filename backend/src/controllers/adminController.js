@@ -1317,6 +1317,11 @@ const getUserTransactions = async (req, res) => {
  */
 const adminDepositToUser = async (req, res) => {
   try {
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
     const { id } = req.params;
     const { walletType, amount, note } = req.body;
 
@@ -1382,6 +1387,11 @@ const adminDepositToUser = async (req, res) => {
  */
 const adminWithdrawFromUser = async (req, res) => {
   try {
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
     const { id } = req.params;
     const { walletType, amount, note } = req.body;
 
