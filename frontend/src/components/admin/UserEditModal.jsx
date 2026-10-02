@@ -321,6 +321,18 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                 <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                   <Eye size={14} /> Password (Editable)
                 </h3>
+                
+                {/* Current Password Display (Read-Only) */}
+                <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                  <label className="block text-xs text-gray-500 font-semibold mb-2">Current Password (Encrypted)</label>
+                  <div className="p-2.5 rounded-lg bg-dark-700 border border-dark-600">
+                    <p className="text-xs text-blue-400 font-mono break-all">
+                      {freshUser?.password || user?.password || '(Not set)'}
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-2">Password hash - cannot be decrypted. To change, use the fields below.</p>
+                </div>
+
                 <p className="text-xs text-gray-500 mb-3">Leave password fields empty to keep current password unchanged. To set a new password, enter it in both fields below.</p>
                 
                 <div className="space-y-3">
