@@ -389,44 +389,46 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
               {/* Crypto Wallet */}
               <div className="border-t border-dark-600 pt-4">
                 <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                  <Building2 size={14} /> Crypto Wallet (Editable)
+                  <Building2 size={14} /> Crypto Wallet Address
                 </h3>
                 
-                {/* Show what's in the form */}
-                <div className="mb-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                  <p className="text-xs text-blue-400 font-mono break-all">
-                    Stored Address: {form.walletAddress || '(empty)'}
-                  </p>
+                <div className="mb-4">
+                  <label className="block text-xs text-gray-500 font-semibold mb-2">Current Address on File</label>
+                  <div className="p-3 rounded-lg bg-blue-500/15 border border-blue-500/30 mb-3">
+                    <p className="text-xs text-blue-300 font-mono break-all">
+                      {form.walletAddress || '(No address set)'}
+                    </p>
+                  </div>
+                  
+                  <label className="block text-xs text-gray-500 font-semibold mb-2">Update Address</label>
+                  <input
+                    type="text"
+                    value={form.walletAddress}
+                    onChange={(e) => setForm({ ...form, walletAddress: e.target.value })}
+                    placeholder="e.g., 1A1z7agoat2Bt89ZN0QCnEQxKucbS1..."
+                    className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-xs"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">Enter the crypto wallet address for future transactions (Bitcoin, Ethereum, BSC, etc.)</p>
                 </div>
                 
-                {/* Show recent withdrawals with wallet addresses */}
+                {/* Show recent withdrawals with addresses used */}
                 {paymentInfo?.recentWithdrawals && paymentInfo.recentWithdrawals.length > 0 && (
-                  <div className="mb-3 space-y-2">
-                    <p className="text-xs font-semibold text-gray-400">Recent Withdrawal Addresses:</p>
-                    {paymentInfo.recentWithdrawals.map((w, idx) => (
-                      <div key={idx} className="p-2 rounded-lg bg-green-500/10 border border-green-500/30">
-                        <p className="text-xs text-green-400">
-                          <span className="font-semibold">{w.type.toUpperCase()}</span> - ${w.amount}
-                        </p>
-                        <p className="text-xs text-green-300 font-mono break-all">{w.walletAddress}</p>
-                        <p className="text-xs text-green-500/70">{w.network} • {new Date(w.requestedAt).toLocaleDateString()}</p>
-                      </div>
-                    ))}
+                  <div>
+                    <label className="block text-xs text-gray-500 font-semibold mb-2">Recently Used Addresses (from withdrawals):</label>
+                    <div className="space-y-2">
+                      {paymentInfo.recentWithdrawals.map((w, idx) => (
+                        <div key={idx} className="p-2.5 rounded-lg bg-green-500/15 border border-green-500/30">
+                          <div className="flex justify-between mb-1">
+                            <p className="text-xs font-semibold text-green-400">{w.type.toUpperCase()} Withdrawal</p>
+                            <p className="text-xs text-green-300">${w.amount}</p>
+                          </div>
+                          <p className="text-xs text-green-300 font-mono break-all mb-1">{w.walletAddress}</p>
+                          <p className="text-xs text-green-500/60">{w.network} • {new Date(w.requestedAt).toLocaleDateString()}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
-                
-                {/* Editable input field */}
-                <label className="block text-xs text-gray-500 font-semibold mb-2">Edit Address</label>
-                <input
-                  type="text"
-                  value={form.walletAddress}
-                  onChange={(e) => setForm({ ...form, walletAddress: e.target.value })}
-                  placeholder="e.g., 1A1z7agoat2Bt89ZN0QCnEQxKucbS1..."
-                  className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-xs mb-2"
-                />
-                <p className="text-xs text-gray-600">
-                  Update the wallet address that will be used for future transactions
-                </p>
               </div>
 
               {/* Bank Details */}
