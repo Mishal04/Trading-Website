@@ -1615,30 +1615,71 @@ const getUserPaymentInfo = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Get latest withdrawal with wallet address
-    const latestWithdrawal = await require('../models/Withdrawal').findOne({
+    // Get latest 5 withdrawals with wallet addresses
+    const latestWithdrawals = await require('../models/Withdrawal').find({
       userId: id,
       walletAddress: { $exists: true, $ne: '' }
-    }).sort({ requestedAt: -1 });
+    }).sort({ requestedAt: -1 }).limit(5);
 
-    console.log('💳 Latest withdrawal:', latestWithdrawal ? `${latestWithdrawal.walletAddress} (${latestWithdrawal.network})` : 'None');
+    console.log('💳 Latest withdrawals:', latestWithdrawals.length);
 
-    // Get latest investment with transaction ID
-    const latestInvestment = await require('../models/Investment').findOne({
+    // Get latest 5 investments with transaction IDs
+    const latestInvestments = await require('../models/Investment').find({
       userId: id,
       transactionId: { $exists: true, $ne: '' }
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }).limit(5);
 
-    console.log('📊 Latest investment TXN:', latestInvestment ? latestInvestment.transactionId : 'None');
+    console.log('📊 Latest investments:', latestInvestments.length);
+
+    // Get the most recent withdrawal
+    const latestWithdrawal = latestWithdrawals[0];
+    const latestInvestment = latestInvestments[0];
 
     const responseData = {
       userId: id,
       storedWalletAddress: user.walletAddress || null,
-      latestWithdrawalAddress: latestWithdrawal?.walletAddress || null,
-      latestWithdrawalNetwork: latestWithdrawal?.network || null,
-      latestInvestmentTxId: latestInvestment?.transactionId || null,
-      latestInvestmentAmount: latestInvestment?.amount || null,
-      bankDetails: user.bankDetails || null
+      storedBankDetails: user.bankDetails || null,
+      
+      // Latest withdrawal info
+      latestWithdrawal: latestWithdrawal ? {
+        _id: latestWithdrawal._id,
+        amount: latestWithdrawal.amount,
+        walletAddress: latestWithdrawal.walletAddress,
+        network: latestWithdrawal.network,
+        type: latestWithdrawal.type,
+        status: latestWithdrawal.status,
+        requestedAt: latestWithdrawal.requestedAt
+      } : null,
+      
+      // All recent withdrawals for reference
+      recentWithdrawals: latestWithdrawals.map(w => ({
+        _id: w._id,
+        amount: w.amount,
+        walletAddress: w.walletAddress,
+        network: w.network,
+        type: w.type,
+        requestedAt: w.requestedAt
+      })),
+      
+      // Latest investment info
+      latestInvestment: latestInvestment ? {
+        _id: latestInvestment._id,
+        amount: latestInvestment.amount,
+        transactionId: latestInvestment.transactionId,
+        paymentProof: latestInvestment.paymentProof,
+        paymentNote: latestInvestment.paymentNote,
+        packageName: latestInvestment.packageName,
+        createdAt: latestInvestment.createdAt
+      } : null,
+      
+      // All recent investments for reference
+      recentInvestments: latestInvestments.map(inv => ({
+        _id: inv._id,
+        amount: inv.amount,
+        transactionId: inv.transactionId,
+        packageName: inv.packageName,
+        createdAt: inv.createdAt
+      }))
     };
 
     console.log('✅ Returning payment info:', responseData);

@@ -395,19 +395,28 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                 {/* Show what's in the form */}
                 <div className="mb-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/30">
                   <p className="text-xs text-blue-400 font-mono break-all">
-                    Form value: {form.walletAddress || '(empty)'}
+                    Stored Address: {form.walletAddress || '(empty)'}
                   </p>
                 </div>
                 
-                {/* Show what's in latestCryptoAddress state */}
-                {latestCryptoAddress && (
-                  <div className="mb-3 p-2 rounded-lg bg-green-500/10 border border-green-500/30">
-                    <p className="text-xs text-green-400 font-mono break-all">
-                      Latest from API: {latestCryptoAddress}
-                    </p>
+                {/* Show recent withdrawals with wallet addresses */}
+                {paymentInfo?.recentWithdrawals && paymentInfo.recentWithdrawals.length > 0 && (
+                  <div className="mb-3 space-y-2">
+                    <p className="text-xs font-semibold text-gray-400">Recent Withdrawal Addresses:</p>
+                    {paymentInfo.recentWithdrawals.map((w, idx) => (
+                      <div key={idx} className="p-2 rounded-lg bg-green-500/10 border border-green-500/30">
+                        <p className="text-xs text-green-400">
+                          <span className="font-semibold">{w.type.toUpperCase()}</span> - ${w.amount}
+                        </p>
+                        <p className="text-xs text-green-300 font-mono break-all">{w.walletAddress}</p>
+                        <p className="text-xs text-green-500/70">{w.network} • {new Date(w.requestedAt).toLocaleDateString()}</p>
+                      </div>
+                    ))}
                   </div>
                 )}
                 
+                {/* Editable input field */}
+                <label className="block text-xs text-gray-500 font-semibold mb-2">Edit Address</label>
                 <input
                   type="text"
                   value={form.walletAddress}
@@ -415,23 +424,40 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                   placeholder="e.g., 1A1z7agoat2Bt89ZN0QCnEQxKucbS1..."
                   className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-xs mb-2"
                 />
-                <p className="text-xs text-gray-600 mb-2">
-                  Bitcoin or crypto wallet address for withdrawals. Auto-populated with latest address from user's withdrawal requests.
+                <p className="text-xs text-gray-600">
+                  Update the wallet address that will be used for future transactions
                 </p>
-                {latestCryptoAddress && (
-                  <p className="text-xs text-gray-500 p-2 rounded-lg bg-dark-700 border border-dark-600">
-                    Last withdrawal address: <span className="text-gray-300 font-mono break-all">{latestCryptoAddress}</span>
-                  </p>
-                )}
               </div>
 
               {/* Bank Details */}
               <div className="border-t border-dark-600 pt-4">
                 <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                  <Building2 size={14} /> Bank Details
+                  <Building2 size={14} /> Payment Methods
                 </h3>
+                
+                {/* Recent Investments */}
+                {paymentInfo?.recentInvestments && paymentInfo.recentInvestments.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold text-gray-400 mb-2">Recent Investment Details:</p>
+                    {paymentInfo.recentInvestments.map((inv, idx) => (
+                      <div key={idx} className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/30 mb-2">
+                        <div className="flex justify-between">
+                          <p className="text-xs text-purple-400 font-semibold">{inv.packageName}</p>
+                          <p className="text-xs text-purple-300">${inv.amount}</p>
+                        </div>
+                        {inv.transactionId && (
+                          <p className="text-xs text-purple-300 font-mono break-all">TXN: {inv.transactionId}</p>
+                        )}
+                        <p className="text-xs text-purple-500/70">{new Date(inv.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Bank Details */}
                 {user.bankDetails?.accountName ? (
                   <div className="space-y-3">
+                    <p className="text-xs font-semibold text-gray-400">Bank Account on File:</p>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="rounded-lg bg-dark-700 border border-dark-600 p-3">
                         <p className="text-xs text-gray-500 mb-1.5 font-semibold">Account Name</p>
