@@ -625,11 +625,13 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                                 {txnAmount >= 0 ? '+' : ''}{formattedAmount}
                               </span>
                             </div>
-                            {/* TXN ID */}
-                            <div className="mb-2 p-2 rounded-lg bg-dark-800/60 border border-dark-500">
-                              <p className="text-xs text-gray-500 font-semibold mb-0.5">TXN ID</p>
-                              <p className="font-mono text-xs text-gold-400 break-all">{txnId}</p>
-                            </div>
+                            {/* TXN ID - Only show if txn._id exists */}
+                            {txn._id && (
+                              <div className="mb-2 p-2 rounded-lg bg-dark-800/60 border border-dark-500">
+                                <p className="text-xs text-gray-500 font-semibold mb-0.5">TXN ID</p>
+                                <p className="font-mono text-xs text-gold-400 break-all">{txn._id}</p>
+                              </div>
+                            )}
                             <p className="text-xs text-gray-500 mb-2">{txnDescription}</p>
                             <div className="flex items-center justify-between text-xs text-gray-600">
                               <span className="capitalize">{txnStatus}</span>
