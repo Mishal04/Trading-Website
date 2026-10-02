@@ -429,6 +429,31 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                     </div>
                   </div>
                 )}
+                
+                {/* Show transaction IDs associated with this wallet */}
+                {transactions && transactions.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-dark-600">
+                    <label className="block text-xs text-gray-500 font-semibold mb-2">Transaction IDs Associated with This Address:</label>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {transactions
+                        .filter(txn => txn._id) // Only show transactions with TXN IDs
+                        .map((txn, idx) => (
+                          <div key={idx} className="p-2 rounded-lg bg-purple-500/15 border border-purple-500/30">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <p className="text-xs text-purple-300 font-semibold capitalize mb-0.5">{txn.type}</p>
+                                <p className="text-xs text-purple-400 font-mono break-all">{txn._id}</p>
+                              </div>
+                              <p className="text-xs text-purple-300 ml-2 whitespace-nowrap">
+                                {txn.amount >= 0 ? '+' : ''}{typeof txn.amount === 'number' ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(txn.amount) : '$0.00'}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2 italic">All transaction IDs for this user account</p>
+                  </div>
+                )}
               </div>
 
               {/* Bank Details */}
