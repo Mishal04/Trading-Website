@@ -50,6 +50,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
     confirmPassword: '',
     phoneNumber: user?.phoneNumber || '',
     walletAddress: user?.walletAddress || '',
+    oldTransactionIds: user?.oldTransactionIds || '',
     bankDetails: {
       accountName: user?.bankDetails?.accountName || '',
       accountNumber: user?.bankDetails?.accountNumber || '',
@@ -74,6 +75,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
           confirmPassword: '',
           phoneNumber: updatedUser.phoneNumber || '',
           walletAddress: updatedUser.walletAddress || '',
+          oldTransactionIds: updatedUser.oldTransactionIds || '',
           bankDetails: {
             accountName: updatedUser.bankDetails?.accountName || '',
             accountNumber: updatedUser.bankDetails?.accountNumber || '',
@@ -133,6 +135,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
         confirmPassword: '',
         phoneNumber: user.phoneNumber || '',
         walletAddress: user.walletAddress || '',
+        oldTransactionIds: user.oldTransactionIds || '',
         bankDetails: {
           accountName: user.bankDetails?.accountName || '',
           accountNumber: user.bankDetails?.accountNumber || '',
@@ -196,6 +199,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
         email: form.email.trim(),
         phoneNumber: form.phoneNumber.trim() || null,
         walletAddress: form.walletAddress.trim() || null,
+        oldTransactionIds: form.oldTransactionIds.trim() || null,
         bankDetails: {
           accountName: form.bankDetails.accountName.trim() || null,
           accountNumber: form.bankDetails.accountNumber.trim() || null,
@@ -386,6 +390,21 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                 <p className="text-xs text-gray-600 mt-1">User's phone number for contact purposes</p>
               </div>
 
+              {/* Old Transaction IDs - Editable */}
+              <div>
+                <label className="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">
+                  Old Transaction IDs (Editable)
+                </label>
+                <textarea
+                  value={form.oldTransactionIds}
+                  onChange={(e) => setForm({ ...form, oldTransactionIds: e.target.value })}
+                  placeholder="e.g., TXN123456789, TXN987654321, TXN555666777"
+                  rows="4"
+                  className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-xs resize-none"
+                />
+                <p className="text-xs text-gray-600 mt-1">Previous/old transaction IDs separated by commas or on new lines</p>
+              </div>
+
               {/* Crypto Wallet */}
               <div className="border-t border-dark-600 pt-4">
                 <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
@@ -541,6 +560,18 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                   placeholder="e.g., +1 (555) 123-4567"
                   className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Old Transaction IDs</label>
+                <textarea
+                  value={form.oldTransactionIds}
+                  onChange={(e) => setForm({ ...form, oldTransactionIds: e.target.value })}
+                  placeholder="e.g., TXN123456789, TXN987654321"
+                  rows="3"
+                  className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-xs resize-none"
+                />
+                <p className="text-xs text-gray-600 mt-1">Previous transaction IDs separated by commas or new lines</p>
               </div>
 
               <div>
