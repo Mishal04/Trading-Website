@@ -201,7 +201,12 @@ export default function Investments() {
   const handleRejectConfirm = async (note) => {
     setActionLoading(rejectTarget._id);
     try {
-      await adminAPI.rejectInvestment(rejectTarget._id, note);
+      // Route to correct rejection endpoint based on investment model type
+      if (rejectTarget._model === 'InvestorInvestment') {
+        await adminAPI.rejectInvestorInvestment(rejectTarget._id, note);
+      } else {
+        await adminAPI.rejectInvestment(rejectTarget._id, note);
+      }
       toast.success('Investment rejected');
       setRejectTarget(null);
       fetchData();
