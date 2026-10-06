@@ -113,13 +113,19 @@ export default function Users() {
 
   const [search, setSearch]   = useState('');
   const [page, setPage]       = useState(1);
+  const [statusFilter, setStatusFilter] = useState(''); // '' = all, 'true' = active, 'false' = inactive
   const searchTimer           = useRef(null);
 
-  const fetchData = useCallback(async (q = search, p = page) => {
+  const fetchData = useCallback(async (q = search, p = page, status = statusFilter) => {
     setLoading(true);
     setError('');
     try {
-      const res = await adminAPI.getUsers({ search: q || undefined, page: p, limit: 15 });
+      const res = await adminAPI.getUsers({ 
+        search: q || undefined, 
+        page: p, 
+        limit: 15,
+        isActive: status !== '' ? (status === 'true' ? 'true' : 'false') : undefined
+      });
       setUsers(res.data?.data?.users ?? []);
       setPagination(res.data?.data?.pagination ?? { page: 1, pages: 1, total: 0 });
     } catch (err) {
@@ -127,9 +133,9 @@ export default function Users() {
     } finally {
       setLoading(false);
     }
-  }, [search, page]);
+  }, [search, page, statusFilter]);
 
-  useEffect(() => { fetchData(); }, [page]);  // page changes trigger immediately
+  useEffect(() => { fetchData(search, page, statusFilter); }, [page, statusFilter]);
 
   // Debounced search
   const handleSearch = (val) => {
@@ -204,6 +210,26 @@ export default function Users() {
           placeholder="Search name, email, referral code…"
           className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-dark-700 border border-dark-500 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors"
         />
+      </div>
+
+      {/* Status filter buttons */}
+      <div className="flex flex-wrap gap-2">
+        {['', 'true', 'false'].map((status) => {
+          const label = status === '' ? 'All' : status === 'true' ? 'Active' : 'Inactive';
+          return (
+            <button
+              key={status}
+              onClick={() => { setStatusFilter(status); setPage(1); }}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                statusFilter === status
+                  ? 'bg-gold-400 text-dark-900 border-gold-400'
+                  : 'border-dark-500 text-gray-400 hover:text-white hover:border-gray-500'
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Error */}

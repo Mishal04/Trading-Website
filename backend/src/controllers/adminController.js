@@ -148,6 +148,9 @@ const getAllUsers = async (req, res) => {
     if (req.query.isVerified !== undefined) {
       query.isVerified = req.query.isVerified === 'true';
     }
+    if (req.query.isActive !== undefined) {
+      query.isActive = req.query.isActive === 'true';
+    }
 
     const [total, users] = await Promise.all([
       User.countDocuments(query),
