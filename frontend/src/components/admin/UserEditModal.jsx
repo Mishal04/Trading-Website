@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import TransactionErrorBoundary from './TransactionErrorBoundary';
 import {
   X, Save, Mail, Phone, Building2, Plus,
-  ArrowDownUp, Eye, EyeOff, Loader, AlertTriangle, CheckCircle2, LogIn,
+  ArrowDownUp, Eye, EyeOff, Loader, AlertTriangle, CheckCircle2, LogIn, Network,
 } from 'lucide-react';
 
 const fmt = (n = 0) => {
@@ -33,7 +33,7 @@ const fmtDate = (d) => {
 };
 
 export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
-  const [tab, setTab] = useState('login'); // login, payment, edit, transactions
+  const [tab, setTab] = useState('login'); // login, payment, edit, transactions, network
   const [loading, setLoading] = useState(false);
   const [freshUser, setFreshUser] = useState(null);  // Store freshly fetched user data
   const [transactions, setTransactions] = useState([]);
@@ -41,6 +41,10 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
   const [transError, setTransError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [latestCryptoAddress, setLatestCryptoAddress] = useState(null);
+
+  // Upline/Downline state
+  const [networkData, setNetworkData] = useState(null);
+  const [networkLoading, setNetworkLoading] = useState(false);
 
   // Edit form state
   const [form, setForm] = useState({
@@ -158,6 +162,27 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
       fetchTransactions();
     }
   }, [tab, isOpen]);
+
+  // Fetch network data when tab changes
+  useEffect(() => {
+    if (isOpen && tab === 'network' && user?._id && !networkData) {
+      fetchNetworkData();
+    }
+  }, [tab, isOpen]);
+
+  const fetchNetworkData = async () => {
+    if (!user?._id) return;
+    setNetworkLoading(true);
+    try {
+      const res = await adminAPI.getUserUplineDownline(user._id);
+      setNetworkData(res.data?.data || { upline: { parent: null, ancestors: [] }, downline: { directReferrals: [], teamSize: 0 } });
+    } catch (err) {
+      console.error('Error fetching network data:', err);
+      setNetworkData({ upline: { parent: null, ancestors: [] }, downline: { directReferrals: [], teamSize: 0 } });
+    } finally {
+      setNetworkLoading(false);
+    }
+  };
 
   const fetchTransactions = async () => {
     if (!user?._id) return;
@@ -285,6 +310,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
             { id: 'login', label: 'Login Info' },
             { id: 'payment', label: 'Payment Details' },
             { id: 'edit', label: 'Edit Profile' },
+            { id: 'network', label: 'Network' },
             { id: 'transactions', label: 'Transactions' },
           ].map((t) => (
             <button
@@ -757,6 +783,100 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                 )}
               </div>
             </TransactionErrorBoundary>
+          )}
+
+          {/* Network Tab */}
+          {tab === 'network' && (
+            <div className="space-y-4">
+              {networkLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader size={20} className="animate-spin text-gold-400" />
+                </div>
+              ) : (
+                <>
+                  {/* Upline Section */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                      <Network size={14} className="text-blue-400" /> Upline (Ancestors)
+                    </h3>
+                    
+                    {networkData?.upline?.ancestors && networkData.upline.ancestors.length > 0 ? (
+                      <div className="space-y-2">
+                        {networkData.upline.ancestors.map((ancestor, idx) => (
+                          <div key={ancestor._id || idx} className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                            <div className="flex justify-between items-start mb-1">
+                              <div>
+                                <p className="text-sm font-semibold text-blue-300">{ancestor.name}</p>
+                                <p className="text-xs text-blue-400/70">{ancestor.email}</p>
+                              </div>
+                              <span className="text-xs text-blue-400 font-mono">{ancestor.referralCode}</span>
+                            </div>
+                            <div className="flex justify-between text-xs text-blue-300/70 mt-2">
+                              <span>Invested: {fmt(ancestor.totalInvested)}</span>
+                              <span>Capital: {fmt(ancestor.wallet?.capital)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 italic">No upline (root user)</p>
+                    )}
+                  </div>
+
+                  {/* Direct Parent */}
+                  {networkData?.upline?.parent && (
+                    <div className="border-t border-dark-600 pt-4">
+                      <h3 className="text-sm font-semibold text-white mb-3">Direct Upline (Parent)</h3>
+                      <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                        <p className="text-sm font-semibold text-purple-300">{networkData.upline.parent.name}</p>
+                        <p className="text-xs text-purple-400/70">{networkData.upline.parent.email}</p>
+                        <p className="text-xs text-purple-400 font-mono mt-1">{networkData.upline.parent.referralCode}</p>
+                        <div className="flex justify-between text-xs text-purple-300/70 mt-2">
+                          <span>Invested: {fmt(networkData.upline.parent.totalInvested)}</span>
+                          <span>Capital: {fmt(networkData.upline.parent.wallet?.capital)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Downline Section */}
+                  <div className="border-t border-dark-600 pt-4">
+                    <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                      <Network size={14} className="text-emerald-400" /> Downline (Direct Referrals)
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-3">Team Size: <span className="text-emerald-400 font-semibold">{networkData?.downline?.teamSize || 0}</span></p>
+                    
+                    {networkData?.downline?.directReferrals && networkData.downline.directReferrals.length > 0 ? (
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {networkData.downline.directReferrals.map((referral, idx) => (
+                          <div key={referral._id || idx} className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                            <div className="flex justify-between items-start mb-1">
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold text-emerald-300">{referral.name}</p>
+                                <p className="text-xs text-emerald-400/70">{referral.email}</p>
+                              </div>
+                              <span className={`text-xs px-2 py-0.5 rounded ${
+                                referral.isActive
+                                  ? 'bg-emerald-500/20 text-emerald-400'
+                                  : 'bg-red-500/20 text-red-400'
+                              }`}>
+                                {referral.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-xs text-emerald-300/70 mt-2">
+                              <span>Invested: {fmt(referral.totalInvested)}</span>
+                              <span>Capital: {fmt(referral.wallet?.capital)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 italic">No direct referrals</p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
 

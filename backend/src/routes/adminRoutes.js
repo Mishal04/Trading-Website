@@ -30,6 +30,11 @@ const {
   adminWithdrawFromUser,
   generateImpersonationToken,
   getImpersonationLogs,
+  getUserPaymentInfo,
+  getUserUplineDownline
+} = require('../controllers/adminController');
+  generateImpersonationToken,
+  getImpersonationLogs,
   getUserPaymentInfo
 } = require('../controllers/adminController');
 
@@ -58,6 +63,7 @@ router.patch('/users/:id/networker-access',    toggleNetworkerAccess);
 router.patch('/users/:id/plan',                updateUserPlan);
 router.get('/users/:id/transactions',          getUserTransactions);         // NEW: Get user transaction history
 router.get('/users/:id/payment-info',          getUserPaymentInfo);           // NEW: Get user payment info (wallet, TXN ID, bank details)
+router.get('/users/:id/upline-downline',       getUserUplineDownline);        // NEW: Get user's upline and downline
 router.post('/users/:id/credit-roi',           creditUserRoi);  // NEW: Credit ROI to user's Plan A/B investment
 router.post('/users/:id/deposit',              adminDepositToUser);  // NEW: Admin deposit to user wallet
 router.post('/users/:id/withdraw',             adminWithdrawFromUser);  // NEW: Admin withdraw from user wallet

@@ -204,7 +204,65 @@ const toggleUserActive = async (req, res) => {
   }
 };
 
-// ─── GET /api/admin/investments ──────────────────────────────────────────────
+// ─── GET /api/admin/users/:id/upline-downline ────────────────────────────────
+
+/**
+ * Get a user's upline (ancestors) and downline (direct referrals + full team).
+ */
+const getUserUplineDownline = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    // Get the user's TeamTree record
+    const teamTree = await TeamTree.findOne({ userId })
+      .populate({
+        path: 'parentId',
+        select: 'name email referralCode totalInvested wallet'
+      })
+      .populate({
+        path: 'ancestors',
+        select: 'name email referralCode totalInvested wallet',
+        options: { sort: { createdAt: 1 } } // Oldest to newest (root to direct parent)
+      });
+
+    if (!teamTree) {
+      return res.json({
+        success: true,
+        data: {
+          upline: { parent: null, ancestors: [] },
+          downline: { directReferrals: [], teamSize: 0 }
+        }
+      });
+    }
+
+    // Get direct referrals (users whose parentId is this user)
+    const directReferrals = await User.find({ 
+      _id: { $in: await TeamTree.find({ parentId: userId }).distinct('userId') }
+    }).select('name email referralCode totalInvested wallet isActive');
+
+    // Get full downline count
+    const teamTree2 = await TeamTree.findOne({ userId });
+    const teamSize = teamTree2?.totalTeamCount || 0;
+
+    return res.json({
+      success: true,
+      data: {
+        upline: {
+          parent: teamTree.parentId || null,
+          ancestors: teamTree.ancestors || []
+        },
+        downline: {
+          directReferrals,
+          teamSize
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Admin get upline/downline error:', error);
+    return res.status(500).json({ success: false, message: 'Server error fetching network' });
+  }
+};
+
 
 /**
  * List all investments, optionally filtered by status, with pagination.
@@ -1731,5 +1789,6 @@ module.exports = {
   adminWithdrawFromUser,
   generateImpersonationToken,
   getImpersonationLogs,
-  getUserPaymentInfo
+  getUserPaymentInfo,
+  getUserUplineDownline
 };
