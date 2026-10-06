@@ -165,10 +165,11 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
 
   // Fetch network data when tab changes
   useEffect(() => {
-    if (isOpen && tab === 'network' && user?._id && !networkData) {
+    if (isOpen && tab === 'network' && user?._id) {
+      setNetworkData(null);
       fetchNetworkData();
     }
-  }, [tab, isOpen]);
+  }, [tab, isOpen, user?._id]);
 
   const fetchNetworkData = async () => {
     if (!user?._id) return;
