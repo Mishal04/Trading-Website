@@ -431,14 +431,25 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                     </p>
                   </div>
                   
-                  <label className="block text-xs text-gray-500 font-semibold mb-2">Update Address</label>
-                  <input
-                    type="text"
-                    value={form.walletAddress}
-                    onChange={(e) => setForm({ ...form, walletAddress: e.target.value })}
-                    placeholder="e.g., 1A1z7agoat2Bt89ZN0QCnEQxKucbS1..."
-                    className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-xs"
-                  />
+                  <div className="flex gap-2 items-end mb-3">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 font-semibold mb-2">Update Address</label>
+                      <input
+                        type="text"
+                        value={form.walletAddress}
+                        onChange={(e) => setForm({ ...form, walletAddress: e.target.value })}
+                        placeholder="e.g., 1A1z7agoat2Bt89ZN0QCnEQxKucbS1..."
+                        className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-xs"
+                      />
+                    </div>
+                    <button
+                      onClick={() => setForm({ ...form, walletAddress: '' })}
+                      className="px-3 py-2.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 text-xs font-semibold transition-colors"
+                      title="Clear the wallet address"
+                    >
+                      Clear
+                    </button>
+                  </div>
                   <p className="text-xs text-gray-500 mt-2">Enter the crypto wallet address for future transactions (Bitcoin, Ethereum, BSC, etc.)</p>
                 </div>
                 
@@ -588,13 +599,22 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
 
               <div>
                 <label className="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Crypto Wallet Address</label>
-                <input
-                  type="text"
-                  value={form.walletAddress}
-                  onChange={(e) => setForm({ ...form, walletAddress: e.target.value })}
-                  placeholder="e.g., 1A1z7agoat2Bt89ZN0QCnEQxKucbS1..."
-                  className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-sm"
-                />
+                <div className="flex gap-2 items-end">
+                  <input
+                    type="text"
+                    value={form.walletAddress}
+                    onChange={(e) => setForm({ ...form, walletAddress: e.target.value })}
+                    placeholder="e.g., 1A1z7agoat2Bt89ZN0QCnEQxKucbS1..."
+                    className="flex-1 px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-sm"
+                  />
+                  <button
+                    onClick={() => setForm({ ...form, walletAddress: '' })}
+                    className="px-3 py-2.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 text-xs font-semibold transition-colors"
+                    title="Clear the wallet address"
+                  >
+                    Clear
+                  </button>
+                </div>
                 <p className="text-xs text-gray-600 mt-1">Bitcoin or crypto wallet address for withdrawals</p>
               </div>
 
