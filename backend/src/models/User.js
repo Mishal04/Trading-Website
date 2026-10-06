@@ -145,6 +145,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
     trim: true
+  },
+  // Previous/Old Transaction IDs for reference (comma-separated or stored as string)
+  oldTransactionIds: {
+    type: String,
+    default: null,
+    trim: true
   }
 }, { timestamps: true });
 
