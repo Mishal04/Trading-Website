@@ -33,10 +33,6 @@ const {
   getUserPaymentInfo,
   getUserUplineDownline
 } = require('../controllers/adminController');
-  generateImpersonationToken,
-  getImpersonationLogs,
-  getUserPaymentInfo
-} = require('../controllers/adminController');
 
 // Validation for ROI credit
 const validateRoiCredit = [

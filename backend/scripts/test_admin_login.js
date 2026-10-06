@@ -9,7 +9,7 @@ const User = require('../src/models/User');
     console.log('\n=== Testing Admin Login ===\n');
     
     const adminEmail = 'info.solvex1@gmail.com';
-    const passwordsToTry = ['admin123', 'Admin@123', 'test123', 'password', '123456', 'admin', 'solvex123'];
+    const passwordsToTry = ['123solvextrade786', 'admin123', 'Admin@123', 'test123', 'password', '123456', 'admin', 'solvex123'];
     
     // Find user WITH password selected
     const user = await User.findOne({ email: adminEmail }).select('+password');
@@ -23,6 +23,7 @@ const User = require('../src/models/User');
     console.log('accountType:', user.accountType);
     console.log('isActive:', user.isActive);
     console.log('isVerified:', user.isVerified);
+    console.log('Password hash:', user.password ? user.password.substring(0, 30) + '...' : 'NO PASSWORD');
     console.log('\n=== Testing passwords ===\n');
     
     for (const pwd of passwordsToTry) {

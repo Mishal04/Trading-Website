@@ -213,44 +213,53 @@ const getUserUplineDownline = async (req, res) => {
   try {
     const userId = req.params.id;
     
-    // Get the user's TeamTree record
-    const teamTree = await TeamTree.findOne({ userId })
-      .populate({
-        path: 'parentId',
-        select: 'name email referralCode totalInvested wallet'
-      })
-      .populate({
-        path: 'ancestors',
-        select: 'name email referralCode totalInvested wallet',
-        options: { sort: { createdAt: 1 } } // Oldest to newest (root to direct parent)
-      });
-
-    if (!teamTree) {
-      return res.json({
-        success: true,
-        data: {
-          upline: { parent: null, ancestors: [] },
-          downline: { directReferrals: [], teamSize: 0 }
-        }
-      });
+    // Get the user
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Get direct referrals (users whose parentId is this user)
-    const directReferrals = await User.find({ 
-      _id: { $in: await TeamTree.find({ parentId: userId }).distinct('userId') }
-    }).select('name email referralCode totalInvested wallet isActive');
+    let uplineData = {
+      parent: null,
+      ancestors: []
+    };
 
-    // Get full downline count
-    const teamTree2 = await TeamTree.findOne({ userId });
-    const teamSize = teamTree2?.totalTeamCount || 0;
+    // Get direct parent (upline)
+    if (user.referredBy) {
+      const parent = await User.findById(user.referredBy).select('firstName lastName email referralCode totalInvested wallet isActive');
+      uplineData.parent = parent;
+    }
+
+    // Get full ancestor chain
+    if (user.ancestorPath && user.ancestorPath.length > 0) {
+      const ancestors = await User.find({
+        _id: { $in: user.ancestorPath }
+      }).select('firstName lastName email referralCode totalInvested wallet isActive');
+      
+      // Sort ancestors by their position in ancestorPath (oldest first)
+      uplineData.ancestors = user.ancestorPath.map(ancestorId => 
+        ancestors.find(a => a._id.toString() === ancestorId.toString())
+      ).filter(Boolean);
+    }
+
+    // Get direct referrals (downline) - users who have this user as referredBy
+    const directReferrals = await User.find({ 
+      referredBy: userId 
+    }).select('firstName lastName email referralCode totalInvested wallet isActive');
+
+    // Count total team size (all descendants)
+    // This is a recursive count: all users in ancestorPath that include this userId
+    const allDescendants = await User.find({
+      ancestorPath: { $in: [userId] }
+    });
+    
+    const teamSize = allDescendants.length;
 
     return res.json({
       success: true,
       data: {
-        upline: {
-          parent: teamTree.parentId || null,
-          ancestors: teamTree.ancestors || []
-        },
+        upline: uplineData,
         downline: {
           directReferrals,
           teamSize
