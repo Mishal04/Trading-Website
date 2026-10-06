@@ -43,10 +43,15 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
-    const res = await authAPI.login({ email, password });
-    const token = res.data?.data?.token || res.data?.token;
-    const userData = res.data?.data?.user || res.data?.user;
-    if (token && userData) {
+    try {
+      const res = await authAPI.login({ email, password });
+      const token = res.data?.data?.token || res.data?.token;
+      const userData = res.data?.data?.user || res.data?.user;
+      
+      if (!token || !userData) {
+        throw new Error('Invalid response from server');
+      }
+      
       const fullUser = {
         ...userData,
         accountType: userData.accountType || 'user'
@@ -56,9 +61,10 @@ export function AuthProvider({ children }) {
       setUser(fullUser);
       toast.success('Login successful');
       return fullUser;
+    } catch (error) {
+      // Re-throw error so caller (Login.jsx) can handle it
+      throw error;
     }
-    toast.success('Login successful');
-    return userData;
   };
 
   const register = async (formData) => {

@@ -39,17 +39,24 @@ export function InvestorAuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
-    const res = await investorAPI.login({ email, password });
-    const token   = res.data?.data?.token;
-    const invData = res.data?.data?.investor;
-    if (token && invData) {
+    try {
+      const res = await investorAPI.login({ email, password });
+      const token   = res.data?.data?.token;
+      const invData = res.data?.data?.investor;
+      
+      if (!token || !invData) {
+        throw new Error('Invalid response from server');
+      }
+      
       localStorage.setItem('investor_token', token);
       localStorage.setItem('investor_user', JSON.stringify(invData));
       setInvestor(invData);
       toast.success('Welcome back!');
       return invData;
+    } catch (error) {
+      // Re-throw so caller can handle
+      throw error;
     }
-    throw new Error('Login failed');
   };
 
   const register = async (formData) => {
