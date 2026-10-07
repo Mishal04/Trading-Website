@@ -542,6 +542,117 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                 )}
               </div>
 
+              {/* Bank Details Section */}
+              <div className="border-t border-dark-600 pt-4">
+                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                  <Building2 size={14} /> Bank Account Details (Editable)
+                </h3>
+                
+                {/* Display current bank details */}
+                {form.bankDetails?.accountName ? (
+                  <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                    <p className="text-xs font-semibold text-emerald-400 mb-2">Currently on File:</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-400">Account Name:</span>
+                        <p className="text-white font-semibold">{form.bankDetails.accountName}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Account Number:</span>
+                        <p className="text-white font-mono">{form.bankDetails.accountNumber}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Bank Name:</span>
+                        <p className="text-white font-semibold">{form.bankDetails.bankName}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">IFSC Code:</span>
+                        <p className="text-white font-mono">{form.bankDetails.ifscCode}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-4 p-3 rounded-lg bg-gray-500/10 border border-gray-500/30 text-center">
+                    <p className="text-xs text-gray-400 italic">No bank details on file</p>
+                  </div>
+                )}
+                
+                {/* Edit bank details */}
+                <div className="space-y-2.5">
+                  <div>
+                    <label className="block text-xs text-gray-500 font-semibold mb-1.5">Account Name</label>
+                    <input
+                      type="text"
+                      value={form.bankDetails.accountName}
+                      onChange={(e) => setForm({
+                        ...form,
+                        bankDetails: { ...form.bankDetails, accountName: e.target.value }
+                      })}
+                      placeholder="e.g., OBO ENTERPRISES"
+                      className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-500 font-semibold mb-1.5">Account Number</label>
+                    <input
+                      type="text"
+                      value={form.bankDetails.accountNumber}
+                      onChange={(e) => setForm({
+                        ...form,
+                        bankDetails: { ...form.bankDetails, accountNumber: e.target.value }
+                      })}
+                      placeholder="e.g., 1603020000000728"
+                      className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors text-sm font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-500 font-semibold mb-1.5">Bank Name</label>
+                    <input
+                      type="text"
+                      value={form.bankDetails.bankName}
+                      onChange={(e) => setForm({
+                        ...form,
+                        bankDetails: { ...form.bankDetails, bankName: e.target.value }
+                      })}
+                      placeholder="e.g., UTKARSH SFB"
+                      className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-500 font-semibold mb-1.5">IFSC Code</label>
+                    <input
+                      type="text"
+                      value={form.bankDetails.ifscCode}
+                      onChange={(e) => setForm({
+                        ...form,
+                        bankDetails: { ...form.bankDetails, ifscCode: e.target.value.toUpperCase() }
+                      })}
+                      placeholder="e.g., UTKS0001603"
+                      className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors text-sm font-mono uppercase"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => setForm({
+                      ...form,
+                      bankDetails: {
+                        accountName: '',
+                        accountNumber: '',
+                        bankName: '',
+                        ifscCode: '',
+                      }
+                    })}
+                    className="w-full px-3 py-2 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 text-xs font-semibold transition-colors"
+                    title="Clear all bank details"
+                  >
+                    Clear All Bank Details
+                  </button>
+                </div>
+              </div>
+
               {/* Bank Details */}
               <div className="border-t border-dark-600 pt-4">
                 <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
