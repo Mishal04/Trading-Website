@@ -1690,6 +1690,10 @@ const getUserPaymentInfo = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // Get current system wallet (admin rotatable wallet)
+    const SystemWallet = require('../models/SystemWallet');
+    const currentSystemWallet = await SystemWallet.getCurrentWallet();
+
     // Get latest 5 withdrawals with wallet addresses
     const latestWithdrawals = await require('../models/Withdrawal').find({
       userId: id,
@@ -1714,6 +1718,16 @@ const getUserPaymentInfo = async (req, res) => {
       userId: id,
       storedWalletAddress: user.walletAddress || null,
       storedBankDetails: user.bankDetails || null,
+      
+      // Current system-wide crypto wallet (admin rotatable)
+      currentSystemWallet: currentSystemWallet ? {
+        _id: currentSystemWallet._id,
+        address: currentSystemWallet.address,
+        network: currentSystemWallet.network,
+        label: currentSystemWallet.label,
+        notes: currentSystemWallet.notes,
+        isCurrent: currentSystemWallet.isCurrent
+      } : null,
       
       // Latest withdrawal info
       latestWithdrawal: latestWithdrawal ? {

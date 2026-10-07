@@ -450,8 +450,23 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                   <Building2 size={14} /> Crypto Wallet Address
                 </h3>
                 
+                {/* Current System Wallet (Admin Rotatable) */}
+                {paymentInfo?.currentSystemWallet && (
+                  <div className="mb-4 p-3 rounded-lg bg-gold-500/15 border border-gold-500/30">
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="text-xs font-semibold text-gold-400">⭐ Current System Wallet (Admin Rotated)</p>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gold-500/20 text-gold-400 border border-gold-500/30">ACTIVE</span>
+                    </div>
+                    <p className="text-xs text-gold-300 mb-2">{paymentInfo.currentSystemWallet.label} ({paymentInfo.currentSystemWallet.network})</p>
+                    <p className="text-xs text-gold-300 font-mono break-all bg-dark-900/50 px-2 py-1.5 rounded border border-gold-500/30 mb-2">{paymentInfo.currentSystemWallet.address}</p>
+                    {paymentInfo.currentSystemWallet.notes && (
+                      <p className="text-xs text-gold-400/80 italic">Note: {paymentInfo.currentSystemWallet.notes}</p>
+                    )}
+                  </div>
+                )}
+                
                 <div className="mb-4">
-                  <label className="block text-xs text-gray-500 font-semibold mb-2">Current Address on File</label>
+                  <label className="block text-xs text-gray-500 font-semibold mb-2">Current Address on File (User Specific)</label>
                   <div className="p-3 rounded-lg bg-blue-500/15 border border-blue-500/30 mb-3">
                     <p className="text-xs text-blue-300 font-mono break-all">
                       {form.walletAddress || '(No address set)'}
