@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Wallet, 
   TrendingUp, 
@@ -9,13 +9,35 @@ import {
   PiggyBank, 
   Award,
   ShieldCheck,
-  Clock
+  Clock,
+  Coins
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
+import { adminAPI } from '../../services/api';
 
 export default function OverviewTab({ stats, user, onRefresh }) {
   const [copied, setCopied] = useState(false);
+  const [currentWallet, setCurrentWallet] = useState(null);
+  const [walletLoading, setWalletLoading] = useState(true);
+
+  // Fetch current system wallet
+  useEffect(() => {
+    const fetchWallet = async () => {
+      try {
+        setWalletLoading(true);
+        const res = await adminAPI.getCurrentWallet();
+        if (res.data?.data?.wallet) {
+          setCurrentWallet(res.data.data.wallet);
+        }
+      } catch (err) {
+        console.error('Failed to fetch current wallet:', err);
+      } finally {
+        setWalletLoading(false);
+      }
+    };
+    fetchWallet();
+  }, []);
 
   const wallet = stats?.wallet || user?.wallet || { capital: 0, profit: 0, commission: 0, totalBalance: 0 };
   const referralCode = user?.referralCode || stats?.user?.referralCode || '--------';
@@ -43,6 +65,13 @@ export default function OverviewTab({ stats, user, onRefresh }) {
     setCopied(true);
     toast.success('Referral link copied!');
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyWalletAddress = () => {
+    if (currentWallet?.address) {
+      navigator.clipboard.writeText(currentWallet.address);
+      toast.success('Wallet address copied!');
+    }
   };
 
   return (
@@ -187,6 +216,67 @@ export default function OverviewTab({ stats, user, onRefresh }) {
           <p className="text-xs text-gray-500 mt-2">Team level & bonus earnings</p>
         </div>
       </div>
+
+      {/* Current Crypto Wallet Card */}
+      {currentWallet && (
+        <div className="rounded-2xl border border-gold-500/30 bg-gradient-to-br from-gold-500/10 via-dark-800 to-dark-800 p-6 backdrop-blur-xl shadow-xl">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-gold-500/20 text-gold-400 flex items-center justify-center">
+                  <Coins size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Current Deposit Wallet</h3>
+                  <p className="text-xs text-gray-500">Send cryptocurrency here for deposits</p>
+                </div>
+                <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold bg-gold-500/20 text-gold-400 border border-gold-500/30">ACTIVE</span>
+              </div>
+              
+              <div className="space-y-3 mt-4">
+                <div>
+                  <p className="text-xs text-gray-400 font-semibold mb-1.5">Network & Asset</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white">{currentWallet.label}</span>
+                    <span className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-dark-700 text-gray-300 border border-dark-600">
+                      {currentWallet.network}
+                    </span>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-gray-400 font-semibold mb-1.5">Wallet Address</p>
+                  <div className="flex items-center gap-2 bg-dark-900/50 rounded-xl px-3 py-2.5 border border-dark-600">
+                    <span className="font-mono text-xs text-gold-400 break-all flex-1">
+                      {currentWallet.address}
+                    </span>
+                    <button
+                      onClick={copyWalletAddress}
+                      className="p-2 rounded-lg text-gray-400 hover:text-gold-400 transition-colors shrink-0 bg-dark-700 hover:bg-dark-600"
+                      title="Copy wallet address"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {currentWallet.notes && (
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold mb-1.5">Notes</p>
+                    <p className="text-xs text-gold-300/80 italic">{currentWallet.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-gold-500/20">
+            <p className="text-xs text-amber-400/80 leading-relaxed">
+              ⚠️ <strong>Important:</strong> Only send {currentWallet.network} to this address. Sending other tokens may result in permanent loss.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Referral Banner - Always visible to all users */}
       <div className="rounded-2xl border border-gold-500/30 bg-gold-500/5 p-6 backdrop-blur-xl">
