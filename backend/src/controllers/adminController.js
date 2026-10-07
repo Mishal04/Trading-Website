@@ -1769,35 +1769,6 @@ const getUserPaymentInfo = async (req, res) => {
   }
 };
 
-module.exports = {
-  getSystemStats,
-  getSystemPools,
-  getAllUsers,
-  toggleUserActive,
-  updateUserRole,
-  getAllInvestments,
-  approveInvestment,
-  approvePlanInvestment,
-  rejectInvestment,
-  getAllWithdrawals,
-  approveWithdrawal,
-  rejectWithdrawal,
-  completeWithdrawal,
-  updateWithdrawalStatus,
-  injectRealizedProfit,
-  manualCommissionAdjustment,
-  creditRoi,
-  checkAchievements,
-  claimAchievements,
-  toggleNetworkerAccess,
-  updateUserPlan,
-  creditUserRoi,
-  updateUser,
-  getUserTransactions,
-  adminDepositToUser,
-  adminWithdrawFromUser,
-  generateImpersonationToken,
-  getImpersonationLogs,
 /**
  * ─── SYSTEM WALLET MANAGEMENT ──────────────────────────────────────────────────
  * Admin can manage rotating crypto wallets
