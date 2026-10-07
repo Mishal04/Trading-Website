@@ -37,7 +37,9 @@ const {
   createWallet,
   setCurrentWallet,
   updateWallet,
-  deleteWallet
+  deleteWallet,
+  getAdminSettings,
+  updateAdminSettings
 } = require('../controllers/adminController');
 
 // Validation for ROI credit
@@ -125,5 +127,9 @@ router.post('/wallets',                   createWallet);            // Create ne
 router.put('/wallets/set-current',        setCurrentWallet);        // Set wallet as current
 router.put('/wallets/:walletId',          updateWallet);            // Update wallet details
 router.delete('/wallets/:walletId',       deleteWallet);            // Archive wallet
+
+// ── Admin Settings (Bank Details, etc.) ────────────────────────────────────────
+router.get('/settings',                   getAdminSettings);        // Get admin settings (public - users need to see bank details)
+router.put('/settings',                   updateAdminSettings);     // Update admin settings (admin only)
 
 module.exports = router;

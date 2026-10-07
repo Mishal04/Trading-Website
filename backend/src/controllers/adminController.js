@@ -1997,6 +1997,63 @@ const deleteWallet = async (req, res) => {
   }
 };
 
+/**
+ * ─── ADMIN SETTINGS (Bank Details, etc.) ───────────────────────────────────
+ * Global settings for admin/company bank account
+ */
+
+// GET admin settings (bank details) - PUBLIC endpoint, anyone can see
+const getAdminSettings = async (req, res) => {
+  try {
+    const AdminSettings = require('../models/AdminSettings');
+    const settings = await AdminSettings.getCurrent();
+    
+    return res.json({
+      success: true,
+      data: { settings }
+    });
+  } catch (error) {
+    console.error('Get admin settings error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// PUT update admin settings (bank details) - ADMIN ONLY
+const updateAdminSettings = async (req, res) => {
+  try {
+    const { bankDetails } = req.body;
+    const AdminSettings = require('../models/AdminSettings');
+    
+    let settings = await AdminSettings.getCurrent();
+    
+    if (bankDetails) {
+      settings.bankDetails = {
+        accountName: bankDetails.accountName || null,
+        accountNumber: bankDetails.accountNumber || null,
+        bankName: bankDetails.bankName || null,
+        ifscCode: bankDetails.ifscCode || null,
+        branch: bankDetails.branch || null,
+        accountType: bankDetails.accountType || null
+      };
+    }
+    
+    settings.lastUpdatedBy = req.user._id;
+    settings.lastUpdatedAt = new Date();
+    await settings.save();
+    
+    console.log(`✅ Updated admin settings`);
+    
+    return res.json({
+      success: true,
+      message: 'Admin settings updated successfully',
+      data: { settings }
+    });
+  } catch (error) {
+    console.error('Update admin settings error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = {
   getSystemStats,
   getSystemPools,
@@ -2033,5 +2090,7 @@ module.exports = {
   createWallet,
   setCurrentWallet,
   updateWallet,
-  deleteWallet
+  deleteWallet,
+  getAdminSettings,
+  updateAdminSettings
 };

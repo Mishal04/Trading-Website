@@ -10,7 +10,8 @@ import {
   Award,
   ShieldCheck,
   Clock,
-  Coins
+  Coins,
+  Building2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
@@ -20,6 +21,7 @@ export default function OverviewTab({ stats, user, onRefresh }) {
   const [copied, setCopied] = useState(false);
   const [currentWallet, setCurrentWallet] = useState(null);
   const [walletLoading, setWalletLoading] = useState(true);
+  const [adminSettings, setAdminSettings] = useState(null);
 
   // Fetch current system wallet
   useEffect(() => {
@@ -37,7 +39,20 @@ export default function OverviewTab({ stats, user, onRefresh }) {
         setWalletLoading(false);
       }
     };
+    
+    const fetchSettings = async () => {
+      try {
+        const res = await adminAPI.getAdminSettings();
+        if (res.data?.data?.settings) {
+          setAdminSettings(res.data.data.settings);
+        }
+      } catch (err) {
+        console.log('Admin settings not available');
+      }
+    };
+    
     fetchWallet();
+    fetchSettings();
   }, []);
 
   const wallet = stats?.wallet || user?.wallet || { capital: 0, profit: 0, commission: 0, totalBalance: 0 };
@@ -274,6 +289,104 @@ export default function OverviewTab({ stats, user, onRefresh }) {
           <div className="mt-4 pt-4 border-t border-gold-500/20">
             <p className="text-xs text-amber-400/80 leading-relaxed">
               ⚠️ <strong>Important:</strong> Only send {currentWallet.network} to this address. Sending other tokens may result in permanent loss.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Bank Details Card (for deposits) */}
+      {adminSettings?.bankDetails && Object.values(adminSettings.bankDetails).some(v => v) && (
+        <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-dark-800 to-dark-800 p-6 backdrop-blur-xl shadow-xl">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Building2 size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Admin Bank Account</h3>
+                  <p className="text-xs text-gray-500">Bank transfer details for deposits</p>
+                </div>
+                <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ACTIVE</span>
+              </div>
+              
+              <div className="space-y-3 mt-4">
+                {adminSettings.bankDetails.accountName && (
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold mb-1.5">Account Name</p>
+                    <p className="text-sm font-bold text-white">{adminSettings.bankDetails.accountName}</p>
+                  </div>
+                )}
+                
+                {adminSettings.bankDetails.accountNumber && (
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold mb-1.5">Account Number</p>
+                    <div className="flex items-center gap-2 bg-dark-900/50 rounded-xl px-3 py-2.5 border border-dark-600">
+                      <span className="font-mono text-xs text-emerald-400 break-all flex-1">
+                        {adminSettings.bankDetails.accountNumber}
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(adminSettings.bankDetails.accountNumber);
+                          toast.success('Account number copied!');
+                        }}
+                        className="p-2 rounded-lg text-gray-400 hover:text-emerald-400 transition-colors shrink-0 bg-dark-700 hover:bg-dark-600"
+                        title="Copy account number"
+                      >
+                        <Copy size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {adminSettings.bankDetails.bankName && (
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold mb-1.5">Bank Name</p>
+                    <p className="text-sm font-bold text-white">{adminSettings.bankDetails.bankName}</p>
+                  </div>
+                )}
+
+                {adminSettings.bankDetails.ifscCode && (
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold mb-1.5">IFSC Code</p>
+                    <div className="flex items-center gap-2 bg-dark-900/50 rounded-xl px-3 py-2.5 border border-dark-600">
+                      <span className="font-mono text-xs text-emerald-400 flex-1">
+                        {adminSettings.bankDetails.ifscCode}
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(adminSettings.bankDetails.ifscCode);
+                          toast.success('IFSC code copied!');
+                        }}
+                        className="p-2 rounded-lg text-gray-400 hover:text-emerald-400 transition-colors shrink-0 bg-dark-700 hover:bg-dark-600"
+                        title="Copy IFSC code"
+                      >
+                        <Copy size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {adminSettings.bankDetails.branch && (
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold mb-1.5">Branch</p>
+                    <p className="text-sm text-white">{adminSettings.bankDetails.branch}</p>
+                  </div>
+                )}
+
+                {adminSettings.bankDetails.accountType && (
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold mb-1.5">Account Type</p>
+                    <p className="text-sm text-white">{adminSettings.bankDetails.accountType}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-emerald-500/20">
+            <p className="text-xs text-amber-400/80 leading-relaxed">
+              ⚠️ <strong>Bank Transfer:</strong> Use IMPS, NEFT, or RTGS for instant deposits. Include transaction ID in your deposit request.
             </p>
           </div>
         </div>

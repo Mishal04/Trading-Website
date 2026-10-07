@@ -173,6 +173,10 @@ export const adminAPI = {
   updateWallet: (walletId, data) => api.put(`/admin/wallets/${walletId}`, data),
   deleteWallet: (walletId) => api.delete(`/admin/wallets/${walletId}`),
 
+  // Admin Settings (Bank Details)
+  getAdminSettings: () => api.get(`/admin/settings`),
+  updateAdminSettings: (data) => api.put(`/admin/settings`, data),
+
   // ── Investor admin endpoints ──────────────────────────────────────────────
   getInvestors:      (params) => api.get('/admin/investors', { params }),
   updateInvestorPlan:(id, plan) => api.patch(`/admin/investors/${id}/plan`, { plan }),

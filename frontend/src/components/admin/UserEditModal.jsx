@@ -41,6 +41,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
   const [transError, setTransError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [latestCryptoAddress, setLatestCryptoAddress] = useState(null);
+  const [adminSettings, setAdminSettings] = useState(null);
 
   // Upline/Downline state
   const [networkData, setNetworkData] = useState(null);
@@ -155,8 +156,23 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
       
       // Fetch latest payment info (wallet address, transaction IDs, bank details)
       fetchUserPaymentInfo();
+      
+      // Fetch admin settings (global bank details)
+      fetchAdminSettings();
     }
   }, [user, isOpen]);
+
+  // Fetch admin settings
+  const fetchAdminSettings = async () => {
+    try {
+      const res = await adminAPI.getAdminSettings();
+      if (res.data?.data?.settings) {
+        setAdminSettings(res.data.data.settings);
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin settings:', err);
+    }
+  };
 
   // Fetch transactions when tab changes
   useEffect(() => {
@@ -242,6 +258,15 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
       }
 
       await adminAPI.updateUser(user._id, payload);
+      
+      // Also save admin settings if they were changed
+      if (adminSettings && tab === 'admin-settings') {
+        await adminAPI.updateAdminSettings({
+          bankDetails: adminSettings.bankDetails
+        });
+        toast.success('Admin settings updated successfully');
+      }
+      
       toast.success('User profile updated successfully');
       onSaved?.();
       onClose();
@@ -312,6 +337,7 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
           {[
             { id: 'login', label: 'Login Info' },
             { id: 'payment', label: 'Payment Details' },
+            { id: 'admin-settings', label: 'Admin Settings' },
             { id: 'edit', label: 'Edit Profile' },
             { id: 'network', label: 'Network' },
             { id: 'transactions', label: 'Transactions' },
@@ -716,7 +742,159 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
             </div>
           )}
 
-          {/* Edit Profile Tab */}
+          {/* Admin Settings Tab - Edit company bank details shown to all users */}
+          {tab === 'admin-settings' && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-4 mb-4">
+                <p className="text-xs text-blue-400">
+                  📢 <strong>Global Admin Bank Details:</strong> These bank details are displayed to all users in their deposit section. Update here to change globally.
+                </p>
+              </div>
+
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Building2 size={14} /> Company/Admin Bank Account
+              </h3>
+
+              {/* Display current admin bank details */}
+              {adminSettings?.bankDetails && Object.values(adminSettings.bankDetails).some(v => v) ? (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-4">
+                  <p className="text-xs font-semibold text-emerald-400 mb-2">Currently Set:</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {adminSettings.bankDetails.accountName && (
+                      <div>
+                        <span className="text-gray-400">Account Name:</span>
+                        <p className="text-white font-semibold">{adminSettings.bankDetails.accountName}</p>
+                      </div>
+                    )}
+                    {adminSettings.bankDetails.accountNumber && (
+                      <div>
+                        <span className="text-gray-400">Account Number:</span>
+                        <p className="text-white font-mono">{adminSettings.bankDetails.accountNumber}</p>
+                      </div>
+                    )}
+                    {adminSettings.bankDetails.bankName && (
+                      <div>
+                        <span className="text-gray-400">Bank Name:</span>
+                        <p className="text-white font-semibold">{adminSettings.bankDetails.bankName}</p>
+                      </div>
+                    )}
+                    {adminSettings.bankDetails.ifscCode && (
+                      <div>
+                        <span className="text-gray-400">IFSC Code:</span>
+                        <p className="text-white font-mono">{adminSettings.bankDetails.ifscCode}</p>
+                      </div>
+                    )}
+                  </div>
+                  {adminSettings.lastUpdatedAt && (
+                    <p className="text-xs text-emerald-400/70 mt-2">
+                      Last updated: {new Date(adminSettings.lastUpdatedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-gray-500/10 border border-gray-500/30 text-center mb-4">
+                  <p className="text-xs text-gray-400 italic">No admin bank details set yet</p>
+                </div>
+              )}
+
+              {/* Edit admin bank details */}
+              <div className="space-y-2.5">
+                <div>
+                  <label className="block text-xs text-gray-500 font-semibold mb-1.5">Account Name</label>
+                  <input
+                    type="text"
+                    value={adminSettings?.bankDetails?.accountName || ''}
+                    onChange={(e) => setAdminSettings({
+                      ...adminSettings,
+                      bankDetails: { ...adminSettings?.bankDetails, accountName: e.target.value }
+                    })}
+                    placeholder="e.g., OBO ENTERPRISES"
+                    className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-500 font-semibold mb-1.5">Account Number</label>
+                  <input
+                    type="text"
+                    value={adminSettings?.bankDetails?.accountNumber || ''}
+                    onChange={(e) => setAdminSettings({
+                      ...adminSettings,
+                      bankDetails: { ...adminSettings?.bankDetails, accountNumber: e.target.value }
+                    })}
+                    placeholder="e.g., 1603020000000728"
+                    className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors text-sm font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-500 font-semibold mb-1.5">Bank Name</label>
+                  <input
+                    type="text"
+                    value={adminSettings?.bankDetails?.bankName || ''}
+                    onChange={(e) => setAdminSettings({
+                      ...adminSettings,
+                      bankDetails: { ...adminSettings?.bankDetails, bankName: e.target.value }
+                    })}
+                    placeholder="e.g., UTKARSH SFB"
+                    className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-500 font-semibold mb-1.5">IFSC Code</label>
+                  <input
+                    type="text"
+                    value={adminSettings?.bankDetails?.ifscCode || ''}
+                    onChange={(e) => setAdminSettings({
+                      ...adminSettings,
+                      bankDetails: { ...adminSettings?.bankDetails, ifscCode: e.target.value.toUpperCase() }
+                    })}
+                    placeholder="e.g., UTKS0001603"
+                    className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors text-sm font-mono uppercase"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-500 font-semibold mb-1.5">Branch (Optional)</label>
+                  <input
+                    type="text"
+                    value={adminSettings?.bankDetails?.branch || ''}
+                    onChange={(e) => setAdminSettings({
+                      ...adminSettings,
+                      bankDetails: { ...adminSettings?.bankDetails, branch: e.target.value }
+                    })}
+                    placeholder="e.g., Kharghar"
+                    className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-500 font-semibold mb-1.5">Account Type (Optional)</label>
+                  <input
+                    type="text"
+                    value={adminSettings?.bankDetails?.accountType || ''}
+                    onChange={(e) => setAdminSettings({
+                      ...adminSettings,
+                      bankDetails: { ...adminSettings?.bankDetails, accountType: e.target.value }
+                    })}
+                    placeholder="e.g., CURRENT"
+                    className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors text-sm"
+                  />
+                </div>
+
+                <button
+                  onClick={() => {
+                    // Save will be called from main handleSave button
+                  }}
+                  className="w-full px-3 py-2 rounded-lg bg-gold-400 text-dark-900 text-xs font-bold hover:bg-gold-300 transition-colors mt-4"
+                  title="Click Save button below to apply changes"
+                >
+                  ⚠️ Make changes above, then click Save to apply globally
+                </button>
+              </div>
+            </div>
+          )}
           {tab === 'edit' && (
             <div className="space-y-4">
               <div>
