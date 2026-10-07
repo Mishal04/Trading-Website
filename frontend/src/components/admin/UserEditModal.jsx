@@ -94,7 +94,6 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
     }
   };
 
-  // State to store payment info from API
   const [paymentInfo, setPaymentInfo] = useState(null);
 
   // Fetch user's payment info (wallet address from withdrawals, TXN ID from investments)
@@ -109,7 +108,10 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
       if (paymentData) {
         console.log('💰 [fetchUserPaymentInfo] Storing payment info:', paymentData);
         setPaymentInfo(paymentData); // Store in state
-        setLatestCryptoAddress(paymentData.latestWithdrawalAddress);
+        // Extract wallet address from latest withdrawal
+        if (paymentData.latestWithdrawal?.walletAddress) {
+          setLatestCryptoAddress(paymentData.latestWithdrawal.walletAddress);
+        }
       }
     } catch (err) {
       console.error('❌ [fetchUserPaymentInfo] Error:', err);
@@ -118,11 +120,11 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
 
   // Update form with payment info whenever paymentInfo changes
   useEffect(() => {
-    if (paymentInfo?.latestWithdrawalAddress) {
-      console.log('📝 [useEffect] Updating form with latest withdrawal address:', paymentInfo.latestWithdrawalAddress);
+    if (paymentInfo?.latestWithdrawal?.walletAddress) {
+      console.log('📝 [useEffect] Updating form with latest withdrawal address:', paymentInfo.latestWithdrawal.walletAddress);
       setForm(prevForm => ({
         ...prevForm,
-        walletAddress: paymentInfo.latestWithdrawalAddress
+        walletAddress: paymentInfo.latestWithdrawal.walletAddress
       }));
     }
   }, [paymentInfo]);
