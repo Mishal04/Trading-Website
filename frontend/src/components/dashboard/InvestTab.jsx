@@ -165,10 +165,14 @@ export default function InvestTab({ onRefresh }) {
         if (network === 'BEP20' || !paymentMethods[network]) {
           setNetwork(methodKey);
         }
+      } else {
+        // No wallet configured - show info message instead of error
+        console.warn('No crypto wallet configured by admin');
+        // Keep bank transfer only
       }
     } catch (err) {
       console.error('Failed to fetch wallet:', err);
-      toast.error('Failed to load deposit wallet. Please refresh the page.');
+      // Silently fail - bank transfer will still be available
     } finally {
       setWalletLoading(false);
     }

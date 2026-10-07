@@ -31,7 +31,8 @@ export default function OverviewTab({ stats, user, onRefresh }) {
           setCurrentWallet(res.data.data.wallet);
         }
       } catch (err) {
-        console.error('Failed to fetch current wallet:', err);
+        // Silently fail - wallet not configured yet is OK
+        console.log('Current wallet not configured yet');
       } finally {
         setWalletLoading(false);
       }
