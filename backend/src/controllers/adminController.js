@@ -2027,6 +2027,10 @@ const updateAdminSettings = async (req, res) => {
     let settings = await AdminSettings.getCurrent();
     
     if (bankDetails) {
+      // Archive current bank details to history before updating
+      settings.archiveCurrentAsHistory();
+      
+      // Update with new bank details
       settings.bankDetails = {
         accountName: bankDetails.accountName || null,
         accountNumber: bankDetails.accountNumber || null,
@@ -2041,7 +2045,7 @@ const updateAdminSettings = async (req, res) => {
     settings.lastUpdatedAt = new Date();
     await settings.save();
     
-    console.log(`✅ Updated admin settings`);
+    console.log(`✅ Updated admin settings and archived previous values to history`);
     
     return res.json({
       success: true,

@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import TransactionErrorBoundary from './TransactionErrorBoundary';
 import {
   X, Save, Mail, Phone, Building2, Plus,
-  ArrowDownUp, Eye, EyeOff, Loader, AlertTriangle, CheckCircle2, LogIn, Network,
+  ArrowDownUp, Eye, EyeOff, Loader, AlertTriangle, CheckCircle2, LogIn, Network, ChevronDown,
 } from 'lucide-react';
 
 const fmt = (n = 0) => {
@@ -46,6 +46,9 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
   // Upline/Downline state
   const [networkData, setNetworkData] = useState(null);
   const [networkLoading, setNetworkLoading] = useState(false);
+
+  // Bank history collapsible state
+  const [showBankHistory, setShowBankHistory] = useState(false);
 
   // Edit form state
   const [form, setForm] = useState({
@@ -892,6 +895,85 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                 >
                   ⚠️ Make changes above, then click Save to apply globally
                 </button>
+
+                {/* Previous Bank Details History */}
+                {adminSettings?.bankHistory && adminSettings.bankHistory.length > 0 && (
+                  <div className="border-t border-dark-600 pt-4 mt-4">
+                    <button
+                      onClick={() => setShowBankHistory(!showBankHistory)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 hover:border-dark-500 transition-colors"
+                    >
+                      <span className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                        📋 Previous Bank Details ({adminSettings.bankHistory.length})
+                      </span>
+                      <ChevronDown
+                        size={16}
+                        className={`text-gray-400 transition-transform ${showBankHistory ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+
+                    {showBankHistory && (
+                      <div className="mt-3 space-y-3">
+                        {adminSettings.bankHistory.map((history, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 rounded-lg bg-dark-700/50 border border-gray-600/30"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <p className="text-xs font-semibold text-gray-300">
+                                Version {adminSettings.bankHistory.length - idx}
+                              </p>
+                              {history.changedAt && (
+                                <p className="text-xs text-gray-500">
+                                  {new Date(history.changedAt).toLocaleDateString()} {new Date(history.changedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              {history.accountName && (
+                                <div>
+                                  <span className="text-gray-500">Account Name:</span>
+                                  <p className="text-gray-300 font-semibold">{history.accountName}</p>
+                                </div>
+                              )}
+                              {history.accountNumber && (
+                                <div>
+                                  <span className="text-gray-500">Account Number:</span>
+                                  <p className="text-gray-300 font-mono">{history.accountNumber}</p>
+                                </div>
+                              )}
+                              {history.bankName && (
+                                <div>
+                                  <span className="text-gray-500">Bank Name:</span>
+                                  <p className="text-gray-300 font-semibold">{history.bankName}</p>
+                                </div>
+                              )}
+                              {history.ifscCode && (
+                                <div>
+                                  <span className="text-gray-500">IFSC Code:</span>
+                                  <p className="text-gray-300 font-mono">{history.ifscCode}</p>
+                                </div>
+                              )}
+                              {history.branch && (
+                                <div>
+                                  <span className="text-gray-500">Branch:</span>
+                                  <p className="text-gray-300">{history.branch}</p>
+                                </div>
+                              )}
+                              {history.accountType && (
+                                <div>
+                                  <span className="text-gray-500">Account Type:</span>
+                                  <p className="text-gray-300">{history.accountType}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
