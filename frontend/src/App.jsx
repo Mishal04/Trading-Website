@@ -17,6 +17,7 @@ import Withdrawals from './pages/admin/Withdrawals';
 import Users from './pages/admin/Users';
 import AdminUserTransactions from './pages/admin/AdminUserTransactions';
 import ProfitInject from './pages/admin/ProfitInject';
+import Wallets from './pages/admin/Wallets';
 
 // ─── Spinner ──────────────────────────────────────────────────────────────────
 function Spinner() {
@@ -101,6 +102,7 @@ export default function App() {
           <Route path="users"       element={<Users />} />
           <Route path="transactions" element={<AdminUserTransactions />} />
           <Route path="profit"      element={<ProfitInject />} />
+          <Route path="wallets"     element={<Wallets />} />
           <Route path="*"           element={<Navigate to="/admin" replace />} />
         </Route>
 

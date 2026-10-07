@@ -31,7 +31,13 @@ const {
   generateImpersonationToken,
   getImpersonationLogs,
   getUserPaymentInfo,
-  getUserUplineDownline
+  getUserUplineDownline,
+  getAllWallets,
+  getCurrentWallet,
+  createWallet,
+  setCurrentWallet,
+  updateWallet,
+  deleteWallet
 } = require('../controllers/adminController');
 
 // Validation for ROI credit
@@ -111,5 +117,13 @@ const validateWalletAdjust = [
     .isLength({ max: 200 }).withMessage('Description must be 200 characters or less'),
 ];
 router.post('/commission/adjust', validateWalletAdjust, manualCommissionAdjustment);
+
+// ── System Wallets (Crypto Deposit Addresses) ──────────────────────────────────
+router.get('/wallets',                    getAllWallets);           // Get all wallets
+router.get('/wallets/current',            getCurrentWallet);        // Get current active wallet (public can access too)
+router.post('/wallets',                   createWallet);            // Create new wallet
+router.put('/wallets/set-current',        setCurrentWallet);        // Set wallet as current
+router.put('/wallets/:walletId',          updateWallet);            // Update wallet details
+router.delete('/wallets/:walletId',       deleteWallet);            // Archive wallet
 
 module.exports = router;

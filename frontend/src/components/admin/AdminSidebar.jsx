@@ -7,6 +7,7 @@ import {
   Users,
   TrendingUp,
   Wallet,
+  Coins,
   LogOut,
   X,
   ShieldCheck,
@@ -18,6 +19,7 @@ const navItems = [
   { path: '/admin/withdrawals', label: 'Withdrawals',   icon: ArrowUpRight },
   { path: '/admin/users',       label: 'Users',         icon: Users },
   { path: '/admin/transactions',label: 'User Wallet',   icon: Wallet },
+  { path: '/admin/wallets',     label: 'Crypto Wallets',icon: Coins },
   { path: '/admin/profit',      label: 'Profit Inject', icon: TrendingUp },
 ];
 

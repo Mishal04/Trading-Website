@@ -165,6 +165,14 @@ export const adminAPI = {
   // Manual wallet adjustment
   adjustWallet: (data) => api.post('/admin/commission/adjust', data),
 
+  // System Wallets (Crypto deposit addresses)
+  getAllWallets: () => api.get('/admin/wallets'),
+  getCurrentWallet: () => api.get('/admin/wallets/current'),
+  createWallet: (data) => api.post('/admin/wallets', data),
+  setCurrentWallet: (walletId) => api.put('/admin/wallets/set-current', { walletId }),
+  updateWallet: (walletId, data) => api.put(`/admin/wallets/${walletId}`, data),
+  deleteWallet: (walletId) => api.delete(`/admin/wallets/${walletId}`),
+
   // ── Investor admin endpoints ──────────────────────────────────────────────
   getInvestors:      (params) => api.get('/admin/investors', { params }),
   updateInvestorPlan:(id, plan) => api.patch(`/admin/investors/${id}/plan`, { plan }),

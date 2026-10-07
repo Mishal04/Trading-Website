@@ -1798,6 +1798,255 @@ module.exports = {
   adminWithdrawFromUser,
   generateImpersonationToken,
   getImpersonationLogs,
+/**
+ * ─── SYSTEM WALLET MANAGEMENT ──────────────────────────────────────────────────
+ * Admin can manage rotating crypto wallets
+ */
+
+// GET all system wallets
+const getAllWallets = async (req, res) => {
+  try {
+    const SystemWallet = require('../models/SystemWallet');
+    
+    const wallets = await SystemWallet.find()
+      .sort({ isCurrent: -1, createdAt: -1 });
+    
+    return res.json({
+      success: true,
+      data: { wallets }
+    });
+  } catch (error) {
+    console.error('Get wallets error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// GET current active wallet (what clients see)
+const getCurrentWallet = async (req, res) => {
+  try {
+    const SystemWallet = require('../models/SystemWallet');
+    
+    const wallet = await SystemWallet.getCurrentWallet();
+    
+    if (!wallet) {
+      return res.status(404).json({
+        success: false,
+        message: 'No active wallet configured'
+      });
+    }
+    
+    return res.json({
+      success: true,
+      data: { wallet }
+    });
+  } catch (error) {
+    console.error('Get current wallet error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// POST create new wallet
+const createWallet = async (req, res) => {
+  try {
+    const { address, network, label, notes } = req.body;
+    const SystemWallet = require('../models/SystemWallet');
+    
+    // Validation
+    if (!address || !network || !label) {
+      return res.status(400).json({
+        success: false,
+        message: 'Address, network, and label are required'
+      });
+    }
+    
+    // Check if wallet already exists
+    const existing = await SystemWallet.findOne({ address });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: 'Wallet address already exists'
+      });
+    }
+    
+    // Create new wallet
+    const wallet = new SystemWallet({
+      address,
+      network,
+      label,
+      notes: notes || '',
+      createdBy: req.user._id,
+      lastModifiedBy: req.user._id,
+      isActive: true,
+      isCurrent: false  // Don't auto-set as current
+    });
+    
+    await wallet.save();
+    
+    console.log(`✅ Created wallet: ${label} (${network})`);
+    
+    return res.status(201).json({
+      success: true,
+      message: 'Wallet created successfully',
+      data: { wallet }
+    });
+  } catch (error) {
+    console.error('Create wallet error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// PUT set wallet as current
+const setCurrentWallet = async (req, res) => {
+  try {
+    const { walletId } = req.body;
+    const SystemWallet = require('../models/SystemWallet');
+    
+    if (!walletId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Wallet ID is required'
+      });
+    }
+    
+    const wallet = await SystemWallet.findById(walletId);
+    
+    if (!wallet) {
+      return res.status(404).json({
+        success: false,
+        message: 'Wallet not found'
+      });
+    }
+    
+    // Set as current (this also deactivates the old one)
+    await wallet.setAsCurrent();
+    
+    console.log(`✅ Set current wallet: ${wallet.label}`);
+    
+    return res.json({
+      success: true,
+      message: `Wallet '${wallet.label}' is now active`,
+      data: { wallet }
+    });
+  } catch (error) {
+    console.error('Set current wallet error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// PUT update wallet
+const updateWallet = async (req, res) => {
+  try {
+    const { walletId } = req.params;
+    const { label, notes, isActive } = req.body;
+    const SystemWallet = require('../models/SystemWallet');
+    
+    const wallet = await SystemWallet.findById(walletId);
+    
+    if (!wallet) {
+      return res.status(404).json({
+        success: false,
+        message: 'Wallet not found'
+      });
+    }
+    
+    // Update fields
+    if (label) wallet.label = label;
+    if (notes !== undefined) wallet.notes = notes;
+    if (isActive !== undefined) wallet.isActive = isActive;
+    
+    wallet.lastModifiedBy = req.user._id;
+    await wallet.save();
+    
+    console.log(`✅ Updated wallet: ${wallet.label}`);
+    
+    return res.json({
+      success: true,
+      message: 'Wallet updated successfully',
+      data: { wallet }
+    });
+  } catch (error) {
+    console.error('Update wallet error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// DELETE wallet (archive it)
+const deleteWallet = async (req, res) => {
+  try {
+    const { walletId } = req.params;
+    const SystemWallet = require('../models/SystemWallet');
+    
+    const wallet = await SystemWallet.findById(walletId);
+    
+    if (!wallet) {
+      return res.status(404).json({
+        success: false,
+        message: 'Wallet not found'
+      });
+    }
+    
+    // Can't delete current wallet
+    if (wallet.isCurrent) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete the current active wallet. Set another wallet as current first.'
+      });
+    }
+    
+    // Archive instead of delete
+    wallet.status = 'archived';
+    wallet.isActive = false;
+    wallet.lastModifiedBy = req.user._id;
+    await wallet.save();
+    
+    console.log(`✅ Archived wallet: ${wallet.label}`);
+    
+    return res.json({
+      success: true,
+      message: 'Wallet archived successfully',
+      data: { wallet }
+    });
+  } catch (error) {
+    console.error('Delete wallet error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+module.exports = {
+  getSystemStats,
+  getSystemPools,
+  getAllUsers,
+  toggleUserActive,
+  updateUserRole,
+  getAllInvestments,
+  approveInvestment,
+  approvePlanInvestment,
+  rejectInvestment,
+  getAllWithdrawals,
+  approveWithdrawal,
+  rejectWithdrawal,
+  completeWithdrawal,
+  updateWithdrawalStatus,
+  injectRealizedProfit,
+  manualCommissionAdjustment,
+  creditRoi,
+  checkAchievements,
+  claimAchievements,
+  toggleNetworkerAccess,
+  updateUserPlan,
+  creditUserRoi,
+  updateUser,
+  getUserTransactions,
+  adminDepositToUser,
+  adminWithdrawFromUser,
+  generateImpersonationToken,
+  getImpersonationLogs,
   getUserPaymentInfo,
-  getUserUplineDownline
+  getUserUplineDownline,
+  getAllWallets,
+  getCurrentWallet,
+  createWallet,
+  setCurrentWallet,
+  updateWallet,
+  deleteWallet
 };

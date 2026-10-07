@@ -1,30 +1,16 @@
 ﻿import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { investmentAPI } from '../../services/api';
+import { investmentAPI, adminAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import {
   PiggyBank, Sparkles, CheckCircle2,
   RefreshCw, Layers, Clock, XCircle,
   AlertTriangle, Hash, FileText, MessageSquare,
-  Copy, Check as CheckIcon, Building2,
+  Copy, Check as CheckIcon, Building2, Loader,
 } from 'lucide-react';
 
-// ─── payment method details ───────────────────────────────────────────────────
-const PAYMENT_METHODS = {
-  BEP20: {
-    label:   'USDT (BEP20)',
-    sub:     'Binance Smart Chain',
-    type:    'crypto',
-    address: '0x7bb5df2531e8ac0086eba3a0e68c25fb0ec0f4cd',
-    note:    'Send only USDT on the BNB Smart Chain (BEP20). Sending other tokens or on wrong network will result in permanent loss.',
-  },
-  TRC20: {
-    label:   'USDT (TRC20)',
-    sub:     'TRON Network',
-    type:    'crypto',
-    address: 'TC5WYzEVnwETtvPq8FZzYkKzcNoqMG9ezV',
-    note:    'Send only USDT on the TRON network (TRC20). Do not send from exchanges that don\'t support TRC20.',
-  },
+// ─── payment method defaults (bank info is static) ────────────────────────────
+const PAYMENT_METHODS_BASE = {
   BANK: {
     label: 'Bank Transfer',
     sub:   'India — IMPS / NEFT / RTGS',
@@ -142,6 +128,10 @@ export default function InvestTab({ onRefresh }) {
   const [paymentProof, setPaymentProof] = useState('');
   const [paymentNote, setPaymentNote]   = useState('');
   const [loading, setLoading]           = useState(false);
+  
+  // Dynamic wallet state
+  const [paymentMethods, setPaymentMethods] = useState(PAYMENT_METHODS_BASE);
+  const [walletLoading, setWalletLoading] = useState(true);
 
   const copyToClipboard = (text, fieldKey) => {
     navigator.clipboard.writeText(text);
@@ -149,6 +139,45 @@ export default function InvestTab({ onRefresh }) {
     toast.success('Copied to clipboard!');
     setTimeout(() => setCopiedField(null), 2000);
   };
+
+  // Fetch current wallet from backend
+  const fetchCurrentWallet = async () => {
+    try {
+      setWalletLoading(true);
+      const res = await adminAPI.getCurrentWallet();
+      const wallet = res.data?.data?.wallet;
+      
+      if (wallet) {
+        // Build crypto payment method from current wallet
+        const methodKey = wallet.network || 'BEP20';
+        setPaymentMethods(prev => ({
+          ...prev,
+          [methodKey]: {
+            label: `${wallet.label} (${wallet.network})`,
+            sub: wallet.network,
+            type: 'crypto',
+            address: wallet.address,
+            note: `Send only the correct token/network. ${wallet.notes || 'Double-check the address before sending.'}`,
+          }
+        }));
+        
+        // Auto-select the current wallet if not already selected
+        if (network === 'BEP20' || !paymentMethods[network]) {
+          setNetwork(methodKey);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch wallet:', err);
+      toast.error('Failed to load deposit wallet. Please refresh the page.');
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  // Fetch wallet on mount
+  useEffect(() => {
+    fetchCurrentWallet();
+  }, []);
 
   const handleAmountChange = (val) => {
     setAmount(val);
@@ -438,7 +467,7 @@ export default function InvestTab({ onRefresh }) {
                 Payment Method <span className="text-red-400">*</span>
               </label>
               <div className="grid grid-cols-3 gap-3">
-                {Object.entries(PAYMENT_METHODS).map(([id, method]) => (
+                {Object.entries(paymentMethods).map(([id, method]) => (
                   <button
                     key={id}
                     type="button"
@@ -463,7 +492,7 @@ export default function InvestTab({ onRefresh }) {
 
             {/* Payment destination details */}
             {(() => {
-              const method = PAYMENT_METHODS[network];
+              const method = paymentMethods[network];
               if (!method) return null;
 
               if (method.type === 'crypto') {
