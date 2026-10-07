@@ -57,7 +57,6 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
     password: '',
     confirmPassword: '',
     phoneNumber: user?.phoneNumber || '',
-    walletAddress: user?.walletAddress || '',
     oldTransactionIds: user?.oldTransactionIds || '',
     bankDetails: {
       accountName: user?.bankDetails?.accountName || '',
@@ -82,7 +81,6 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
           password: '',
           confirmPassword: '',
           phoneNumber: updatedUser.phoneNumber || '',
-          walletAddress: updatedUser.walletAddress || '',
           oldTransactionIds: updatedUser.oldTransactionIds || '',
           bankDetails: {
             accountName: updatedUser.bankDetails?.accountName || '',
@@ -144,7 +142,6 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
         password: '',
         confirmPassword: '',
         phoneNumber: user.phoneNumber || '',
-        walletAddress: user.walletAddress || '',
         oldTransactionIds: user.oldTransactionIds || '',
         bankDetails: {
           accountName: user.bankDetails?.accountName || '',
@@ -245,7 +242,6 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
         name: form.name.trim(),
         email: form.email.trim(),
         phoneNumber: form.phoneNumber.trim() || null,
-        walletAddress: form.walletAddress.trim() || null,
         oldTransactionIds: form.oldTransactionIds.trim() || null,
         bankDetails: {
           accountName: form.bankDetails.accountName.trim() || null,
@@ -473,102 +469,6 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                   className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-xs resize-none"
                 />
                 <p className="text-xs text-gray-600 mt-1">Previous/old transaction IDs separated by commas or on new lines</p>
-              </div>
-
-              {/* Crypto Wallet */}
-              <div className="border-t border-dark-600 pt-4">
-                <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                  <Building2 size={14} /> Crypto Wallet Address
-                </h3>
-                
-                {/* Current System Wallet (Admin Rotatable) */}
-                {paymentInfo?.currentSystemWallet && (
-                  <div className="mb-4 p-3 rounded-lg bg-gold-500/15 border border-gold-500/30">
-                    <div className="flex justify-between items-start mb-2">
-                      <p className="text-xs font-semibold text-gold-400">⭐ Current System Wallet (Admin Rotated)</p>
-                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gold-500/20 text-gold-400 border border-gold-500/30">ACTIVE</span>
-                    </div>
-                    <p className="text-xs text-gold-300 mb-2">{paymentInfo.currentSystemWallet.label} ({paymentInfo.currentSystemWallet.network})</p>
-                    <p className="text-xs text-gold-300 font-mono break-all bg-dark-900/50 px-2 py-1.5 rounded border border-gold-500/30 mb-2">{paymentInfo.currentSystemWallet.address}</p>
-                    {paymentInfo.currentSystemWallet.notes && (
-                      <p className="text-xs text-gold-400/80 italic">Note: {paymentInfo.currentSystemWallet.notes}</p>
-                    )}
-                  </div>
-                )}
-                
-                <div className="mb-4">
-                  <label className="block text-xs text-gray-500 font-semibold mb-2">Current Address on File (User Specific)</label>
-                  <div className="p-3 rounded-lg bg-blue-500/15 border border-blue-500/30 mb-3">
-                    <p className="text-xs text-blue-300 font-mono break-all">
-                      {form.walletAddress || '(No address set)'}
-                    </p>
-                  </div>
-                  
-                  <div className="flex gap-2 items-end mb-3">
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-500 font-semibold mb-2">Update Address</label>
-                      <input
-                        type="text"
-                        value={form.walletAddress}
-                        onChange={(e) => setForm({ ...form, walletAddress: e.target.value })}
-                        placeholder="e.g., 1A1z7agoat2Bt89ZN0QCnEQxKucbS1..."
-                        className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-xs"
-                      />
-                    </div>
-                    <button
-                      onClick={() => setForm({ ...form, walletAddress: '' })}
-                      className="px-3 py-2.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 text-xs font-semibold transition-colors"
-                      title="Clear the wallet address"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">Enter the crypto wallet address for future transactions (Bitcoin, Ethereum, BSC, etc.)</p>
-                </div>
-                
-                {/* Show recent withdrawals with addresses used */}
-                {paymentInfo?.recentWithdrawals && paymentInfo.recentWithdrawals.length > 0 && (
-                  <div>
-                    <label className="block text-xs text-gray-500 font-semibold mb-2">Recently Used Addresses (from withdrawals):</label>
-                    <div className="space-y-2">
-                      {paymentInfo.recentWithdrawals.map((w, idx) => (
-                        <div key={idx} className="p-2.5 rounded-lg bg-green-500/15 border border-green-500/30">
-                          <div className="flex justify-between mb-1">
-                            <p className="text-xs font-semibold text-green-400">{w.type.toUpperCase()} Withdrawal</p>
-                            <p className="text-xs text-green-300">${w.amount}</p>
-                          </div>
-                          <p className="text-xs text-green-300 font-mono break-all mb-1">{w.walletAddress}</p>
-                          <p className="text-xs text-green-500/60">{w.network} • {new Date(w.requestedAt).toLocaleDateString()}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Show transaction IDs associated with this wallet */}
-                {transactions && transactions.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-dark-600">
-                    <label className="block text-xs text-gray-500 font-semibold mb-2">Transaction IDs Associated with This Address:</label>
-                    <div className="space-y-1 max-h-48 overflow-y-auto">
-                      {transactions
-                        .filter(txn => txn._id) // Only show transactions with TXN IDs
-                        .map((txn, idx) => (
-                          <div key={idx} className="p-2 rounded-lg bg-purple-500/15 border border-purple-500/30">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <p className="text-xs text-purple-300 font-semibold capitalize mb-0.5">{txn.type}</p>
-                                <p className="text-xs text-purple-400 font-mono break-all">{txn._id}</p>
-                              </div>
-                              <p className="text-xs text-purple-300 ml-2 whitespace-nowrap">
-                                {txn.amount >= 0 ? '+' : ''}{typeof txn.amount === 'number' ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(txn.amount) : '$0.00'}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2 italic">All transaction IDs for this user account</p>
-                  </div>
-                )}
               </div>
 
               {/* Bank Details Section */}
@@ -1010,27 +910,6 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
                   className="w-full px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-xs resize-none"
                 />
                 <p className="text-xs text-gray-600 mt-1">Previous transaction IDs separated by commas or new lines</p>
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Crypto Wallet Address</label>
-                <div className="flex gap-2 items-end">
-                  <input
-                    type="text"
-                    value={form.walletAddress}
-                    onChange={(e) => setForm({ ...form, walletAddress: e.target.value })}
-                    placeholder="e.g., 1A1z7agoat2Bt89ZN0QCnEQxKucbS1..."
-                    className="flex-1 px-3 py-2.5 rounded-lg bg-dark-700 border border-dark-600 text-white placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors font-mono text-sm"
-                  />
-                  <button
-                    onClick={() => setForm({ ...form, walletAddress: '' })}
-                    className="px-3 py-2.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 text-xs font-semibold transition-colors"
-                    title="Clear the wallet address"
-                  >
-                    Clear
-                  </button>
-                </div>
-                <p className="text-xs text-gray-600 mt-1">Bitcoin or crypto wallet address for withdrawals</p>
               </div>
 
               <div className="border-t border-dark-600 pt-4">
