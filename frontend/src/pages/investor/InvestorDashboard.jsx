@@ -7,12 +7,27 @@ import {
   TrendingUp, Wallet, BarChart2, Clock, LogOut,
   PlusCircle, CheckCircle2, XCircle, AlertCircle,
   RefreshCw, ChevronDown, ChevronUp, ArrowUpRight,
-  Copy, Check as CheckIcon, Building2
+  Copy, Check as CheckIcon, Building2, ShieldCheck,
+  Info, Coins, Landmark
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // ─── payment method details (shared with InvestTab) ───────────────────────────
 const PAYMENT_METHODS = {
+  BANK: {
+    label: 'Bank Transfer',
+    sub:   'India — IMPS / NEFT / RTGS',
+    type:  'bank',
+    fields: [
+      { label: 'Bank Name',      value: 'UTKARSH SFB' },
+      { label: 'Account Name',   value: 'OBO ENTERPRISES' },
+      { label: 'Account Number', value: '1603020000000728' },
+      { label: 'IFSC Code',      value: 'UTKS0001603' },
+      { label: 'Branch',         value: 'Kharghar' },
+      { label: 'Account Type',   value: 'CURRENT' },
+    ],
+    note: 'Use IMPS / NEFT / RTGS. Enter the bank UTR / reference number as your Transaction ID below.',
+  },
   BEP20: {
     label:   'USDT (BEP20)',
     sub:     'Binance Smart Chain',
@@ -26,20 +41,6 @@ const PAYMENT_METHODS = {
     type:    'crypto',
     address: 'TC5WYzEVnwETtvPq8FZzYkKzcNoqMG9ezV',
     note:    "Send only USDT on the TRON network (TRC20). Do not send from exchanges that don't support TRC20.",
-  },
-  BANK: {
-    label: 'Bank Transfer',
-    sub:   'India — IMPS / NEFT / RTGS',
-    type:  'bank',
-    fields: [
-      { label: 'Bank Name',      value: 'UTKARSH SFB' },
-      { label: 'Account Name',   value: 'OBO ENTERPRISES' },
-      { label: 'Account Number', value: '1603020000000728' },
-      { label: 'IFSC Code',      value: 'UTKS0001603' },
-      { label: 'Branch',         value: 'Kharghar' },
-      { label: 'Account Type',   value: 'CURRENT' },
-    ],
-    note: 'Use IMPS / NEFT / RTGS. Enter the bank reference number as your Transaction ID below.',
   },
 };
 
@@ -99,7 +100,7 @@ export default function InvestorDashboard() {
 
   // New investment form
   const [invAmount, setInvAmount] = useState('');
-  const [payMethod, setPayMethod] = useState('BEP20');
+  const [payMethod, setPayMethod] = useState('BANK');
   const [copiedField, setCopiedField] = useState(null);
   const [txId, setTxId] = useState('');
   const [payNote, setPayNote] = useState('');
@@ -388,40 +389,53 @@ export default function InvestorDashboard() {
                 </div>
               ) : numInvAmount > 0 && numInvAmount < 100 ? (
                 <div
-                  className="rounded-xl p-3 border text-xs text-amber-400/90"
-                  style={{ background: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.2)' }}
-                >
-                  Minimum investment amount is $100.
-                </div>
-              ) : null}
-
-              {/* ── Payment Method ── */}
+                  c              {/* ── Payment Method ── */}
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">
-                  Payment Method
-                </label>
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  {Object.entries(PAYMENT_METHODS).map(([id, method]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setPayMethod(id)}
-                      className="p-2.5 rounded-xl text-left border transition-all"
-                      style={{
-                        background:  payMethod === id ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)',
-                        borderColor: payMethod === id ? '#f59e0b'               : 'rgba(255,255,255,0.1)',
-                        boxShadow:   payMethod === id ? '0 0 0 1px rgba(245,158,11,0.4)' : 'none',
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold" style={{ color: payMethod === id ? '#f59e0b' : '#fff' }}>
-                          {method.label}
-                        </span>
-                        {payMethod === id && <CheckCircle2 size={13} style={{ color: '#f59e0b' }} />}
-                      </div>
-                      <span className="text-[10px] text-gray-500">{method.sub}</span>
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    Select Payment Method
+                  </label>
+                  <span className="text-[11px] text-gray-500">Choose deposit channel</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-3">
+                  {Object.entries(PAYMENT_METHODS).map(([id, method]) => {
+                    const isSelected = payMethod === id;
+                    const isBank = method.type === 'bank';
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setPayMethod(id)}
+                        className="p-3 rounded-xl text-left border transition-all relative overflow-hidden flex items-center justify-between gap-2.5"
+                        style={{
+                          background:  isSelected ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)',
+                          borderColor: isSelected ? '#f59e0b'               : 'rgba(255,255,255,0.1)',
+                          boxShadow:   isSelected ? '0 0 0 1px rgba(245,158,11,0.4)' : 'none',
+                        }}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border"
+                               style={{
+                                 background: isSelected ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.06)',
+                                 borderColor: isSelected ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.1)',
+                                 color: isSelected ? '#f59e0b' : '#9ca3af'
+                               }}>
+                            {isBank ? <Building2 size={16} /> : <Coins size={16} />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold truncate" style={{ color: isSelected ? '#f59e0b' : '#fff' }}>
+                              {method.label}
+                            </div>
+                            <div className="text-[10px] text-gray-400 truncate mt-0.5 font-medium">
+                              {method.sub}
+                            </div>
+                          </div>
+                        </div>
+                        {isSelected && <CheckCircle2 size={15} style={{ color: '#f59e0b' }} className="shrink-0" />}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Detail card */}
@@ -431,64 +445,169 @@ export default function InvestorDashboard() {
 
                   if (method.type === 'crypto') {
                     return (
-                      <div className="rounded-xl border p-4 space-y-3"
-                           style={{ background: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.08)' }}>
-                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                          <Building2 size={12} style={{ color: '#f59e0b' }} />
-                          Send {method.label} to this address
+                      <div className="rounded-2xl border p-4 sm:p-5 space-y-3"
+                           style={{ background: 'rgba(0,0,0,0.4)', borderColor: 'rgba(245,158,11,0.3)' }}>
+                        <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/10">
+                          <div className="flex items-center gap-2 text-xs font-bold text-gray-200 uppercase tracking-wider">
+                            <Coins size={14} style={{ color: '#f59e0b' }} />
+                            Send {method.label} Deposit
+                          </div>
+                          <span className="text-[11px] text-gray-400 font-mono">Network: {method.sub}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="flex-1 font-mono text-xs text-white break-all rounded-lg px-3 py-2.5 select-all"
-                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                            {method.address}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => copyToClipboard(method.address, payMethod)}
-                            className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-colors"
-                            style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}
-                          >
-                            {copiedField === payMethod
-                              ? <><CheckIcon size={12} /> Copied</>
-                              : <><Copy size={12} /> Copy</>}
-                          </button>
+                        <div>
+                          <span className="text-[11px] text-gray-400 block mb-1 font-medium">Deposit Address (Click to copy)</span>
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                            <span className="flex-1 font-mono text-xs text-white break-all rounded-xl px-3.5 py-2.5 select-all"
+                                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                              {method.address}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(method.address, payMethod)}
+                              className="shrink-0 flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95"
+                              style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', color: '#f59e0b' }}
+                            >
+                              {copiedField === payMethod
+                                ? <><CheckIcon size={13} /> Copied</>
+                                : <><Copy size={13} /> Copy</>}
+                            </button>
+                          </div>
                         </div>
-                        <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(245,158,11,0.75)' }}>
+                        <p className="text-[11px] leading-relaxed pt-1" style={{ color: 'rgba(245,158,11,0.8)' }}>
                           ⚠ {method.note}
                         </p>
                       </div>
                     );
                   }
 
+                  // Bank transfer
                   return (
-                    <div className="rounded-xl border p-4 space-y-2"
-                         style={{ background: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.08)' }}>
-                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                        <Building2 size={12} style={{ color: '#f59e0b' }} />
-                        Bank Transfer Details
-                      </div>
-                      {method.fields.map((f) => (
-                        <div key={f.label}
-                             className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
-                             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                          <span className="text-[11px] text-gray-500 shrink-0 w-28">{f.label}</span>
-                          <span className="flex-1 text-xs font-bold text-white text-right font-mono">{f.value}</span>
-                          <button
-                            type="button"
-                            onClick={() => copyToClipboard(f.value, f.label)}
-                            className="shrink-0 p-1.5 rounded-md transition-colors"
-                            style={{ background: 'rgba(255,255,255,0.06)' }}
-                            title={`Copy ${f.label}`}
-                          >
-                            {copiedField === f.label
-                              ? <CheckIcon size={12} style={{ color: '#f59e0b' }} />
-                              : <Copy size={12} className="text-gray-400 hover:text-amber-400" />}
-                          </button>
+                    <div className="rounded-2xl border p-4 sm:p-5 space-y-4"
+                         style={{ background: 'rgba(0,0,0,0.45)', borderColor: 'rgba(245,158,11,0.35)' }}>
+                      {/* Top Bar with Bank Info & Copy All */}
+                      <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-white/10">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                               style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: '#f59e0b' }}>
+                            <Building2 size={18} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <h5 className="text-sm font-bold text-white">Official Bank Deposit Account</h5>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                <ShieldCheck size={10} /> Verified
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-400">IMPS • NEFT • RTGS • NetBanking</p>
+                          </div>
                         </div>
-                      ))}
-                      <p className="text-[11px] leading-relaxed pt-1" style={{ color: 'rgba(245,158,11,0.75)' }}>
-                        ⚠ {method.note}
-                      </p>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const fullBankText = method.fields.map(f => `${f.label}: ${f.value}`).join('\n');
+                            copyToClipboard(fullBankText, 'ALL_BANK_DETAILS_INV');
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#d1d5db' }}
+                        >
+                          {copiedField === 'ALL_BANK_DETAILS_INV' ? (
+                            <>
+                              <CheckIcon size={13} className="text-emerald-400" />
+                              <span className="text-emerald-400 font-bold">All Details Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={13} />
+                              <span>Copy All Details</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Prominent Primary Cards: Account Number & IFSC */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="rounded-xl p-3"
+                             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(245,158,11,0.3)' }}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#f59e0b' }}>Account Number</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-gray-300">CURRENT</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 mt-1">
+                            <span className="font-mono text-sm sm:text-base font-extrabold text-white tracking-wider select-all">
+                              1603020000000728
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard('1603020000000728', 'Account Number')}
+                              className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-95"
+                              style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: '#f59e0b' }}
+                            >
+                              {copiedField === 'Account Number' ? <><CheckIcon size={12} /> Copied</> : <><Copy size={12} /> Copy</>}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl p-3"
+                             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(245,158,11,0.3)' }}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#f59e0b' }}>IFSC Code</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-gray-300">Kharghar</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 mt-1">
+                            <span className="font-mono text-sm sm:text-base font-extrabold text-emerald-400 tracking-wider select-all">
+                              UTKS0001603
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard('UTKS0001603', 'IFSC Code')}
+                              className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all active:scale-95"
+                              style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: '#f59e0b' }}
+                            >
+                              {copiedField === 'IFSC Code' ? <><CheckIcon size={12} /> Copied</> : <><Copy size={12} /> Copy</>}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Secondary Details Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2"
+                             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                          <span className="text-[11px] text-gray-400">Bank Name</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-white">UTKARSH SFB</span>
+                            <button type="button" onClick={() => copyToClipboard('UTKARSH SFB', 'Bank Name')} className="p-1 text-gray-400 hover:text-amber-400">
+                              {copiedField === 'Bank Name' ? <CheckIcon size={12} style={{ color: '#f59e0b' }} /> : <Copy size={12} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2"
+                             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                          <span className="text-[11px] text-gray-400">Account Name</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-white">OBO ENTERPRISES</span>
+                            <button type="button" onClick={() => copyToClipboard('OBO ENTERPRISES', 'Account Name')} className="p-1 text-gray-400 hover:text-amber-400">
+                              {copiedField === 'Account Name' ? <CheckIcon size={12} style={{ color: '#f59e0b' }} /> : <Copy size={12} />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Instructions */}
+                      <div className="rounded-xl p-3 space-y-1.5 text-[11px] leading-relaxed"
+                           style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                        <div className="flex items-center gap-1.5 font-bold" style={{ color: '#f59e0b' }}>
+                          <Info size={13} className="shrink-0" />
+                          <span>Deposit Instructions:</span>
+                        </div>
+                        <ol className="list-decimal list-inside space-y-1 text-gray-300">
+                          <li>Transfer via IMPS / NEFT / RTGS / UPI to the official account above.</li>
+                          <li>Copy the 12-digit <strong>UTR Number / Ref ID</strong> from your receipt.</li>
+                          <li>Paste into <strong>Transaction / TXID</strong> below and submit.</li>
+                        </ol>
+                      </div>
                     </div>
                   );
                 })()}

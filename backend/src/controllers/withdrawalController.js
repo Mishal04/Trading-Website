@@ -85,10 +85,9 @@ const requestWithdrawal = async (req, res) => {
       });
     }
 
-    // Deduct balance from user wallet and persist user walletAddress for future convenience
+    // Deduct balance from user wallet
     await User.findByIdAndUpdate(userId, {
-      $inc: { [`wallet.${type}`]: -amount },
-      ...(walletAddress ? { walletAddress: walletAddress.trim() } : {})
+      $inc: { [`wallet.${type}`]: -amount }
     });
 
     // Create Withdrawal document

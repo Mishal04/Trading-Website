@@ -19,7 +19,7 @@ export default function WithdrawTab({ user, onRefresh }) {
   const [type, setType] = useState('profit');
   const [amount, setAmount] = useState('');
   const [network, setNetwork] = useState('BEP20');
-  const [walletAddress, setWalletAddress] = useState(user?.walletAddress || '');
+  const [walletAddress, setWalletAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
   const [fetching, setFetching] = useState(true);
@@ -31,28 +31,13 @@ export default function WithdrawTab({ user, onRefresh }) {
     try {
       setFetching(true);
       const res = await withdrawalAPI.getHistory();
-      const withdrawals = res.data.data.withdrawals || [];
-      setHistory(withdrawals);
-      
-      // If walletAddress is empty and user has a previous withdrawal, prefill it
-      if (!walletAddress && withdrawals.length > 0 && withdrawals[0]?.walletAddress) {
-        setWalletAddress(withdrawals[0].walletAddress);
-        if (withdrawals[0]?.network) {
-          setNetwork(withdrawals[0].network);
-        }
-      }
+      setHistory(res.data.data.withdrawals || []);
     } catch (err) {
       console.error('Failed to load withdrawal history:', err);
     } finally {
       setFetching(false);
     }
   };
-
-  useEffect(() => {
-    if (user?.walletAddress && !walletAddress) {
-      setWalletAddress(user.walletAddress);
-    }
-  }, [user?.walletAddress]);
 
   useEffect(() => {
     fetchHistory();

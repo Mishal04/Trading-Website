@@ -7,10 +7,25 @@ import {
   RefreshCw, Layers, Clock, XCircle,
   AlertTriangle, Hash, FileText, MessageSquare,
   Copy, Check as CheckIcon, Building2, Loader,
+  ShieldCheck, Info, Coins, Landmark,
 } from 'lucide-react';
 
-// ─── payment method defaults (crypto + bank) ────────────────────────────
+// ─── payment method defaults (bank info is static) ────────────────────────────
 const PAYMENT_METHODS_BASE = {
+  BANK: {
+    label: 'Bank Transfer',
+    sub:   'India — IMPS / NEFT / RTGS',
+    type:  'bank',
+    fields: [
+      { label: 'Bank Name',       value: 'UTKARSH SFB' },
+      { label: 'Account Name',    value: 'OBO ENTERPRISES' },
+      { label: 'Account Number',  value: '1603020000000728' },
+      { label: 'IFSC Code',       value: 'UTKS0001603' },
+      { label: 'Branch',          value: 'Kharghar' },
+      { label: 'Account Type',    value: 'CURRENT' },
+    ],
+    note: 'Use IMPS / NEFT / RTGS. Enter the bank UTR / reference number as your Transaction ID below.',
+  },
   BEP20: {
     label:   'USDT (BEP20)',
     sub:     'BNB Smart Chain',
@@ -24,20 +39,6 @@ const PAYMENT_METHODS_BASE = {
     type:    'crypto',
     address: 'TC5WYzEVnwETtvPq8FZzYkKzcNoqMG9ezV',
     note:    "Send only USDT on the TRON network (TRC20). Do not send from exchanges that don't support TRC20.",
-  },
-  BANK: {
-    label: 'Bank Transfer',
-    sub:   'India — IMPS / NEFT / RTGS',
-    type:  'bank',
-    fields: [
-      { label: 'Bank Name',       value: 'UTKARSH SFB' },
-      { label: 'Account Name',    value: 'OBO ENTERPRISES' },
-      { label: 'Account Number',  value: '1603020000000728' },
-      { label: 'IFSC Code',       value: 'UTKS0001603' },
-      { label: 'Branch',          value: 'Kharghar' },
-      { label: 'Account Type',    value: 'CURRENT' },
-    ],
-    note: 'Use IMPS / NEFT / RTGS. Enter the bank reference number as your Transaction ID below.',
   },
 };
 
@@ -136,7 +137,7 @@ export default function InvestTab({ onRefresh }) {
   const [amount, setAmount]             = useState('1000');
   const [amountError, setAmountError]   = useState('');
   const [selectedTier, setSelectedTier] = useState(2);
-  const [network, setNetwork]           = useState('BEP20');
+  const [network, setNetwork]           = useState('BANK');
   const [copiedField, setCopiedField]   = useState(null);
   const [transactionId, setTransactionId] = useState('');
   const [paymentProof, setPaymentProof] = useState('');
@@ -162,24 +163,21 @@ export default function InvestTab({ onRefresh }) {
       const wallet = res.data?.data?.wallet;
       
       if (wallet && wallet.address) {
-        // Normalize network key: 'USDT-BSC' / 'BEP20' -> 'BEP20', 'USDT-TRC20' / 'TRC20' -> 'TRC20'
-        let methodKey = wallet.network || 'BEP20';
-        if (methodKey === 'USDT-BSC') methodKey = 'BEP20';
-        if (methodKey === 'USDT-TRC20') methodKey = 'TRC20';
-
+        // Build crypto payment method from current wallet
+        const methodKey = wallet.network || 'BEP20';
         setPaymentMethods(prev => ({
           ...prev,
           [methodKey]: {
-            label: wallet.label || `USDT (${methodKey})`,
-            sub: wallet.network,
+            label: `${wallet.label || 'USDT'} (${wallet.network})`,
+            sub: wallet.network === 'BEP20' ? 'BNB Smart Chain' : wallet.network === 'TRC20' ? 'TRON Network' : wallet.network,
             type: 'crypto',
             address: wallet.address,
-            note: wallet.notes || `Send only ${wallet.network} to this address. Double-check the address before sending.`,
+            note: `Send only USDT on the ${wallet.network} network. ${wallet.notes || 'Double-check the address before sending.'}`,
           }
         }));
       }
     } catch (err) {
-      console.warn('Using default deposit wallet configurations');
+      console.error('Failed to fetch wallet:', err);
     } finally {
       setWalletLoading(false);
     }
@@ -465,39 +463,79 @@ export default function InvestTab({ onRefresh }) {
           </div>
 
           {/* ── Payment Proof Section ── */}
-          <div className="rounded-xl border border-dark-500 bg-dark-900/50 p-5 space-y-5">
-            <div className="flex items-center gap-2 pb-3 border-b border-dark-600">
-              <FileText size={16} className="text-gold-400" />
-              <h4 className="text-sm font-bold text-white">Payment Proof & Network</h4>
-              <span className="text-xs text-gray-500 ml-1">Admin will verify on blockchain</span>
+          <div className="rounded-2xl border border-dark-600 bg-dark-900/60 p-4 sm:p-6 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3.5 border-b border-dark-700">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-gold-400/10 border border-gold-400/20 flex items-center justify-center text-gold-400">
+                  <FileText size={16} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Payment Method & Deposit Details</h4>
+                  <p className="text-[11px] text-gray-400">
+                    {paymentMethods[network]?.type === 'bank'
+                      ? 'Admin will verify your transfer against bank statement / UTR'
+                      : 'Admin will verify transaction hash on blockchain'}
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-gold-400/10 text-gold-400 border border-gold-400/20">
+                <ShieldCheck size={12} /> Secure Deposit
+              </span>
             </div>
 
             {/* Network / Payment Method Selector */}
             <div>
-              <label className="text-xs font-semibold text-gray-300 mb-2 block">
-                Payment Method <span className="text-red-400">*</span>
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {Object.entries(paymentMethods).map(([id, method]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setNetwork(id)}
-                    className={`p-3 rounded-xl text-left border transition-all ${
-                      network === id
-                        ? 'bg-gold-400/10 border-gold-400 ring-1 ring-gold-400/50 shadow-md'
-                        : 'bg-dark-800 border-dark-500 hover:border-dark-400 text-gray-400'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold ${network === id ? 'text-gold-400' : 'text-white'}`}>
-                        {method.label}
-                      </span>
-                      {network === id && <CheckCircle2 size={14} className="text-gold-400 shrink-0" />}
-                    </div>
-                    <span className="text-[10px] text-gray-500">{method.sub}</span>
-                  </button>
-                ))}
+              <div className="flex items-center justify-between mb-2.5">
+                <label className="text-xs font-semibold text-gray-200 flex items-center gap-1">
+                  Select Payment Method <span className="text-red-400">*</span>
+                </label>
+                <span className="text-[11px] text-gray-400">Choose preferred transfer mode</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {Object.entries(paymentMethods).map(([id, method]) => {
+                  const isSelected = network === id;
+                  const isBank = method.type === 'bank';
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setNetwork(id)}
+                      className={`p-3.5 rounded-xl text-left border transition-all relative overflow-hidden flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-gold-500/15 via-gold-500/10 to-transparent border-gold-400 ring-1 ring-gold-400/40 shadow-lg shadow-gold-500/5'
+                          : 'bg-dark-800/90 border-dark-600 hover:border-dark-500 hover:bg-dark-800 text-gray-400'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${
+                          isSelected
+                            ? 'bg-gold-400/20 border-gold-400/40 text-gold-400 shadow-inner'
+                            : 'bg-dark-700/80 border-dark-600 text-gray-400'
+                        }`}>
+                          {isBank ? <Building2 size={20} /> : <Coins size={20} />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className={`text-xs font-bold truncate ${isSelected ? 'text-gold-400' : 'text-white'}`}>
+                            {method.label}
+                          </div>
+                          <div className="text-[10px] text-gray-400 truncate mt-0.5 font-medium">
+                            {method.sub}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        {isSelected ? (
+                          <div className="w-5 h-5 rounded-full bg-gold-400 text-dark-950 flex items-center justify-center font-bold">
+                            <CheckCircle2 size={16} className="text-dark-950 fill-gold-400" />
+                          </div>
+                        ) : (
+                          <div className="w-4 h-4 rounded-full border border-dark-500" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -508,60 +546,213 @@ export default function InvestTab({ onRefresh }) {
 
               if (method.type === 'crypto') {
                 return (
-                  <div className="rounded-xl border border-dark-500 bg-dark-950/60 p-4 space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      <Building2 size={13} className="text-gold-400" />
-                      Send {method.label} to this address
+                  <div className="rounded-2xl border border-gold-500/30 bg-gradient-to-b from-dark-900 via-dark-950 to-dark-900 p-4 sm:p-5 space-y-4 shadow-xl shadow-black/40 relative overflow-hidden">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-dark-700/80">
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-200 uppercase tracking-wider">
+                        <Coins size={15} className="text-gold-400" />
+                        Send {method.label} Deposit
+                      </div>
+                      <span className="text-[11px] text-gray-400 font-mono">Network: {method.sub}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="flex-1 font-mono text-xs text-white break-all bg-dark-900 border border-dark-600 rounded-lg px-3 py-2.5 select-all">
-                        {method.address}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(method.address, network)}
-                        className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-gold-400/10 border border-gold-400/30 text-gold-400 hover:bg-gold-400/20 transition-colors text-xs font-bold"
-                      >
-                        {copiedField === network
-                          ? <><CheckIcon size={13} /> Copied</>
-                          : <><Copy size={13} /> Copy</>}
-                      </button>
+
+                    <div>
+                      <span className="text-[11px] text-gray-400 block mb-1.5 font-medium">Deposit Address (Click to copy)</span>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <span className="flex-1 font-mono text-xs sm:text-sm text-white break-all bg-dark-900 border border-dark-600 rounded-xl px-3.5 py-3 select-all">
+                          {method.address}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(method.address, network)}
+                          className="shrink-0 flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-gold-400/15 hover:bg-gold-400/25 border border-gold-400/40 text-gold-400 hover:text-gold-300 transition-all text-xs font-bold active:scale-95"
+                        >
+                          {copiedField === network
+                            ? <><CheckIcon size={14} className="text-emerald-400" /><span className="text-emerald-400">Copied!</span></>
+                            : <><Copy size={14} /><span>Copy Address</span></>}
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-[11px] text-amber-400/80 leading-relaxed">
-                      ⚠ {method.note}
-                    </p>
+
+                    <div className="rounded-xl bg-amber-500/10 border border-amber-500/25 p-3 text-[11px] text-amber-300/90 leading-relaxed flex items-start gap-2">
+                      <Info size={14} className="shrink-0 mt-0.5 text-amber-400" />
+                      <span>{method.note}</span>
+                    </div>
                   </div>
                 );
               }
 
               // Bank transfer
               return (
-                <div className="rounded-xl border border-dark-500 bg-dark-950/60 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    <Building2 size={13} className="text-gold-400" />
-                    Bank Transfer Details
+                <div className="rounded-2xl border border-gold-500/30 bg-gradient-to-b from-dark-900 via-dark-950 to-dark-900 p-4 sm:p-5 space-y-4 shadow-xl shadow-black/40 relative overflow-hidden">
+                  <div className="absolute -top-12 -right-12 w-48 h-48 bg-gold-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                  {/* Top Bar with Bank Info & Copy All */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b border-dark-700/80 relative">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-gold-400/15 border border-gold-400/30 flex items-center justify-center text-gold-400 shrink-0 shadow-inner">
+                        <Building2 size={20} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <h5 className="text-sm font-bold text-white tracking-wide">Official Bank Deposit Account</h5>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            <ShieldCheck size={10} /> Verified
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-0.5">Deposit via IMPS / NEFT / RTGS / NetBanking</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fullBankText = method.fields.map(f => `${f.label}: ${f.value}`).join('\n');
+                        copyToClipboard(fullBankText, 'ALL_BANK_DETAILS');
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-dark-800 hover:bg-gold-400/10 border border-dark-600 hover:border-gold-400/40 text-gray-200 hover:text-gold-400 transition-all text-xs font-semibold active:scale-95 shadow-sm"
+                    >
+                      {copiedField === 'ALL_BANK_DETAILS' ? (
+                        <>
+                          <CheckIcon size={14} className="text-emerald-400" />
+                          <span className="text-emerald-400 font-bold">All Details Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={14} />
+                          <span>Copy All Bank Details</span>
+                        </>
+                      )}
+                    </button>
                   </div>
-                  <div className="space-y-2">
-                    {method.fields.map((f) => (
-                      <div key={f.label} className="flex items-center justify-between gap-3 rounded-lg bg-dark-900 border border-dark-600 px-3 py-2.5">
-                        <span className="text-[11px] text-gray-500 shrink-0 w-32">{f.label}</span>
-                        <span className="flex-1 text-xs font-bold text-white text-right font-mono">{f.value}</span>
+
+                  {/* Prominent Primary Cards: Account Number & IFSC */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative">
+                    {/* Account Number Box */}
+                    <div className="rounded-xl p-3.5 bg-dark-800/90 border border-gold-500/30 hover:border-gold-400/60 transition-all shadow-sm">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-gold-400">Account Number</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-dark-700 text-gray-400 font-medium">CURRENT</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mt-1.5">
+                        <span className="font-mono text-base sm:text-lg font-extrabold text-white tracking-wider select-all">
+                          1603020000000728
+                        </span>
                         <button
                           type="button"
-                          onClick={() => copyToClipboard(f.value, f.label)}
-                          className="shrink-0 p-1.5 rounded-md bg-dark-700 text-gray-400 hover:text-gold-400 transition-colors"
-                          title={`Copy ${f.label}`}
+                          onClick={() => copyToClipboard('1603020000000728', 'Account Number')}
+                          className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gold-400/15 hover:bg-gold-400/25 border border-gold-400/40 text-gold-400 text-xs font-bold transition-all active:scale-95"
+                          title="Copy Account Number"
                         >
-                          {copiedField === f.label
-                            ? <CheckIcon size={12} className="text-gold-400" />
-                            : <Copy size={12} />}
+                          {copiedField === 'Account Number' ? (
+                            <><CheckIcon size={13} className="text-emerald-400" /> <span className="text-emerald-400">Copied</span></>
+                          ) : (
+                            <><Copy size={13} /> Copy</>
+                          )}
                         </button>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* IFSC Code Box */}
+                    <div className="rounded-xl p-3.5 bg-dark-800/90 border border-gold-500/30 hover:border-gold-400/60 transition-all shadow-sm">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-gold-400">IFSC Code</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-dark-700 text-gray-400 font-medium">Kharghar Branch</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mt-1.5">
+                        <span className="font-mono text-base sm:text-lg font-extrabold text-emerald-400 tracking-wider select-all">
+                          UTKS0001603
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard('UTKS0001603', 'IFSC Code')}
+                          className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gold-400/15 hover:bg-gold-400/25 border border-gold-400/40 text-gold-400 text-xs font-bold transition-all active:scale-95"
+                          title="Copy IFSC Code"
+                        >
+                          {copiedField === 'IFSC Code' ? (
+                            <><CheckIcon size={13} className="text-emerald-400" /> <span className="text-emerald-400">Copied</span></>
+                          ) : (
+                            <><Copy size={13} /> Copy</>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-amber-400/80 leading-relaxed">
-                    ⚠ {method.note}
-                  </p>
+
+                  {/* Secondary Details Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="flex items-center justify-between gap-2 rounded-xl bg-dark-900/90 border border-dark-700/80 px-3.5 py-2.5">
+                      <span className="text-xs text-gray-400 font-medium">Bank Name</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white">UTKARSH SFB</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard('UTKARSH SFB', 'Bank Name')}
+                          className="p-1 rounded text-gray-400 hover:text-gold-400 hover:bg-dark-700 transition-colors"
+                          title="Copy Bank Name"
+                        >
+                          {copiedField === 'Bank Name' ? <CheckIcon size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 rounded-xl bg-dark-900/90 border border-dark-700/80 px-3.5 py-2.5">
+                      <span className="text-xs text-gray-400 font-medium">Account Name</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white">OBO ENTERPRISES</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard('OBO ENTERPRISES', 'Account Name')}
+                          className="p-1 rounded text-gray-400 hover:text-gold-400 hover:bg-dark-700 transition-colors"
+                          title="Copy Account Name"
+                        >
+                          {copiedField === 'Account Name' ? <CheckIcon size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 rounded-xl bg-dark-900/90 border border-dark-700/80 px-3.5 py-2.5">
+                      <span className="text-xs text-gray-400 font-medium">Branch</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white">Kharghar</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard('Kharghar', 'Branch')}
+                          className="p-1 rounded text-gray-400 hover:text-gold-400 hover:bg-dark-700 transition-colors"
+                          title="Copy Branch"
+                        >
+                          {copiedField === 'Branch' ? <CheckIcon size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 rounded-xl bg-dark-900/90 border border-dark-700/80 px-3.5 py-2.5">
+                      <span className="text-xs text-gray-400 font-medium">Account Type</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white">CURRENT</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard('CURRENT', 'Account Type')}
+                          className="p-1 rounded text-gray-400 hover:text-gold-400 hover:bg-dark-700 transition-colors"
+                          title="Copy Account Type"
+                        >
+                          {copiedField === 'Account Type' ? <CheckIcon size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step-by-Step Instructions */}
+                  <div className="rounded-xl bg-amber-500/10 border border-amber-500/25 p-3.5 space-y-2 text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-400">
+                      <Info size={14} className="shrink-0" />
+                      <span>Important Deposit Instructions:</span>
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1.5 text-gray-300 text-[11px] leading-relaxed">
+                      <li>Send payment from your NetBanking, Google Pay, PhonePe, Paytm or bank branch to the account above.</li>
+                      <li>Copy the 12-digit <strong>UTR Number / Reference ID</strong> from your transaction success screen.</li>
+                      <li>Paste the UTR number into <strong>Transaction ID / Reference Number</strong> below and submit your request.</li>
+                    </ol>
+                  </div>
                 </div>
               );
             })()}
