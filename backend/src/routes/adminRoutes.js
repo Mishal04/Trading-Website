@@ -48,9 +48,13 @@ const validateRoiCredit = [
   body('investmentId').isMongoId().withMessage('Valid investmentId required'),
   body('amount').isNumeric().withMessage('Amount must be a number').custom(v => Number(v) > 0).withMessage('Amount must be > 0')
 ];
+// ── Public / Client Accessible Endpoints (Deposit Wallet & Bank Details) ───────
+router.get('/wallets/current', getCurrentWallet);        // Active crypto deposit wallet
+router.get('/settings',        getAdminSettings);        // Admin bank details & general settings
+
 const { protect, admin } = require('../middleware/auth');
 
-// All admin routes require authentication + admin role
+// All subsequent admin routes require authentication + admin role
 router.use(protect);
 router.use(admin);
 
@@ -120,16 +124,14 @@ const validateWalletAdjust = [
 ];
 router.post('/commission/adjust', validateWalletAdjust, manualCommissionAdjustment);
 
-// ── System Wallets (Crypto Deposit Addresses) ──────────────────────────────────
-router.get('/wallets',                    getAllWallets);           // Get all wallets
-router.get('/wallets/current',            getCurrentWallet);        // Get current active wallet (public can access too)
+// ── System Wallets (Admin Management) ──────────────────────────────────────────
+router.get('/wallets',                    getAllWallets);           // Get all wallets (admin only)
 router.post('/wallets',                   createWallet);            // Create new wallet
 router.put('/wallets/set-current',        setCurrentWallet);        // Set wallet as current
 router.put('/wallets/:walletId',          updateWallet);            // Update wallet details
 router.delete('/wallets/:walletId',       deleteWallet);            // Archive wallet
 
-// ── Admin Settings (Bank Details, etc.) ────────────────────────────────────────
-router.get('/settings',                   getAdminSettings);        // Get admin settings (public - users need to see bank details)
+// ── Admin Settings (Admin Management) ──────────────────────────────────────────
 router.put('/settings',                   updateAdminSettings);     // Update admin settings (admin only)
 
 module.exports = router;

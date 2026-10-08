@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { investmentAPI, adminAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -9,8 +9,22 @@ import {
   Copy, Check as CheckIcon, Building2, Loader,
 } from 'lucide-react';
 
-// ─── payment method defaults (bank info is static) ────────────────────────────
+// ─── payment method defaults (crypto + bank) ────────────────────────────
 const PAYMENT_METHODS_BASE = {
+  BEP20: {
+    label:   'USDT (BEP20)',
+    sub:     'BNB Smart Chain',
+    type:    'crypto',
+    address: '0x7bb5df2531e8ac0086eba3a0e68c25fb0ec0f4cd',
+    note:    'Send only USDT on the BNB Smart Chain (BEP20). Sending on the wrong network will result in permanent loss.',
+  },
+  TRC20: {
+    label:   'USDT (TRC20)',
+    sub:     'TRON Network',
+    type:    'crypto',
+    address: 'TC5WYzEVnwETtvPq8FZzYkKzcNoqMG9ezV',
+    note:    "Send only USDT on the TRON network (TRC20). Do not send from exchanges that don't support TRC20.",
+  },
   BANK: {
     label: 'Bank Transfer',
     sub:   'India — IMPS / NEFT / RTGS',
@@ -147,32 +161,25 @@ export default function InvestTab({ onRefresh }) {
       const res = await adminAPI.getCurrentWallet();
       const wallet = res.data?.data?.wallet;
       
-      if (wallet) {
-        // Build crypto payment method from current wallet
-        const methodKey = wallet.network || 'BEP20';
+      if (wallet && wallet.address) {
+        // Normalize network key: 'USDT-BSC' / 'BEP20' -> 'BEP20', 'USDT-TRC20' / 'TRC20' -> 'TRC20'
+        let methodKey = wallet.network || 'BEP20';
+        if (methodKey === 'USDT-BSC') methodKey = 'BEP20';
+        if (methodKey === 'USDT-TRC20') methodKey = 'TRC20';
+
         setPaymentMethods(prev => ({
           ...prev,
           [methodKey]: {
-            label: `${wallet.label} (${wallet.network})`,
+            label: wallet.label || `USDT (${methodKey})`,
             sub: wallet.network,
             type: 'crypto',
             address: wallet.address,
-            note: `Send only the correct token/network. ${wallet.notes || 'Double-check the address before sending.'}`,
+            note: wallet.notes || `Send only ${wallet.network} to this address. Double-check the address before sending.`,
           }
         }));
-        
-        // Auto-select the current wallet if not already selected
-        if (network === 'BEP20' || !paymentMethods[network]) {
-          setNetwork(methodKey);
-        }
-      } else {
-        // No wallet configured - show info message instead of error
-        console.warn('No crypto wallet configured by admin');
-        // Keep bank transfer only
       }
     } catch (err) {
-      console.error('Failed to fetch wallet:', err);
-      // Silently fail - bank transfer will still be available
+      console.warn('Using default deposit wallet configurations');
     } finally {
       setWalletLoading(false);
     }
