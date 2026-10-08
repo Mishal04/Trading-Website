@@ -8,6 +8,8 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const mongoose = require('mongoose');
 const User = require('../src/models/User');
 
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'test-mock-pass-123';
+
 async function testRegistration() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
@@ -26,7 +28,7 @@ async function testRegistration() {
     const userA = new User({
       name: 'Test_Chain_A',
       email: 'test_chain_a@test.com',
-      password: 'Test123!',
+      password: TEST_PASSWORD,
       referralCode: 'TESTA001',
       ancestorPath: []
     });
@@ -41,7 +43,7 @@ async function testRegistration() {
     const userB = new User({
       name: 'Test_Chain_B',
       email: 'test_chain_b@test.com',
-      password: 'Test123!',
+      password: TEST_PASSWORD,
       referralCode: 'TESTB001',
       referredBy: userA._id,
       ancestorPath: [userA._id, ...(userA.ancestorPath || [])].slice(0, 25)
@@ -59,7 +61,7 @@ async function testRegistration() {
     const userC = new User({
       name: 'Test_Chain_C',
       email: 'test_chain_c@test.com',
-      password: 'Test123!',
+      password: TEST_PASSWORD,
       referralCode: 'TESTC001',
       referredBy: userB._id,
       ancestorPath: [userB._id, ...(userB.ancestorPath || [])].slice(0, 25)
@@ -77,7 +79,7 @@ async function testRegistration() {
     const userD = new User({
       name: 'Test_Chain_D',
       email: 'test_chain_d@test.com',
-      password: 'Test123!',
+      password: TEST_PASSWORD,
       referralCode: 'TESTD001',
       referredBy: userC._id,
       ancestorPath: [userC._id, ...(userC.ancestorPath || [])].slice(0, 25)

@@ -64,7 +64,7 @@ async function main() {
 
     // Reset admin password to known value for testing
     const bcrypt = require('bcryptjs');
-    const testAdminPassword = 'TestAdmin@2026';
+    const testAdminPassword = process.env.TEST_ADMIN_PASSWORD || 'test-admin-pass-2026';
     const hashedPassword = await bcrypt.hash(testAdminPassword, 10);
     await User.updateOne({ _id: adminAccount._id }, { password: hashedPassword });
 
@@ -87,6 +87,7 @@ async function main() {
     console.log('═'.repeat(60) + '\n');
 
     const testEmail = `phasetest_${Date.now()}@test.com`;
+    const testUserPassword = process.env.TEST_USER_PASSWORD || 'test-user-pass-1234';
     const referrerUser = await User.findOne({ referralCode: { $exists: true, $ne: null } });
 
     if (!referrerUser) {
@@ -98,7 +99,7 @@ async function main() {
       const registerRes = await axios.post(`${API_BASE}/auth/register`, {
         name: 'Phase Test User',
         email: testEmail,
-        password: 'Test@1234',
+        password: testUserPassword,
         referralCode: referrerUser.referralCode
       });
 
@@ -136,7 +137,7 @@ async function main() {
     try {
       const loginRes = await axios.post(`${API_BASE}/auth/login`, {
         email: testEmail,
-        password: 'Test@1234'
+        password: testUserPassword
       });
 
       testUserToken = loginRes.data.data.token;

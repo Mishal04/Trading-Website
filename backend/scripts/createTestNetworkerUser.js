@@ -14,7 +14,7 @@ async function main() {
   const User = require('../src/models/User');
 
   const testEmail = `networkertester_${Date.now()}@test.com`;
-  const testPassword = 'Test@12345';
+  const testPassword = process.env.TEST_USER_PASSWORD || 'test-mock-pass-123';
 
   try {
     // Check if user already exists

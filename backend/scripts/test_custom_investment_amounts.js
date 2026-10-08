@@ -35,7 +35,7 @@ async function createTestInvestor() {
     const investorUser = new User({
       name: 'Investment Tester',
       email: `investor_test_${Date.now()}@test.com`,
-      password: 'testpass123',
+      password: process.env.TEST_USER_PASSWORD || 'test-mock-pass-123',
       referralCode: `INV${Date.now()}`,
       plan: 'A',
       isVerified: true

@@ -29,7 +29,7 @@ async function createAdminToken() {
       admin = new User({
         name: 'Test Admin',
         email: 'admin@test.com',
-        password: 'admin123',
+        password: process.env.TEST_ADMIN_PASSWORD || 'test-admin-mock-123',
         accountType: 'admin'
       });
       await admin.save();
@@ -56,7 +56,7 @@ async function createTestUser() {
     const user = new User({
       name: 'Bank Test User',
       email: testUserEmail,
-      password: 'testpass123',
+      password: process.env.TEST_USER_PASSWORD || 'test-user-mock-123',
       referralCode: `BANKTEST${Date.now()}`,
       phoneNumber: null,
       bankDetails: {

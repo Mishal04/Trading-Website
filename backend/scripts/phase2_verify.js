@@ -31,6 +31,7 @@ async function run() {
   const Investment = require('../src/models/Investment');
   const { getInvestorPackageInfo, INVESTOR_INCOME_CAP } = require('../config/investorConstants');
 
+  const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'test-mock-pass-123';
   const testIds = [];
 
   try {
@@ -39,7 +40,7 @@ async function run() {
     const userA = await User.create({
       name: 'Phase2_UserA',
       email: `phase2_userA_${Date.now()}@verify-phase2.com`,
-      password: 'TestPass1!',
+      password: TEST_PASSWORD,
       referralCode: 'PH2UA' + Date.now().toString().slice(-4),
       isActive: true,
       isVerified: true,
@@ -80,7 +81,7 @@ async function run() {
     const userB = await User.create({
       name: 'Phase2_UserB',
       email: `phase2_userB_${Date.now()}@verify-phase2.com`,
-      password: 'TestPass1!',
+      password: TEST_PASSWORD,
       referralCode: 'PH2UB' + Date.now().toString().slice(-4),
       isActive: true,
       isVerified: true,
@@ -163,7 +164,7 @@ async function run() {
     const userM = await User.create({
       name: 'Phase2_UserMulti',
       email: `phase2_userM_${Date.now()}@verify-phase2.com`,
-      password: 'TestPass1!',
+      password: TEST_PASSWORD,
       referralCode: 'PH2UM' + Date.now().toString().slice(-4),
       isActive: true,
       isVerified: true,

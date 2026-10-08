@@ -16,6 +16,8 @@ const CommissionLog = require('../src/models/CommissionLog');
 const Transaction = require('../src/models/Transaction');
 const constants = require('../config/constants');
 
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'test-mock-pass-123';
+
 async function testFullChain() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
@@ -34,7 +36,7 @@ async function testFullChain() {
     const userA = new User({
       name: 'Test_Final_A',
       email: 'test_final_a@test.com',
-      password: 'Test123!',
+      password: TEST_PASSWORD,
       referralCode: 'TFINA001',
       ancestorPath: [],
       plan: 'A',
@@ -47,7 +49,7 @@ async function testFullChain() {
     const userB = new User({
       name: 'Test_Final_B',
       email: 'test_final_b@test.com',
-      password: 'Test123!',
+      password: TEST_PASSWORD,
       referralCode: 'TFINB001',
       referredBy: userA._id,
       ancestorPath: [userA._id],
@@ -61,7 +63,7 @@ async function testFullChain() {
     const userC = new User({
       name: 'Test_Final_C',
       email: 'test_final_c@test.com',
-      password: 'Test123!',
+      password: TEST_PASSWORD,
       referralCode: 'TFINC001',
       referredBy: userB._id,
       ancestorPath: [userB._id, userA._id],
@@ -75,7 +77,7 @@ async function testFullChain() {
     const userD = new User({
       name: 'Test_Final_D',
       email: 'test_final_d@test.com',
-      password: 'Test123!',
+      password: TEST_PASSWORD,
       referralCode: 'TFIND001',
       referredBy: userC._id,
       ancestorPath: [userC._id, userB._id, userA._id],

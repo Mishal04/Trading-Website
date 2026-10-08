@@ -45,7 +45,7 @@ async function main() {
       const newUser = new User({
         name: 'Test User',
         email: 'test@example.com',
-        password: 'password123',
+        password: process.env.TEST_USER_PASSWORD || 'test-mock-pass-123',
         phoneNumber: '+1 (555) 123-4567',
         bankDetails: {
           accountName: 'John Doe',

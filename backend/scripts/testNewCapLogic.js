@@ -17,6 +17,8 @@ const InvestorInvestment = require('../src/models/InvestorInvestment');
 const incomeService = require('../src/services/incomeService');
 const dbConnect = require('../src/config/database');
 
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'test-mock-pass-123';
+
 const colors = {
   PASS: '\x1b[32m✓',
   FAIL: '\x1b[31m✗',
@@ -49,7 +51,7 @@ const main = async () => {
     const userA = await User.create({
       name: 'User A - Cap Test',
       email: `captest-a-${Date.now()}@test.com`,
-      password: 'Test@12345',
+      password: TEST_PASSWORD,
       referralCode: `CAPA${Math.random().toString(36).substring(7).toUpperCase()}`,
       totalInvested: 0,
       totalEarned: 0,
@@ -111,7 +113,7 @@ const main = async () => {
     const userB = await User.create({
       name: 'User B - Cap Test',
       email: `captest-b-${Date.now()}@test.com`,
-      password: 'Test@12345',
+      password: TEST_PASSWORD,
       referralCode: `CAPB${Math.random().toString(36).substring(7).toUpperCase()}`,
       referredBy: userA._id,
       ancestorPath: [userA._id],
@@ -186,7 +188,7 @@ const main = async () => {
     const testUserNoInv = await User.create({
       name: 'Test User No Investment',
       email: `captest-noinv-${Date.now()}@test.com`,
-      password: 'Test@12345',
+      password: TEST_PASSWORD,
       referralCode: `CAPNOINV${Math.random().toString(36).substring(7).toUpperCase()}`,
       totalInvested: 0,
       totalEarned: 0,
@@ -231,7 +233,7 @@ const main = async () => {
     const userC = await User.create({
       name: 'User C - Cap Test (no invest)',
       email: `captest-c-${Date.now()}@test.com`,
-      password: 'Test@12345',
+      password: TEST_PASSWORD,
       referralCode: `CAPC${Math.random().toString(36).substring(7).toUpperCase()}`,
       referredBy: userA._id,
       ancestorPath: [userA._id],

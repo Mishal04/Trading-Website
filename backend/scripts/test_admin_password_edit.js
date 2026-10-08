@@ -24,12 +24,15 @@ const testPasswordEdit = async () => {
     // Find a test user (or use an existing one)
     const testUser = await User.findOne({ email: 'test@example.com' });
     
+    const oldPassword = process.env.TEST_OLD_PASSWORD || 'mock-old-password';
+    const newPassword = process.env.TEST_NEW_PASSWORD || 'mock-new-password';
+
     if (!testUser) {
       console.log('ℹ️  No test user found. Creating one for demonstration...');
       const newUser = new User({
         name: 'Test User',
         email: 'test@example.com',
-        password: 'oldPassword123'
+        password: oldPassword
       });
       await newUser.save();
       console.log('✅ Test user created:', newUser._id);
@@ -42,7 +45,7 @@ const testPasswordEdit = async () => {
     console.log('Request: PATCH /api/admin/users/:id');
     console.log('Payload:');
     const updatePayload = {
-      password: 'newPassword456'
+      password: newPassword
     };
     console.log(JSON.stringify(updatePayload, null, 2));
 
@@ -63,8 +66,8 @@ const testPasswordEdit = async () => {
 
     // Verify password comparison works
     console.log('\n🔐 Testing password comparison:');
-    const isValidOld = await updatedUser.comparePassword('oldPassword123');
-    const isValidNew = await updatedUser.comparePassword('newPassword456');
+    const isValidOld = await updatedUser.comparePassword(oldPassword);
+    const isValidNew = await updatedUser.comparePassword(newPassword);
     const isValidWrong = await updatedUser.comparePassword('wrongPassword');
 
     console.log('   - Old password matches: ', isValidOld, '(should be false)');

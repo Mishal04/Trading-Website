@@ -23,6 +23,8 @@ async function run() {
   const User          = require('../src/models/User');
   const constants     = require('../config/constants');
   const commService   = require('../src/services/commissionService');
+
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'test-mock-pass-123';
   const { hasNetworkerAccess } = require('../src/middleware/auth');
   const { toggleNetworkerAccess } = require('../src/controllers/adminController');
 
@@ -42,7 +44,7 @@ async function run() {
   const tempA = new User({
     name:         'Phase1_TempA',
     email:        `phase1_tempA_${Date.now()}@verify.test`,
-    password:     'TestPass1!',
+    password:     TEST_PASSWORD,
     referralCode: 'TMPVFYA1'
   });
   if (tempA.networkerAccessGranted === false)   PASS('New user: networkerAccessGranted defaults to false');
@@ -68,7 +70,7 @@ async function run() {
   const upline = await User.create({
     name:                   'Phase1_Upline',
     email:                  `phase1_upline_${Date.now()}@verify.test`,
-    password:               'TestPass1!',
+    password:               TEST_PASSWORD,
     referralCode:           uplineCode,
     isActive:               true,
     isVerified:             true,
@@ -79,7 +81,7 @@ async function run() {
   const downline = await User.create({
     name:         'Phase1_Downline',
     email:        `phase1_downline_${Date.now()}@verify.test`,
-    password:     'TestPass1!',
+    password:     TEST_PASSWORD,
     referralCode: downlineCode,
     referredBy:   upline._id,
     ancestorPath: [upline._id],

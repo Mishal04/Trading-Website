@@ -18,9 +18,14 @@ const API_BASE = `http://localhost:${process.env.PORT || 5000}/api`;
 async function getAdminToken() {
   try {
     console.log('🔐 Logging in as admin...');
+    const adminEmail = process.env.ADMIN_EMAIL || 'info.solvex1@gmail.com';
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD || process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      throw new Error('ADMIN_SEED_PASSWORD or ADMIN_PASSWORD environment variable is required');
+    }
     const res = await axios.post(`${API_BASE}/auth/login`, {
-      email: 'info.solvex1@gmail.com',
-      password: '123solvextrade786',
+      email: adminEmail,
+      password: adminPassword,
     });
     
     if (!res.data?.data?.token) {

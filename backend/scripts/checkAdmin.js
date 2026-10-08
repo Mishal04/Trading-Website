@@ -27,10 +27,14 @@ async function main() {
     console.log(`  Is Verified: ${admin.isVerified}`);
     console.log(`  Has Password Hash: ${!!admin.password}`);
     
-    // Test password
-    const testPassword = '123solvextrade786';
-    const isMatch = await admin.comparePassword(testPassword);
-    console.log(`\n  Password '123solvextrade786' matches: ${isMatch ? '✓ YES' : '❌ NO'}`);
+    // Test password from env var — never hardcode credentials in source files
+    const testPassword = process.env.ADMIN_SEED_PASSWORD;
+    if (testPassword) {
+      const isMatch = await admin.comparePassword(testPassword);
+      console.log(`\n  Env ADMIN_SEED_PASSWORD matches: ${isMatch ? '✓ YES' : '❌ NO'}`);
+    } else {
+      console.log('\n  Set ADMIN_SEED_PASSWORD env var to test password match.');
+    }
     
     if (admin.accountType !== 'admin') {
       console.log(`\n⚠️  User exists but accountType is '${admin.accountType}', not 'admin'`);

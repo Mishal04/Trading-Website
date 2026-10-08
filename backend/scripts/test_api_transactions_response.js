@@ -13,9 +13,15 @@ async function test() {
   try {
     // First, login as admin
     console.log('🔐 Logging in as admin...');
+    const adminEmail = process.env.ADMIN_EMAIL || 'info.solvex1@gmail.com';
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD || process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      console.error('❌ Error: ADMIN_SEED_PASSWORD or ADMIN_PASSWORD environment variable is required.');
+      process.exit(1);
+    }
     const loginRes = await axios.post(`${API_BASE}/auth/login`, {
-      email: 'info.solvex1@gmail.com',
-      password: '123solvextrade786',
+      email: adminEmail,
+      password: adminPassword,
     });
 
     if (!loginRes.data?.data?.token) {

@@ -32,3 +32,9 @@ coverage/
 .DS_Store
 .vscode/
 .idea/
+
+# Database backups & sensitive dumps
+backups/
+backend/backups/
+*.backup.json
+backend/backups/*.json

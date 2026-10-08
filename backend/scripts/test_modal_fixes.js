@@ -31,7 +31,7 @@ async function createAdminToken() {
       admin = new User({
         name: 'Test Admin',
         email: 'admin@test.com',
-        password: 'admin123',
+        password: process.env.TEST_ADMIN_PASSWORD || 'test-admin-mock-123',
         accountType: 'admin',
         referralCode: `ADMIN${Date.now()}`
       });
@@ -62,7 +62,7 @@ async function findOrCreateTestUser() {
       user = new User({
         name: 'Modal Test User',
         email: `modaltest_${Date.now()}@test.com`,
-        password: 'testpass123',
+        password: process.env.TEST_USER_PASSWORD || 'test-user-mock-123',
         referralCode: `MODALTEST${Date.now()}`
       });
       await user.save();

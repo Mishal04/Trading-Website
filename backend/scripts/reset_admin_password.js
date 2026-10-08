@@ -9,8 +9,14 @@ const User = require('../src/models/User');
     
     console.log('\n=== Resetting Admin Password ===\n');
     
-    const adminEmail = 'info.solvex1@gmail.com';
-    const newPassword = '123solvextrade786'; // New password to set
+    const adminEmail = process.env.ADMIN_EMAIL || 'info.solvex1@gmail.com';
+    const newPassword = process.env.ADMIN_SEED_PASSWORD;
+
+    if (!newPassword) {
+      console.error('Error: ADMIN_SEED_PASSWORD environment variable is required.');
+      console.error('Usage: ADMIN_SEED_PASSWORD=<your-password> node scripts/reset_admin_password.js');
+      process.exit(1);
+    }
     
     const user = await User.findOne({ email: adminEmail });
     
@@ -30,8 +36,7 @@ const User = require('../src/models/User');
     console.log(`✅ Password reset successfully!`);
     console.log(`\nNew login credentials:`);
     console.log(`  Email: ${adminEmail}`);
-    console.log(`  Password: ${newPassword}`);
-    
+    console.log(`  Password: [set from ADMIN_SEED_PASSWORD env var]`);
     // Verify the password works
     const updatedUser = await User.findOne({ email: adminEmail }).select('+password');
     const isMatch = await updatedUser.comparePassword(newPassword);

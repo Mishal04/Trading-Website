@@ -39,7 +39,7 @@ async function testDailyProfitEndToEnd() {
     const testUser = await User.create({
       name: 'Test Verify Account',
       email: testEmail,
-      password: 'TestPassword123!',
+      password: process.env.TEST_USER_PASSWORD || 'test-mock-pass-123',
       referralCode: testReferralCode,
       isActive: true,
       wallet: {
