@@ -1492,6 +1492,48 @@ const adminDepositToUser = async (req, res) => {
       investmentId = savedInvestment._id;
       
       console.log(`✅ Created InvestorInvestment: ${investmentId} | Amount: $${amount} | Package: ${packageNumber} | Phase 1 Daily Rate: ${(dailyRate * 100).toFixed(2)}%`);
+    
+    // ── Calculate and credit direct referral commission (5%) ────
+    if (user.referredBy) {
+      const commissionPercentage = 0.05; // 5%
+      const commissionAmount = Number((amount * commissionPercentage).toFixed(2));
+      
+      const referrer = await User.findById(user.referredBy);
+      if (referrer) {
+        // Credit commission to referrer
+        await User.findByIdAndUpdate(user.referredBy, {
+          $inc: { 'wallet.commission': commissionAmount }
+        });
+        
+        // Create commission transaction for referrer
+        await Transaction.create({
+          userId: user.referredBy,
+          type: 'commission',
+          description: `Direct referral commission (5%) from ${user.name}'s admin capital deposit of $${amount}`,
+          amount: commissionAmount,
+          status: 'completed',
+          referenceId: transaction._id,
+          referenceModel: 'Transaction',
+          metadata: {
+            commissionType: 'direct_referral',
+            depositAmount: amount,
+            commissionRate: '5%',
+            referredUserId: user._id,
+            referredUserName: user.name
+          }
+        });
+        
+        // Create notification for referrer
+        await Notification.create({
+          userId: user.referredBy,
+          title: 'Direct Referral Commission',
+          message: `You earned $${commissionAmount} commission from ${user.name}'s admin deposit of $${amount}`,
+          type: 'commission'
+        });
+        
+        console.log(`✅ Credited $${commissionAmount} commission to ${referrer.name}`);
+      }
+    }
     }
 
     return res.json({
