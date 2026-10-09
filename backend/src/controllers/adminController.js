@@ -1450,9 +1450,59 @@ const adminDepositToUser = async (req, res) => {
 
     console.log('✅ Transaction saved:', transaction._id);
 
+    // ── IF depositing to capital, create InvestorInvestment so it earns daily ROI ────
+    let investmentId = null;
+    if (walletType === 'capital') {
+      const InvestorInvestment = require('../models/InvestorInvestment');
+      
+      // Determine package based on amount (Plan A default rates)
+      // Tier 1: $100-$500 → package 1 (1% daily)
+      // Tier 2: $1000-$5000 → package 2 (1% daily)
+      // Tier 3: $6000-$9000 → package 3 (1% daily)
+      // Tier 4: $10000+ → package 4 (1.25% daily)
+      let packageNumber = 1;
+      let dailyRate = 0.01; // 1% default
+      
+      if (amount >= 10000) {
+        packageNumber = 4;
+        dailyRate = 0.0125; // 1.25%
+      } else if (amount >= 6000) {
+        packageNumber = 3;
+        dailyRate = 0.01; // 1%
+      } else if (amount >= 1000) {
+        packageNumber = 2;
+        dailyRate = 0.01; // 1%
+      } else {
+        packageNumber = 1;
+        dailyRate = 0.01; // 1%
+      }
+
+      // Create InvestorInvestment record so cron picks it up for daily ROI
+      const investment = new InvestorInvestment({
+        userId: id,
+        amount: amount,
+        plan: 'A',  // Admin deposits default to Plan A
+        packageNumber: packageNumber,
+        dailyRate: dailyRate,
+        incomeCap: amount * 3,  // 3x income cap
+        status: 'active',
+        startDate: new Date(),
+        lastRoiDate: new Date(),
+        approvedBy: req.user._id,
+        approvedAt: new Date(),
+        paymentNote: `Admin deposit: ${note || '(no note)'}`,
+        adminNote: `Auto-created investment from admin capital deposit of $${amount}`
+      });
+      
+      const savedInvestment = await investment.save();
+      investmentId = savedInvestment._id;
+      
+      console.log(`✅ Created InvestorInvestment: ${investmentId} | Amount: $${amount} | Package: ${packageNumber} | Daily Rate: ${(dailyRate * 100).toFixed(2)}%`);
+    }
+
     return res.json({
       success: true,
-      message: `Deposited $${amount} to ${user.name}'s ${walletType} wallet`,
+      message: `Deposited $${amount} to ${user.name}'s ${walletType} wallet${walletType === 'capital' ? ' (earning daily ROI)' : ''}`,
       data: {
         userId: id,
         userName: user.name,
@@ -1460,7 +1510,8 @@ const adminDepositToUser = async (req, res) => {
         previousBalance,
         amount,
         newBalance: user.wallet[walletType],
-        transactionId: transaction._id
+        transactionId: transaction._id,
+        investmentId: investmentId  // Return investment ID if created
       }
     });
   } catch (error) {
