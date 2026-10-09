@@ -1454,34 +1454,28 @@ const adminDepositToUser = async (req, res) => {
     let investmentId = null;
     if (walletType === 'capital') {
       const InvestorInvestment = require('../models/InvestorInvestment');
+      const investorConstants = require('../../config/investorConstants');
       
-      // Determine package based on amount (Plan A default rates)
-      // Tier 1: $100-$500 → package 1 (1% daily)
-      // Tier 2: $1000-$5000 → package 2 (1% daily)
-      // Tier 3: $6000-$9000 → package 3 (1% daily)
-      // Tier 4: $10000+ → package 4 (1.25% daily)
-      let packageNumber = 1;
-      let dailyRate = 0.01; // 1% default
+      // Use phase-aware package info to get correct Phase 1 (Plan A) rate
+      const packageInfo = investorConstants.getInvestorPackageInfo(amount, 'A');
       
-      if (amount >= 10000) {
-        packageNumber = 4;
-        dailyRate = 0.0125; // 1.25%
-      } else if (amount >= 6000) {
-        packageNumber = 3;
-        dailyRate = 0.01; // 1%
-      } else if (amount >= 1000) {
-        packageNumber = 2;
-        dailyRate = 0.01; // 1%
-      } else {
-        packageNumber = 1;
-        dailyRate = 0.01; // 1%
+      if (!packageInfo) {
+        console.warn(`⚠️  Amount $${amount} does not fit investor package tiers (100-25000)`);
+        // Still create record but mark as needs admin review
+        return res.status(400).json({ 
+          success: false, 
+          message: `Admin deposit amount $${amount} is outside standard investor package ranges (100-25000)` 
+        });
       }
+
+      const packageNumber = packageInfo.packageNumber;
+      const dailyRate = packageInfo.dailyRate / 100; // Convert from percentage to decimal (1.00 → 0.01)
 
       // Create InvestorInvestment record so cron picks it up for daily ROI
       const investment = new InvestorInvestment({
         userId: id,
         amount: amount,
-        plan: 'A',  // Admin deposits default to Plan A
+        plan: 'A',  // Admin deposits use Plan A rates (Phase 1)
         packageNumber: packageNumber,
         dailyRate: dailyRate,
         incomeCap: amount * 3,  // 3x income cap
@@ -1491,13 +1485,13 @@ const adminDepositToUser = async (req, res) => {
         approvedBy: req.user._id,
         approvedAt: new Date(),
         paymentNote: `Admin deposit: ${note || '(no note)'}`,
-        adminNote: `Auto-created investment from admin capital deposit of $${amount}`
+        adminNote: `Auto-created investment from admin capital deposit of $${amount}. Phase 1 (Plan A) - will transition to Plan B at 6mo, then 8-10% monthly at 12mo.`
       });
       
       const savedInvestment = await investment.save();
       investmentId = savedInvestment._id;
       
-      console.log(`✅ Created InvestorInvestment: ${investmentId} | Amount: $${amount} | Package: ${packageNumber} | Daily Rate: ${(dailyRate * 100).toFixed(2)}%`);
+      console.log(`✅ Created InvestorInvestment: ${investmentId} | Amount: $${amount} | Package: ${packageNumber} | Phase 1 Daily Rate: ${(dailyRate * 100).toFixed(2)}%`);
     }
 
     return res.json({

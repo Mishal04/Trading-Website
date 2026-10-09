@@ -3,7 +3,7 @@ import { LogOut, AlertCircle, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ImpersonationBanner() {
-  const { user, logout } = useAuth();
+  const { user, exitImpersonation } = useAuth();
 
   // Check if user is impersonated by looking at localStorage
   const token = localStorage.getItem('token');
@@ -39,9 +39,10 @@ export default function ImpersonationBanner() {
   }
 
   const handleExitImpersonation = () => {
-    logout();
-    toast.success('Exited impersonation mode');
-    window.location.href = '/admin';
+    exitImpersonation();
+    setTimeout(() => {
+      window.location.href = '/admin';
+    }, 1000);
   };
 
   return (

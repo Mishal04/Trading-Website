@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { adminAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 import TransactionErrorBoundary from './TransactionErrorBoundary';
 import {
   X, Save, Mail, Phone, Building2, Plus,
@@ -281,6 +282,15 @@ export default function UserEditModal({ user, isOpen, onClose, onSaved }) {
     
     setLoading(true);
     try {
+      // Save the current admin token and user before switching
+      const currentToken = localStorage.getItem('token');
+      const currentUser = localStorage.getItem('user');
+      
+      if (currentToken && currentUser) {
+        localStorage.setItem('adminToken', currentToken);
+        localStorage.setItem('adminUser', currentUser);
+      }
+      
       const res = await adminAPI.generateImpersonationToken(user._id);
       
       // Store the impersonation token

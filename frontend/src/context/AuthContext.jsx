@@ -87,8 +87,32 @@ export function AuthProvider({ children }) {
     toast.success('Logged out');
   };
 
+  const exitImpersonation = () => {
+    // Restore the admin token that was saved before impersonation
+    const adminToken = localStorage.getItem('adminToken');
+    const adminUser = localStorage.getItem('adminUser');
+    
+    if (adminToken && adminUser) {
+      // Restore admin session
+      localStorage.setItem('token', adminToken);
+      localStorage.setItem('user', adminUser);
+      const parsedAdminUser = JSON.parse(adminUser);
+      setUser(parsedAdminUser);
+      
+      // Clean up the saved admin credentials
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUser');
+      
+      toast.success('Exited impersonation - admin session restored');
+    } else {
+      // Fallback: just logout
+      logout();
+      toast.info('Admin session not found - logging out');
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, setUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, setUser, exitImpersonation }}>
       {children}
     </AuthContext.Provider>
   );
