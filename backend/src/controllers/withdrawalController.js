@@ -3,6 +3,7 @@ const Withdrawal = require('../models/Withdrawal');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
+const InvestorInvestment = require('../models/InvestorInvestment');
 const { isWithinDubaiWithdrawalWindow } = require('../config/cronJobs');
 
 /**
@@ -90,6 +91,37 @@ const requestWithdrawal = async (req, res) => {
       $inc: { [`wallet.${type}`]: -amount }
     });
 
+    // If withdrawing from capital, reduce active investment amounts proportionally
+    if (type === 'capital') {
+      const activeInvestments = await InvestorInvestment.find({
+        userId,
+        status: 'active'
+      });
+
+      if (activeInvestments.length > 0) {
+        // Calculate total invested amount
+        const totalInvested = activeInvestments.reduce((sum, inv) => sum + inv.amount, 0);
+
+        if (totalInvested > 0) {
+          // Reduce each investment proportionally
+          for (const investment of activeInvestments) {
+            const proportionOfTotal = investment.amount / totalInvested;
+            const amountToDeduct = Number((amount * proportionOfTotal).toFixed(2));
+
+            // Reduce the investment amount
+            const newAmount = Math.max(0, investment.amount - amountToDeduct);
+            const actualDeduction = investment.amount - newAmount;
+
+            await InvestorInvestment.findByIdAndUpdate(investment._id, {
+              $set: { amount: newAmount },
+              // Reduce total ROI earned proportionally
+              $inc: { totalRoiEarned: -(actualDeduction * investment.dailyRate * 7) } // Rough estimate: 7 days average
+            });
+          }
+        }
+      }
+    }
+
     // Create Withdrawal document
     const withdrawal = new Withdrawal({
       userId,
@@ -104,21 +136,31 @@ const requestWithdrawal = async (req, res) => {
     await withdrawal.save();
 
     // Create Transaction log
+    let transactionDesc = `Withdrawal request ($${amount} from ${type} balance)`;
+    if (type === 'capital') {
+      transactionDesc += ` — investment amount(s) reduced proportionally`;
+    }
+    
     await Transaction.create({
       userId,
       type: 'withdrawal',
       amount,
       status: 'pending',
-      description: `Withdrawal request ($${amount} from ${type} balance)`,
+      description: transactionDesc,
       referenceId: withdrawal._id,
       referenceModel: 'Withdrawal'
     });
 
     // Send Notification
+    let notificationMsg = `Your withdrawal request of $${amount} (${type}) has been submitted for review.`;
+    if (type === 'capital') {
+      notificationMsg += ` Your investment amount(s) have been reduced proportionally.`;
+    }
+    
     await Notification.create({
       userId,
       title: 'Withdrawal Requested',
-      message: `Your withdrawal request of $${amount} (${type}) has been submitted for review.`,
+      message: notificationMsg,
       type: 'warning'
     });
 
