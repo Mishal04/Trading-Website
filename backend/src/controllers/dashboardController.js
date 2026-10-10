@@ -10,6 +10,12 @@ const constants = require('../../config/constants');
  */
 const getDashboardStats = async (req, res) => {
   try {
+    // Add cache-busting headers to ensure fresh data is always fetched
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+    
     const userId = req.user._id;
     const user = await User.findById(userId).select('-password');
 
@@ -100,6 +106,12 @@ const getDashboardStats = async (req, res) => {
  */
 const getUserTransactions = async (req, res) => {
   try {
+    // Add cache-busting headers to ensure fresh data is always fetched
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+    
     const page  = Math.max(1, parseInt(req.query.page,  10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50)); // cap at 100
     const skip  = (page - 1) * limit;
