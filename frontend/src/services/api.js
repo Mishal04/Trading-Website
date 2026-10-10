@@ -99,14 +99,15 @@ export const teamAPI = {
 
 // Commission endpoints
 export const commissionAPI = {
-  getMy: (params) => api.get('/commissions/my', { params }),
-  getSummary: () => api.get('/commissions/summary'),
-  getByLevel: (level, params) => api.get(`/commissions/level/${level}`, { params }),
+  getMy: (params) => api.get('/commissions/my', { params: { ...params, t: Date.now() } }),
+  getSummary: () => api.get('/commissions/summary', { params: { t: Date.now() } }),
+  getByLevel: (level, params) => api.get(`/commissions/level/${level}`, { params: { ...params, t: Date.now() } }),
 };
 
 // Dashboard endpoints
 export const dashboardAPI = {
-  getStats: () => api.get('/dashboard/stats'),
+  // Add timestamp query param to bypass browser cache
+  getStats: () => api.get('/dashboard/stats', { params: { t: Date.now() } }),
 };
 
 // Wallet / P2P endpoints
