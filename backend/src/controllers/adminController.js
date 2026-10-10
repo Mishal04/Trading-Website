@@ -534,7 +534,10 @@ const approvePlanInvestment = async (req, res) => {
 
     // 2. Credit user wallet with investment amount
     await User.findByIdAndUpdate(investment.userId, {
-      $inc: { 'wallet.capital': investment.amount }
+      $inc: { 
+        'wallet.capital': investment.amount,
+        totalInvested: investment.amount  // ← ADD THIS: Update totalInvested for commission calculations
+      }
     });
 
     // 3. Update the pending transaction to completed
@@ -1435,9 +1438,18 @@ const adminDepositToUser = async (req, res) => {
     // Add to wallet
     const previousBalance = user.wallet[walletType] || 0;
     user.wallet[walletType] = (user.wallet[walletType] || 0) + amount;
+    
+    // ── IMPORTANT: Update totalInvested for capital deposits so commission calculations work ────
+    if (walletType === 'capital') {
+      user.totalInvested = (user.totalInvested || 0) + amount;
+    }
+    
     await user.save();
 
     console.log('💰 Wallet updated:', { walletType, previousBalance, newBalance: user.wallet[walletType] });
+    if (walletType === 'capital') {
+      console.log('📊 totalInvested updated:', { previous: (user.totalInvested || 0) - amount, new: user.totalInvested });
+    }
 
     // Create transaction record
     const transaction = new Transaction({
