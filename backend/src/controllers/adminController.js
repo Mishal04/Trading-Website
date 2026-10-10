@@ -350,7 +350,11 @@ const approveInvestment = async (req, res) => {
     investment.status    = 'active';
     investment.isActive  = true;
     investment.startDate = new Date();
-    investment.lastProfitDate = new Date();
+    // Set lastProfitDate to yesterday so profit calculation runs TODAY (not tomorrow)
+    // Profit cron checks: lastProfitDate < startOfToday; if set to now(), it will be >= startOfToday
+    const yesterdayForProfit = new Date();
+    yesterdayForProfit.setDate(yesterdayForProfit.getDate() - 1);
+    investment.lastProfitDate = yesterdayForProfit;
     investment.approvedBy = req.user._id;
     investment.approvedAt = new Date();
     await investment.save();
@@ -519,6 +523,11 @@ const approvePlanInvestment = async (req, res) => {
     // 1. Activate investment
     investment.status    = 'active';
     investment.startDate = new Date();
+    // Set lastRoiDate to yesterday so profit calculation runs TODAY (not tomorrow)
+    // Profit cron checks: lastRoiDate < startOfToday; if set to now(), it will be >= startOfToday
+    const yesterdayForRoi = new Date();
+    yesterdayForRoi.setDate(yesterdayForRoi.getDate() - 1);
+    investment.lastRoiDate = yesterdayForRoi;
     investment.approvedBy = req.user._id;
     investment.approvedAt = new Date();
     await investment.save();
@@ -1481,7 +1490,13 @@ const adminDepositToUser = async (req, res) => {
         incomeCap: amount * 3,  // 3x income cap
         status: 'active',
         startDate: new Date(),
-        lastRoiDate: new Date(),
+        // Set lastRoiDate to yesterday so profit calculation runs TODAY (not tomorrow)
+        // Profit cron checks: lastRoiDate < startOfToday; if set to now(), it will be >= startOfToday
+        lastRoiDate: (() => {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          return yesterday;
+        })(),
         approvedBy: req.user._id,
         approvedAt: new Date(),
         paymentNote: `Admin deposit: ${note || '(no note)'}`,
@@ -1534,6 +1549,15 @@ const adminDepositToUser = async (req, res) => {
         console.log(`✅ Credited $${commissionAmount} commission to ${referrer.name}`);
       }
     }
+    }
+
+    // ── AUTO-UNLOCK: Grant Networker access when capital is deposited ────
+    if (walletType === 'capital') {
+      await User.findByIdAndUpdate(id, {
+        networkerAccessGranted: true,
+        networkerAccessGrantedAt: new Date(),
+        networkerAccessGrantedBy: req.user._id
+      });
     }
 
     return res.json({

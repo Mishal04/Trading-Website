@@ -262,7 +262,9 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   await connectDB();
   const { initCronJobs } = require('./config/cronJobs');
+  console.log('\n🚀 Initializing cron jobs...');
   initCronJobs();
+  console.log('✅ Cron jobs initialized and scheduled\n');
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);

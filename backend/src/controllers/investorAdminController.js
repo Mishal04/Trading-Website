@@ -202,7 +202,11 @@ const approveInvestorInvestment = async (req, res) => {
     // Activate investment
     investment.status    = 'active';
     investment.startDate = new Date();
-    investment.lastRoiDate = new Date();
+    // Set lastRoiDate to yesterday so profit calculation runs TODAY (not tomorrow)
+    // Profit cron checks: lastRoiDate < startOfToday; if set to now(), it will be >= startOfToday
+    const yesterdayForRoi = new Date();
+    yesterdayForRoi.setDate(yesterdayForRoi.getDate() - 1);
+    investment.lastRoiDate = yesterdayForRoi;
     investment.approvedBy  = req.user._id;
     investment.approvedAt  = new Date();
 
@@ -224,6 +228,14 @@ const approveInvestorInvestment = async (req, res) => {
     if (!investor.joinDate) {
       updateFields.$set = { joinDate: new Date() };
     }
+    // AUTO-UNLOCK: Grant Networker access when investment becomes active
+    if (!updateFields.$set) {
+      updateFields.$set = {};
+    }
+    updateFields.$set.networkerAccessGranted = true;
+    updateFields.$set.networkerAccessGrantedAt = new Date();
+    updateFields.$set.networkerAccessGrantedBy = req.user._id;
+
     await User.findByIdAndUpdate(userId, updateFields);
 
     return res.json({

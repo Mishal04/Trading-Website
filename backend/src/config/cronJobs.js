@@ -37,16 +37,19 @@ const isWithinDubaiTradingWindow = () => {
 };
 
 const initCronJobs = () => {
-  console.log('Cron jobs scheduled (Asia/Dubai timezone)');
+  console.log('Cron jobs scheduled');
 
-  // Daily ROI calculation at 16:00 Pakistan time, Monday-Friday only
+  // Daily ROI calculation at 16:00 (4 PM) Pakistan time, Monday-Friday only
   // ROI is credited every day; level commissions are skipped on Sat/Sun within the job
+  // Using Asia/Karachi timezone to ensure exact 4 PM Pakistan time
   cron.schedule('0 16 * * 1-5', async () => {
-    console.log('Running scheduled job: Daily ROI Calculation (16:00 Pakistan time, Mon-Fri)');
+    console.log('🕐 Running scheduled job: Daily ROI Calculation (16:00 Pakistan time, Mon-Fri)');
+    console.log(`   Current server time: ${new Date().toISOString()}`);
     try {
-      await profitService.calculateDailyProfits();
+      const result = await profitService.calculateDailyProfits();
+      console.log(`✅ Daily ROI job completed. Processed: ${result?.processedCount || 0} investments, Distributed: $${result?.totalProfitDistributed || 0}`);
     } catch (err) {
-      console.error('Scheduled daily ROI error:', err);
+      console.error('❌ Scheduled daily ROI error:', err);
     }
   }, { timezone: 'Asia/Karachi' });
 
