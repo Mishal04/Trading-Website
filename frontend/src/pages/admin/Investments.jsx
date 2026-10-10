@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import {
   CheckCircle2, XCircle, Clock, RefreshCw,
   AlertCircle, ChevronLeft, ChevronRight, ExternalLink,
-  PiggyBank, ChevronDown, ChevronUp, Hash, FileText, MessageSquare,
+  PiggyBank, ChevronDown, ChevronUp, Hash, FileText, MessageSquare, Search,
 } from 'lucide-react';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -151,6 +151,7 @@ export default function Investments() {
   const [expandedId, setExpandedId]     = useState(null); // proof detail expand
 
   const statusFilter = searchParams.get('status') ?? 'pending';
+  const searchQuery = searchParams.get('search') ?? '';
   const page = parseInt(searchParams.get('page') ?? '1', 10);
 
   const setFilter = (key, val) => {
@@ -166,6 +167,7 @@ export default function Investments() {
     try {
       const res = await adminAPI.getInvestments({
         status: statusFilter || undefined,
+        search: searchQuery || undefined,
         page,
         limit: 15,
       });
@@ -176,7 +178,7 @@ export default function Investments() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, page]);
+  }, [statusFilter, searchQuery, page]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -248,6 +250,23 @@ export default function Investments() {
             {s === '' ? 'All' : s}
           </button>
         ))}
+      </div>
+
+      {/* Search bar */}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Search user by name or email…"
+          value={searchQuery}
+          onChange={(e) => setFilter('search', e.target.value)}
+          className="flex-1 px-4 py-2.5 rounded-xl bg-dark-700 border border-dark-500 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-gold-400 transition-colors"
+        />
+        {searchQuery && (
+          <button onClick={() => setFilter('search', '')}
+            className="px-4 py-2.5 rounded-xl border border-dark-500 text-sm text-gray-400 hover:text-white transition-colors">
+            Clear
+          </button>
+        )}
       </div>
 
       {/* Error */}
