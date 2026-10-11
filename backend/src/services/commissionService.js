@@ -471,30 +471,31 @@ const distributeLegCommissions = async () => {
         }
 
         // Determine commission rate from unlockedLevels
+        // unlockedLevels tells how many levels are unlocked (starting from top L21 going down)
+        // Lowest level = 22 - unlockedLevels
+        // Then get the rate for that lowest unlocked level
+        
+        let lowestLevel = 22 - (user.unlockedLevels || 0);
         let rate = 0;
-        let level = 0;
 
-        if (user.unlockedLevels >= 21) {
-          rate = 1;
-          level = 21;
-        } else if (user.unlockedLevels >= 11) {
-          rate = 0.9;
-          level = Math.min(user.unlockedLevels, 20);
-        } else if (user.unlockedLevels >= 6) {
-          rate = 2;
-          level = Math.min(user.unlockedLevels, 10);
-        } else if (user.unlockedLevels >= 4) {
-          rate = 5;
-          level = Math.min(user.unlockedLevels, 5);
-        } else if (user.unlockedLevels === 3) {
-          rate = 10;
-          level = 3;
-        } else if (user.unlockedLevels === 2) {
-          rate = 15;
-          level = 20; // L20 for unlockedLevels=2
-        } else if (user.unlockedLevels === 1) {
-          rate = 25;
-          level = 1;
+        if (lowestLevel <= 1) {
+          rate = 25; // L1
+        } else if (lowestLevel <= 2) {
+          rate = 15; // L2
+        } else if (lowestLevel <= 3) {
+          rate = 10; // L3
+        } else if (lowestLevel <= 5) {
+          rate = 5; // L4-5
+        } else if (lowestLevel <= 10) {
+          rate = 2; // L6-10
+        } else if (lowestLevel <= 20) {
+          rate = 0.9; // L11-20
+        } else if (lowestLevel <= 21) {
+          rate = 1; // L21
+        } else {
+          // No levels unlocked
+          rate = 0;
+          lowestLevel = 0;
         }
 
         // Calculate commission from TOTAL leg volume
@@ -520,7 +521,7 @@ const distributeLegCommissions = async () => {
           rate: rate,
           baseAmount: totalLegVolume,
           commissionAmount,
-          description: `Leg commission Level ${level} (${rate}%) from total direct leg volume ($${totalLegVolume})`
+          description: `Leg commission Level ${lowestLevel} (${rate}%) from total direct leg volume ($${totalLegVolume})`
         });
 
         // Transaction record
@@ -529,20 +530,20 @@ const distributeLegCommissions = async () => {
           type: 'commission',
           amount: commissionAmount,
           status: 'completed',
-          description: `Leg commission Level ${level} (${rate}%) from total direct leg volume ($${totalLegVolume})`
+          description: `Leg commission Level ${lowestLevel} (${rate}%) from total direct leg volume ($${totalLegVolume})`
         });
 
         // Notification
         await Notification.create({
           userId: user._id,
           title: 'Leg Commission Received',
-          message: `You earned $${commissionAmount.toFixed(2)} leg commission (Level ${level} @ ${rate}%) from direct referral leg ($${totalLegVolume})!`,
+          message: `You earned $${commissionAmount.toFixed(2)} leg commission (Level ${lowestLevel} @ ${rate}%) from direct referral leg ($${totalLegVolume})!`,
           type: 'commission'
         });
 
         totalCommissionPaid += commissionAmount;
 
-        console.log(`[LEG COMMISSION] ${user.name}: L${level} @ ${rate}% | Total Leg: $${totalLegVolume} | Commission: $${commissionAmount.toFixed(2)}`);
+        console.log(`[LEG COMMISSION] ${user.name}: L${lowestLevel} @ ${rate}% | Total Leg: $${totalLegVolume} | Commission: $${commissionAmount.toFixed(2)}`);
 
       } catch (err) {
         console.error(`[LEG COMMISSION] Error processing ${user.name}:`, err.message);
