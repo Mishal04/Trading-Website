@@ -450,17 +450,9 @@ const distributeLegCommissions = async () => {
         }
 
         // Get ALL DIRECT downline members (ancestorPath length = 1, meaning direct referral)
-        const directDownline = await User.find(
-          { 
-            $expr: { 
-              $and: [
-                { $in: [user._id, "$ancestorPath"] },
-                { $eq: [{ $size: "$ancestorPath" }, 1] } // Only L1 (direct)
-              ]
-            }
-          },
-          { _id: 1, name: 1, totalInvested: 1 }
-        );
+        // Use simple query instead of $expr for better performance
+        const allDownline = await User.find({ ancestorPath: user._id });
+        const directDownline = allDownline.filter(d => d.ancestorPath?.length === 1);
 
         if (directDownline.length === 0) {
           console.log(`[LEG COMMISSION] ${user.name}: No direct downline members`);
