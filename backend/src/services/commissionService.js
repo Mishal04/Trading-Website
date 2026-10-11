@@ -422,9 +422,12 @@ const distributePerformanceReward = async () => {
 };
 
 /**
- * Distribute leg commission to users based on their downline's strongest leg
- * Called once per user per day on Monday 4 PM
- * User earns commission based on their unlockedLevels from strongest downline leg
+ * Distribute leg commission to users based on total direct downline leg volume
+ * Called once on Monday 4 PM
+ * User earns commission based on unlockedLevels from TOTAL direct referral leg volume
+ * 
+ * Example: Faisal has 6 directs, 2 invested $300 each = $600 total leg
+ * Faisal at Level 10 gets 2% of $600 = $12
  */
 const distributeLegCommissions = async () => {
   console.log('[LEG COMMISSION] Starting leg commission distribution...');
@@ -446,23 +449,32 @@ const distributeLegCommissions = async () => {
           continue;
         }
 
-        // Get downline members
-        const downline = await User.find(
-          { ancestorPath: user._id },
+        // Get ALL DIRECT downline members (ancestorPath length = 1, meaning direct referral)
+        const directDownline = await User.find(
+          { 
+            $expr: { 
+              $and: [
+                { $in: [user._id, "$ancestorPath"] },
+                { $eq: [{ $size: "$ancestorPath" }, 1] } // Only L1 (direct)
+              ]
+            }
+          },
           { _id: 1, name: 1, totalInvested: 1 }
-        ).sort({ totalInvested: -1 }); // Sort by investment (strongest leg first)
+        );
 
-        if (downline.length === 0) {
-          console.log(`[LEG COMMISSION] ${user.name}: No downline members`);
+        if (directDownline.length === 0) {
+          console.log(`[LEG COMMISSION] ${user.name}: No direct downline members`);
           continue;
         }
 
-        // Get strongest leg (first after sort)
-        const strongestLeg = downline[0];
-        const legAmount = strongestLeg.totalInvested || 0;
+        // Calculate TOTAL leg volume from all directs (not just strongest)
+        let totalLegVolume = 0;
+        directDownline.forEach(member => {
+          totalLegVolume += (member.totalInvested || 0);
+        });
 
-        if (legAmount <= 0) {
-          console.log(`[LEG COMMISSION] ${user.name}: Strongest leg has no investment`);
+        if (totalLegVolume <= 0) {
+          console.log(`[LEG COMMISSION] ${user.name}: Total leg volume is 0`);
           continue;
         }
 
@@ -493,8 +505,8 @@ const distributeLegCommissions = async () => {
           level = 1;
         }
 
-        // Calculate commission
-        const commissionAmount = Number(((legAmount * rate) / 100).toFixed(2));
+        // Calculate commission from TOTAL leg volume
+        const commissionAmount = Number(((totalLegVolume * rate) / 100).toFixed(2));
 
         if (commissionAmount <= 0) {
           console.log(`[LEG COMMISSION] ${user.name}: Commission amount is 0`);
@@ -514,9 +526,9 @@ const distributeLegCommissions = async () => {
           recipientId: user._id,
           commissionType: 'leg',
           rate: rate,
-          baseAmount: legAmount,
+          baseAmount: totalLegVolume,
           commissionAmount,
-          description: `Leg commission Level ${level} (${rate}%) from strongest downline leg (${strongestLeg.name}: $${legAmount})`
+          description: `Leg commission Level ${level} (${rate}%) from total direct leg volume ($${totalLegVolume})`
         });
 
         // Transaction record
@@ -525,20 +537,20 @@ const distributeLegCommissions = async () => {
           type: 'commission',
           amount: commissionAmount,
           status: 'completed',
-          description: `Leg commission Level ${level} (${rate}%) from strongest downline leg ($${legAmount})`
+          description: `Leg commission Level ${level} (${rate}%) from total direct leg volume ($${totalLegVolume})`
         });
 
         // Notification
         await Notification.create({
           userId: user._id,
           title: 'Leg Commission Received',
-          message: `You earned $${commissionAmount.toFixed(2)} leg commission (Level ${level} @ ${rate}%) from ${strongestLeg.name}!`,
+          message: `You earned $${commissionAmount.toFixed(2)} leg commission (Level ${level} @ ${rate}%) from direct referral leg ($${totalLegVolume})!`,
           type: 'commission'
         });
 
         totalCommissionPaid += commissionAmount;
 
-        console.log(`[LEG COMMISSION] ${user.name}: L${level} @ ${rate}% | Leg: $${legAmount} | Commission: $${commissionAmount.toFixed(2)}`);
+        console.log(`[LEG COMMISSION] ${user.name}: L${level} @ ${rate}% | Total Leg: $${totalLegVolume} | Commission: $${commissionAmount.toFixed(2)}`);
 
       } catch (err) {
         console.error(`[LEG COMMISSION] Error processing ${user.name}:`, err.message);
