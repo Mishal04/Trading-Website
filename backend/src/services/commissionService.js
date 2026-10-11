@@ -421,6 +421,139 @@ const distributePerformanceReward = async () => {
   return totalDistributed;
 };
 
+/**
+ * Distribute leg commission to users based on their downline's strongest leg
+ * Called once per user per day on Monday 4 PM
+ * User earns commission based on their unlockedLevels from strongest downline leg
+ */
+const distributeLegCommissions = async () => {
+  console.log('[LEG COMMISSION] Starting leg commission distribution...');
+
+  try {
+    // Get all users with downline
+    const users = await User.find(
+      { directCount: { $gt: 0 } },
+      { _id: 1, name: 1, unlockedLevels: 1, directCount: 1, totalInvested: 1 }
+    );
+
+    let totalCommissionPaid = 0;
+
+    for (const user of users) {
+      try {
+        // Skip if no unlocked levels
+        if (!user.unlockedLevels || user.unlockedLevels === 0) {
+          console.log(`[LEG COMMISSION] ${user.name}: Skipped (unlockedLevels = 0)`);
+          continue;
+        }
+
+        // Get downline members
+        const downline = await User.find(
+          { ancestorPath: user._id },
+          { _id: 1, name: 1, totalInvested: 1 }
+        ).sort({ totalInvested: -1 }); // Sort by investment (strongest leg first)
+
+        if (downline.length === 0) {
+          console.log(`[LEG COMMISSION] ${user.name}: No downline members`);
+          continue;
+        }
+
+        // Get strongest leg (first after sort)
+        const strongestLeg = downline[0];
+        const legAmount = strongestLeg.totalInvested || 0;
+
+        if (legAmount <= 0) {
+          console.log(`[LEG COMMISSION] ${user.name}: Strongest leg has no investment`);
+          continue;
+        }
+
+        // Determine commission rate from unlockedLevels
+        let rate = 0;
+        let level = 0;
+
+        if (user.unlockedLevels >= 21) {
+          rate = 1;
+          level = 21;
+        } else if (user.unlockedLevels >= 11) {
+          rate = 0.9;
+          level = Math.min(user.unlockedLevels, 20);
+        } else if (user.unlockedLevels >= 6) {
+          rate = 2;
+          level = Math.min(user.unlockedLevels, 10);
+        } else if (user.unlockedLevels >= 4) {
+          rate = 5;
+          level = Math.min(user.unlockedLevels, 5);
+        } else if (user.unlockedLevels === 3) {
+          rate = 10;
+          level = 3;
+        } else if (user.unlockedLevels === 2) {
+          rate = 15;
+          level = 20; // L20 for unlockedLevels=2
+        } else if (user.unlockedLevels === 1) {
+          rate = 25;
+          level = 1;
+        }
+
+        // Calculate commission
+        const commissionAmount = Number(((legAmount * rate) / 100).toFixed(2));
+
+        if (commissionAmount <= 0) {
+          console.log(`[LEG COMMISSION] ${user.name}: Commission amount is 0`);
+          continue;
+        }
+
+        // Credit commission to user
+        await User.findByIdAndUpdate(user._id, {
+          $inc: {
+            'wallet.commission': commissionAmount,
+            totalEarned: commissionAmount
+          }
+        });
+
+        // Log commission
+        await CommissionLog.create({
+          recipientId: user._id,
+          commissionType: 'leg',
+          rate: rate,
+          baseAmount: legAmount,
+          commissionAmount,
+          description: `Leg commission Level ${level} (${rate}%) from strongest downline leg (${strongestLeg.name}: $${legAmount})`
+        });
+
+        // Transaction record
+        await Transaction.create({
+          userId: user._id,
+          type: 'commission',
+          amount: commissionAmount,
+          status: 'completed',
+          description: `Leg commission Level ${level} (${rate}%) from strongest downline leg ($${legAmount})`
+        });
+
+        // Notification
+        await Notification.create({
+          userId: user._id,
+          title: 'Leg Commission Received',
+          message: `You earned $${commissionAmount.toFixed(2)} leg commission (Level ${level} @ ${rate}%) from ${strongestLeg.name}!`,
+          type: 'commission'
+        });
+
+        totalCommissionPaid += commissionAmount;
+
+        console.log(`[LEG COMMISSION] ${user.name}: L${level} @ ${rate}% | Leg: $${legAmount} | Commission: $${commissionAmount.toFixed(2)}`);
+
+      } catch (err) {
+        console.error(`[LEG COMMISSION] Error processing ${user.name}:`, err.message);
+      }
+    }
+
+    console.log(`[LEG COMMISSION] Total leg commissions paid: $${totalCommissionPaid.toFixed(2)}`);
+    return totalCommissionPaid;
+
+  } catch (err) {
+    console.error('[LEG COMMISSION] Fatal error:', err.message);
+    throw err;
+  }
+};
+
 module.exports = {
   LEVEL_RATES,
   LEADERSHIP_TIERS,
@@ -430,6 +563,7 @@ module.exports = {
   isLevelUnlockedForUpline,
   distributeLevelCommissions,
   distributeLevelCommissionsWithChecks,
+  distributeLegCommissions,
   distributeLeadershipSalary,
   distributePerformanceReward
 };

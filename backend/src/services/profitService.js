@@ -397,6 +397,20 @@ const calculateDailyProfits = async () => {
       });
     }
 
+    // ── PASS 3: Leg Commissions (once per week on Monday) ────────────────────────
+    // Distribute commission based on users' strongest downline leg
+    const dubaiTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
+    const isDubaiMonday = dubaiTime.getDay() === 1; // Monday = 1
+
+    if (isDubaiMonday) {
+      try {
+        const legCommissionAmount = await commissionService.distributeLegCommissions();
+        console.log(`[MONDAY] Leg commissions distributed: $${legCommissionAmount.toFixed(2)}`);
+      } catch (legErr) {
+        console.error('[MONDAY] Error distributing leg commissions:', legErr.message);
+      }
+    }
+
     console.log(`--- Daily Profit Calculation Complete: Processed ${processedCount} investments, total $${totalProfitDistributed.toFixed(2)} distributed ---`);
     return { processedCount, totalProfitDistributed };
   } catch (outerErr) {
