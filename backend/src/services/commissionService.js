@@ -592,11 +592,18 @@ const distributeDailyDirectReferralCommission = async (investment, dailyRoiAmoun
 
     // Calculate which level to use based on direct count
     // Levels unlock 2 at a time from L21 down to L1
-    // 1 direct unlocks L21, L20 -> use L20 (position 20)
-    // 2 directs unlock L21, L20, L19, L18 -> use L18 (position 18)
-    // etc.
-    const lowestUnlockedLevel = 21 - (directCount * 2) + 2; // +2 because we use the LOWEST of each pair
-    const payoutLevel = Math.max(1, Math.min(21, lowestUnlockedLevel));
+    // 1 direct = L21+L20, use L20 (level 20)
+    // 2 directs = L21+L20+L19+L18, use L18 (level 18)
+    // 3 directs = L21-L16, use L16 (level 16)
+    // Formula: lowestUnlockedLevel = 22 - (directCount * 2)
+    // For 10+ directs: all 21 levels unlocked, use L1
+    
+    let payoutLevel;
+    if (directCount >= 10) {
+      payoutLevel = 1; // All 21 levels unlocked
+    } else {
+      payoutLevel = Math.max(1, 22 - (directCount * 2));
+    }
 
     // Get commission rate for this level
     let commissionRate;
@@ -618,7 +625,7 @@ const distributeDailyDirectReferralCommission = async (investment, dailyRoiAmoun
       return;
     }
 
-    // Calculate daily commission = commission rate × investment amount
+    // Calculate daily commission = commission rate ï¿½ investment amount
     const dailyCommission = Number(((investment.amount * commissionRate) / 100).toFixed(4));
     if (dailyCommission <= 0) return;
 
