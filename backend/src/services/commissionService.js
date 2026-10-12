@@ -118,139 +118,138 @@ const distributeLevelCommissionsWithChecks = async (investment, baseAmount, inve
     return; // No ancestors, no commissions
   }
 
-  for (let i = 0; i < investor.ancestorPath.length; i++) {
-    const ancestorId = investor.ancestorPath[i];
-    const networkPosition = i + 1; // Position in chain (1-21)
+  // ✅ CRITICAL FIX: ONLY pay commission to DIRECT REFERRALS (L1)
+  // Do NOT pay from entire ancestorPath - only first position (direct referral)
+  
+  const ancestorId = investor.ancestorPath[0]; // Only L1 (direct referral)
+  const networkPosition = 1;
+  
+  try {
+    // Fetch upline (direct referrer)
+    const upline = await User.findById(ancestorId).select('name email isActive totalInvested unlockedLevels role totalEarned');
     
-    try {
-      // Fetch upline
-      const upline = await User.findById(ancestorId).select('name email isActive totalInvested unlockedLevels role totalEarned');
-      
-      if (!upline) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | Upline not found (${ancestorId})`);
-        continue;
-      }
-
-      if (!upline.isActive) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | Upline ${upline.name} inactive`);
-        continue;
-      }
-
-      if ((upline.totalInvested || 0) <= 0) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | Upline ${upline.name} no investment`);
-        continue;
-      }
-
-      // Determine payout level and rate based on upline's unlockedLevels
-      // unlockedLevels directly indicates the highest commission level accessible
-      // Use the rate corresponding to the highest unlocked level
-      // 
-      // unlockedLevels 1: L1 @ 25%
-      // unlockedLevels 2: L2 @ 15%
-      // unlockedLevels 3: L3 @ 10%
-      // unlockedLevels 4-5: L4-5 @ 5%
-      // unlockedLevels 6-10: L6-10 @ 2%
-      // unlockedLevels 11-20: L11-20 @ 0.9%
-      // unlockedLevels 21: L21 @ 1%
-      
-      const unlockedLevels = upline.unlockedLevels || 0;
-      
-      if (unlockedLevels === 0) {
-        // No unlocked levels, no commission
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} no unlocked levels`);
-        continue;
-      }
-
-      // Determine rate based on unlockedLevels
-      let ratePercent;
-      let payoutLevel;
-      
-      if (unlockedLevels >= 21) {
-        ratePercent = 1; // L21 @ 1%
-        payoutLevel = 21;
-      } else if (unlockedLevels >= 11) {
-        ratePercent = 0.9; // L11-20 @ 0.9%
-        payoutLevel = unlockedLevels; // Use the highest unlocked level
-      } else if (unlockedLevels >= 6) {
-        ratePercent = 2; // L6-10 @ 2%
-        payoutLevel = unlockedLevels;
-      } else if (unlockedLevels >= 4) {
-        ratePercent = 5; // L4-5 @ 5%
-        payoutLevel = unlockedLevels;
-      } else if (unlockedLevels === 3) {
-        ratePercent = 10; // L3 @ 10%
-        payoutLevel = 3;
-      } else if (unlockedLevels === 2) {
-        ratePercent = 15; // L2 @ 15%
-        payoutLevel = 2;
-      } else if (unlockedLevels === 1) {
-        ratePercent = 25; // L1 @ 25%
-        payoutLevel = 1;
-      } else {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} invalid unlockedLevels (${unlockedLevels})`);
-        continue;
-      }
-      
-      if (!ratePercent || ratePercent <= 0) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} invalid rate for L${payoutLevel}`);
-        continue;
-      }
-
-      const commissionAmount = Number(((baseAmount * ratePercent) / 100).toFixed(4));
-      if (commissionAmount <= 0) continue;
-
-      // Check income cap
-      if (upline.hasReachedIncomeCap && upline.hasReachedIncomeCap()) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} income cap reached`);
-        continue;
-      }
-
-      // Credit commission
-      await User.findByIdAndUpdate(ancestorId, {
-        $inc: {
-          'wallet.commission': commissionAmount,
-          totalEarned: commissionAmount
-        }
-      });
-
-      // Log commission for this specific position/level
-      await CommissionLog.create({
-        recipientId: ancestorId,
-        sourceUserId: investor._id,
-        investmentId: investment._id,
-        level: payoutLevel,
-        commissionType: 'level',
-        rate: ratePercent,
-        baseAmount,
-        commissionAmount,
-        description: `Level ${payoutLevel} commission (${ratePercent}%) from position ${networkPosition} (${investor.name}'s ${investmentType} daily earnings)`
-      });
-
-      // Transaction record
-      await Transaction.create({
-        userId: ancestorId,
-        type: 'commission',
-        amount: commissionAmount,
-        status: 'completed',
-        description: `Level ${payoutLevel} commission (${ratePercent}%) from position ${networkPosition} (${investor.name}'s ${investmentType} daily earnings)`,
-        referenceId: investment._id,
-        referenceModel: investmentType
-      });
-
-      // Notification
-      await Notification.create({
-        userId: ancestorId,
-        title: 'Commission Received',
-        message: `You earned $${commissionAmount.toFixed(2)} in Level ${payoutLevel} commission from ${investor.name}!`,
-        type: 'commission'
-      });
-
-      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | L${payoutLevel} | Rate=${ratePercent}% | Base=$${baseAmount.toFixed(4)} | Commission=$${commissionAmount.toFixed(4)} | From: ${upline.name}`);
-
-    } catch (err) {
-      console.error(`Error at position ${networkPosition}:`, err.message);
-      continue;
+    if (!upline) {
+      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | Upline not found (${ancestorId})`);
+      return;
     }
+
+    if (!upline.isActive) {
+      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | Upline ${upline.name} inactive`);
+      return;
+    }
+
+    if ((upline.totalInvested || 0) <= 0) {
+      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | Upline ${upline.name} no investment`);
+      return;
+    }
+
+    // Determine payout level and rate based on upline's unlockedLevels
+    // unlockedLevels directly indicates how many direct referrals they have
+    // 
+    // 1 Direct: L1 @ 25%
+    // 2 Directs: L2 @ 15%
+    // 3 Directs: L3 @ 10%
+    // 4-5 Directs: L4-5 @ 5%
+    // 6-10 Directs: L6-10 @ 2%
+    // 11-20 Directs: L11-20 @ 0.9%
+    // 21+ Directs: L21 @ 1%
+    
+    const unlockedLevels = upline.unlockedLevels || 0;
+    
+    if (unlockedLevels === 0) {
+      // No unlocked levels (no direct referrals), no commission
+      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} no unlocked levels`);
+      return;
+    }
+
+    // Determine rate based on unlockedLevels (direct referral count)
+    let ratePercent;
+    let payoutLevel;
+    
+    if (unlockedLevels >= 21) {
+      ratePercent = 1; // 21+ Directs → L21 @ 1%
+      payoutLevel = 21;
+    } else if (unlockedLevels >= 11) {
+      ratePercent = 0.9; // 11-20 Directs → L11-20 @ 0.9%
+      payoutLevel = unlockedLevels;
+    } else if (unlockedLevels >= 6) {
+      ratePercent = 2; // 6-10 Directs → L6-10 @ 2%
+      payoutLevel = unlockedLevels;
+    } else if (unlockedLevels >= 4) {
+      ratePercent = 5; // 4-5 Directs → L4-5 @ 5%
+      payoutLevel = unlockedLevels;
+    } else if (unlockedLevels === 3) {
+      ratePercent = 10; // 3 Directs → L3 @ 10%
+      payoutLevel = 3;
+    } else if (unlockedLevels === 2) {
+      ratePercent = 15; // 2 Directs → L2 @ 15%
+      payoutLevel = 2;
+    } else if (unlockedLevels === 1) {
+      ratePercent = 25; // 1 Direct → L1 @ 25%
+      payoutLevel = 1;
+    } else {
+      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} invalid unlockedLevels (${unlockedLevels})`);
+      return;
+    }
+    
+    if (!ratePercent || ratePercent <= 0) {
+      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} invalid rate for L${payoutLevel}`);
+      return;
+    }
+
+    const commissionAmount = Number(((baseAmount * ratePercent) / 100).toFixed(4));
+    if (commissionAmount <= 0) return;
+
+    // Check income cap
+    if (upline.hasReachedIncomeCap && upline.hasReachedIncomeCap()) {
+      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} income cap reached`);
+      return;
+    }
+
+    // Credit commission to direct referrer only
+    await User.findByIdAndUpdate(ancestorId, {
+      $inc: {
+        'wallet.commission': commissionAmount,
+        totalEarned: commissionAmount
+      }
+    });
+
+    // Log commission
+    await CommissionLog.create({
+      recipientId: ancestorId,
+      sourceUserId: investor._id,
+      investmentId: investment._id,
+      level: payoutLevel,
+      commissionType: 'level',
+      rate: ratePercent,
+      baseAmount,
+      commissionAmount,
+      description: `Direct referral commission - L${payoutLevel} (${ratePercent}%) from ${investor.name}'s $${baseAmount} investment`
+    });
+
+    // Transaction record
+    await Transaction.create({
+      userId: ancestorId,
+      type: 'commission',
+      amount: commissionAmount,
+      status: 'completed',
+      description: `Direct referral commission - L${payoutLevel} (${ratePercent}%) from ${investor.name}'s $${baseAmount} investment`,
+      referenceId: investment._id,
+      referenceModel: investmentType
+    });
+
+    // Notification
+    await Notification.create({
+      userId: ancestorId,
+      title: 'Commission Received',
+      message: `You earned $${commissionAmount.toFixed(2)} in Level ${payoutLevel} commission from direct referral ${investor.name}!`,
+      type: 'commission'
+    });
+
+    console.log(`[COMMISSION DEBUG] Direct Referral | L${payoutLevel} | Rate=${ratePercent}% | Base=$${baseAmount.toFixed(4)} | Commission=$${commissionAmount.toFixed(4)} | From: ${investor.name} → ${upline.name}`);
+
+  } catch (err) {
+    console.error(`[COMMISSION DEBUG] Error processing direct referral commission:`, err.message);
   }
 };
 
