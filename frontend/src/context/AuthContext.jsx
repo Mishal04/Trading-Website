@@ -103,6 +103,25 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminUser');
       
+      // Refresh admin user data from backend to ensure fresh state
+      authAPI.me()
+        .then((res) => {
+          const u = res.data?.data?.user || res.data?.user || res.data;
+          if (u) {
+            const fullUser = {
+              ...parsedAdminUser,
+              ...u,
+              accountType: u.accountType || parsedAdminUser.accountType || 'admin'
+            };
+            setUser(fullUser);
+            localStorage.setItem('user', JSON.stringify(fullUser));
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to refresh admin user data:', err.message);
+          // Token still valid, keep the restored user object
+        });
+      
       toast.success('Exited impersonation - admin session restored');
     } else {
       // Fallback: just logout

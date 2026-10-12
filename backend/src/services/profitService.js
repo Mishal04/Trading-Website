@@ -359,6 +359,36 @@ const calculateDailyProfits = async () => {
           type: 'profit'
         });
 
+        // ── CREDIT OWN INVESTMENT COMMISSION ─────────────────────────────────────
+        // User earns 1% commission on their own investment amount (daily)
+        // Example: $500 investment × 1% = $5/day
+        const ownInvestmentCommission = Number((investment.amount * 0.01).toFixed(4));
+        if (ownInvestmentCommission > 0) {
+          const canEarn = await incomeService.canEarnMore(investor);
+          if (canEarn) {
+            await User.findByIdAndUpdate(investor._id, {
+              $inc: {
+                'wallet.commission': ownInvestmentCommission,
+                totalEarned: ownInvestmentCommission
+              }
+            });
+
+            await CommissionLog.create({
+              recipientId: investor._id,
+              sourceUserId: investor._id,
+              investmentId: investment._id,
+              level: 0,
+              commissionType: 'own_investment',
+              rate: 1,
+              baseAmount: investment.amount,
+              commissionAmount: ownInvestmentCommission,
+              description: `Own investment commission (1% of $${investment.amount}) = $${ownInvestmentCommission.toFixed(2)}`
+            });
+
+            console.log(`[OWN INVESTMENT] ${investor.name} earns $${ownInvestmentCommission.toFixed(2)}/day (1% of $${investment.amount})`);
+          }
+        }
+
         // ── DISTRIBUTE DAILY COMMISSIONS TO DIRECT REFERRER ────────────────────
         // Pay daily commission based on the investor's investment
         // Commission goes to direct referrer (L1) only, at their commission level rate

@@ -269,6 +269,19 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
+  // Validate critical environment variables
+  const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+  const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  
+  if (missingEnvVars.length > 0) {
+    console.error('\n❌ CRITICAL: Missing required environment variables:');
+    missingEnvVars.forEach(varName => {
+      console.error(`   - ${varName}`);
+    });
+    console.error('\nPlease add these to your .env file\n');
+    process.exit(1);
+  }
+
   await connectDB();
   const { initCronJobs } = require('./config/cronJobs');
   console.log('\n🚀 Initializing cron jobs...');

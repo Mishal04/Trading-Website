@@ -38,18 +38,20 @@ module.exports = {
   ],
 
   // 21‑level income distribution (total 80.00%)
+  // Index matches Level: LEVEL_RATES[1] = L1, LEVEL_RATES[10] = L10, etc.
   LEVEL_RATES: [
-    25,   // L1
-    15,   // L2
-    10,   // L3
-    5,    // L4
-    5,    // L5
-    // L6–L10 (2% each)
+    0,    // Index 0 = Unused (no L0)
+    25,   // Index 1 = L1
+    15,   // Index 2 = L2
+    10,   // Index 3 = L3
+    5,    // Index 4 = L4
+    5,    // Index 5 = L5
+    // Index 6-10 = L6-L10 (2% each)
     2, 2, 2, 2, 2,
-    // L11–L20 (0.9% each)
+    // Index 11-20 = L11-L20 (0.9% each)
     0.9, 0.9, 0.9, 0.9, 0.9,
     0.9, 0.9, 0.9, 0.9, 0.9,
-    // L21
+    // Index 21 = L21
     1
   ],
 

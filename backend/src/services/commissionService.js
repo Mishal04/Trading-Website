@@ -143,54 +143,35 @@ const distributeLevelCommissionsWithChecks = async (investment, baseAmount, inve
       return;
     }
 
-    // Determine payout level and rate based on upline's unlockedLevels
-    // unlockedLevels directly indicates how many direct referrals they have
+    // Determine payout level and rate based on upline's LOWEST UNLOCKED LEVEL
+    // The user earns commission at their lowest unlocked level, not at position 1
     // 
-    // 1 Direct: L1 @ 25%
-    // 2 Directs: L2 @ 15%
-    // 3 Directs: L3 @ 10%
-    // 4-5 Directs: L4-5 @ 5%
-    // 6-10 Directs: L6-10 @ 2%
-    // 11-20 Directs: L11-20 @ 0.9%
-    // 21+ Directs: L21 @ 1%
+    // Example:
+    // 2 directs → L18 (0.9%) ← lowest unlocked level
+    // 3 directs → L16 (0.9%)
+    // 10+ directs → L1 (25%) ← all levels unlocked
     
-    const unlockedLevels = upline.unlockedLevels || 0;
+    const directCount = upline.directCount || 0;
     
-    if (unlockedLevels === 0) {
-      // No unlocked levels (no direct referrals), no commission
-      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} no unlocked levels`);
+    if (directCount === 0) {
+      // No direct referrals, no commission
+      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} no direct referrals`);
       return;
     }
 
-    // Determine rate based on unlockedLevels (direct referral count)
-    let ratePercent;
-    let payoutLevel;
+    // Get the lowest unlocked level for this user
+    const lowestUnlockedLevel = constants.getCurrentCommissionLevel(directCount);
     
-    if (unlockedLevels >= 21) {
-      ratePercent = 1; // 21+ Directs → L21 @ 1%
-      payoutLevel = 21;
-    } else if (unlockedLevels >= 11) {
-      ratePercent = 0.9; // 11-20 Directs → L11-20 @ 0.9%
-      payoutLevel = unlockedLevels;
-    } else if (unlockedLevels >= 6) {
-      ratePercent = 2; // 6-10 Directs → L6-10 @ 2%
-      payoutLevel = unlockedLevels;
-    } else if (unlockedLevels >= 4) {
-      ratePercent = 5; // 4-5 Directs → L4-5 @ 5%
-      payoutLevel = unlockedLevels;
-    } else if (unlockedLevels === 3) {
-      ratePercent = 10; // 3 Directs → L3 @ 10%
-      payoutLevel = 3;
-    } else if (unlockedLevels === 2) {
-      ratePercent = 15; // 2 Directs → L2 @ 15%
-      payoutLevel = 2;
-    } else if (unlockedLevels === 1) {
-      ratePercent = 25; // 1 Direct → L1 @ 25%
-      payoutLevel = 1;
-    } else {
-      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} invalid unlockedLevels (${unlockedLevels})`);
+    if (!lowestUnlockedLevel || lowestUnlockedLevel < 1 || lowestUnlockedLevel > 21) {
+      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} invalid level (${lowestUnlockedLevel})`);
       return;
     }
+
+    // Get the rate for this level from LEVEL_RATES
+    // LEVEL_RATES is 0-indexed: LEVEL_RATES[0] = L1, LEVEL_RATES[20] = L21
+    const rateIndex = lowestUnlockedLevel - 1;
+    const ratePercent = LEVEL_RATES[rateIndex];
+    const payoutLevel = lowestUnlockedLevel;
     
     if (!ratePercent || ratePercent <= 0) {
       console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} invalid rate for L${payoutLevel}`);
