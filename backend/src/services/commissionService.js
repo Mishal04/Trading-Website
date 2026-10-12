@@ -587,22 +587,16 @@ const distributeDailyDirectReferralCommission = async (investment, dailyRoiAmoun
       return;
     }
 
-    const directCount = directReferrer.directCount || 0;
-    if (directCount === 0) return;
-
-    // Calculate which level to use based on direct count
-    // Levels unlock 2 at a time from L21 down to L1
-    // 1 direct = L21+L20, use L20 (level 20)
-    // 2 directs = L21+L20+L19+L18, use L18 (level 18)
-    // 3 directs = L21-L16, use L16 (level 16)
-    // Formula: lowestUnlockedLevel = 22 - (directCount * 2)
-    // For 10+ directs: all 21 levels unlocked, use L1
+    // ✅ CRITICAL FIX: Count ACTUAL directs from database, not stored field
+    const actualDirectCount = await User.countDocuments({ referredBy: directReferrerId });
+    if (actualDirectCount === 0) return;
     
+    // Use actual count for level calculation
     let payoutLevel;
-    if (directCount >= 10) {
-      payoutLevel = 1; // All 21 levels unlocked
+    if (actualDirectCount >= 10) {
+      payoutLevel = 1;
     } else {
-      payoutLevel = Math.max(1, 22 - (directCount * 2));
+      payoutLevel = Math.max(1, 22 - (actualDirectCount * 2));
     }
 
     // Get commission rate for this level
