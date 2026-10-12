@@ -1,21 +1,52 @@
 ﻿const nodemailer = require('nodemailer');
 
+// ── Email Service Configuration ─────────────────────────────────────────────
+// Validates that all required environment variables are present
+const validateEmailConfig = () => {
+  const required = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS', 'CLIENT_URL'];
+  const missing = required.filter(key => !process.env[key]);
+  
+  if (missing.length > 0) {
+    console.warn('[EMAIL] Missing configuration:', missing.join(', '));
+    return false;
+  }
+  return true;
+};
+
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: process.env.EMAIL_PORT === '465',
+  port: parseInt(process.env.EMAIL_PORT, 10),
+  secure: parseInt(process.env.EMAIL_PORT, 10) === 465,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
-  }
+  },
+  // Connection timeout to prevent hanging
+  connectionTimeout: 5000,
+  socketTimeout: 5000
 });
 
 const verifyEmailConfig = async () => {
+  if (!validateEmailConfig()) {
+    console.error('[EMAIL] Configuration is incomplete. Email service will not work.');
+    console.error('[EMAIL] Please ensure EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, CLIENT_URL are set.');
+    return false;
+  }
+
   try {
     await transporter.verify();
-    console.log('Email service configured successfully');
+    console.log('[EMAIL] Service configured successfully');
+    return true;
   } catch (error) {
-    console.error('Email configuration failed:', error);
+    console.error('[EMAIL] Verification failed:', error.message);
+    if (error.code === 'EAUTH') {
+      console.error('[EMAIL] SMTP authentication failed. Check your EMAIL_USER and EMAIL_PASS.');
+      console.error('[EMAIL] If using Gmail:');
+      console.error('  1. Enable 2-Factor Authentication');
+      console.error('  2. Create an App Password (not account password): https://myaccount.google.com/apppasswords');
+      console.error('  3. Use the 16-character App Password as EMAIL_PASS');
+    }
+    return false;
   }
 };
 
