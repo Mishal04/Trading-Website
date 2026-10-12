@@ -563,6 +563,16 @@ const distributeLegCommissions = async () => {
  * DAILY COMMISSION: Pay direct referrer daily based on investor's daily ROI
  * Called every day as part of daily profit calculation
  */
+
+
+/**
+ * DAILY COMMISSION - CORRECT LOGIC
+ * Levels unlock from L21 DOWN to L1 in pairs (2 levels per direct)
+ * 1 Direct = L21+L20, use L20 (1%)
+ * 2 Directs = L21+L20+L19+L18, use L18 (0.9%)
+ * 3 Directs = L21-L16, use L16 (0.9%)
+ * ... and so on
+ */
 const distributeDailyDirectReferralCommission = async (investment, dailyRoiAmount, investor, investmentType = 'InvestorInvestment') => {
   if (!investor.ancestorPath || investor.ancestorPath.length === 0) {
     return;
@@ -577,38 +587,39 @@ const distributeDailyDirectReferralCommission = async (investment, dailyRoiAmoun
       return;
     }
 
-    const unlockedLevels = directReferrer.unlockedLevels || 0;
-    if (unlockedLevels === 0) return;
+    const directCount = directReferrer.directCount || 0;
+    if (directCount === 0) return;
 
+    // Calculate which level to use based on direct count
+    // Levels unlock 2 at a time from L21 down to L1
+    // 1 direct unlocks L21, L20 -> use L20 (position 20)
+    // 2 directs unlock L21, L20, L19, L18 -> use L18 (position 18)
+    // etc.
+    const lowestUnlockedLevel = 21 - (directCount * 2) + 2; // +2 because we use the LOWEST of each pair
+    const payoutLevel = Math.max(1, Math.min(21, lowestUnlockedLevel));
+
+    // Get commission rate for this level
     let commissionRate;
-    let payoutLevel;
-    
-    if (unlockedLevels >= 21) {
-      commissionRate = 1;
-      payoutLevel = 21;
-    } else if (unlockedLevels >= 11) {
-      commissionRate = 0.9;
-      payoutLevel = unlockedLevels;
-    } else if (unlockedLevels >= 6) {
-      commissionRate = 2;
-      payoutLevel = unlockedLevels;
-    } else if (unlockedLevels >= 4) {
-      commissionRate = 5;
-      payoutLevel = unlockedLevels;
-    } else if (unlockedLevels === 3) {
-      commissionRate = 10;
-      payoutLevel = 3;
-    } else if (unlockedLevels === 2) {
-      commissionRate = 15;
-      payoutLevel = 2;
-    } else if (unlockedLevels === 1) {
-      commissionRate = 25;
-      payoutLevel = 1;
+    if (payoutLevel === 1) {
+      commissionRate = 25; // L1
+    } else if (payoutLevel === 2) {
+      commissionRate = 15; // L2
+    } else if (payoutLevel === 3) {
+      commissionRate = 10; // L3
+    } else if (payoutLevel >= 4 && payoutLevel <= 5) {
+      commissionRate = 5; // L4-5
+    } else if (payoutLevel >= 6 && payoutLevel <= 10) {
+      commissionRate = 2; // L6-10
+    } else if (payoutLevel >= 11 && payoutLevel <= 20) {
+      commissionRate = 0.9; // L11-20
+    } else if (payoutLevel === 21) {
+      commissionRate = 1; // L21
     } else {
       return;
     }
 
-    const dailyCommission = Number(((dailyRoiAmount * commissionRate) / 100).toFixed(4));
+    // Calculate daily commission = commission rate × investment amount
+    const dailyCommission = Number(((investment.amount * commissionRate) / 100).toFixed(4));
     if (dailyCommission <= 0) return;
 
     if (directReferrer.hasReachedIncomeCap && directReferrer.hasReachedIncomeCap()) {
@@ -627,7 +638,7 @@ const distributeDailyDirectReferralCommission = async (investment, dailyRoiAmoun
       type: 'commission',
       amount: dailyCommission,
       status: 'completed',
-      description: `Daily commission - L${payoutLevel} (${commissionRate}%) from direct referral ${investor.name}`,
+      description: `Daily commission - L${payoutLevel} (${commissionRate}%) from direct referral ${investor.name}'s $${investment.amount} investment`,
       referenceId: investment._id,
       referenceModel: investmentType
     });
