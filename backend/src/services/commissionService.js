@@ -517,7 +517,7 @@ const distributeLegCommissions = async () => {
         // Log commission
         await CommissionLog.create({
           recipientId: user._id,
-          commissionType: 'leg',
+          commissionType: 'level',  // Changed from 'leg' to 'level'
           rate: rate,
           baseAmount: totalLegVolume,
           commissionAmount,
