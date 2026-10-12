@@ -119,7 +119,7 @@ const passwordLimiter = rateLimit({
 // General API limiter — prevents DoS across all other endpoints
 const generalLimiter = rateLimit({
   windowMs:         15 * 60 * 1000,
-  max:              200,
+  max:              1000,              // Increased from 200 to 1000 requests per 15 min
   standardHeaders:  true,
   legacyHeaders:    false,
   message: { success: false, message: 'Too many requests, please slow down.' },
