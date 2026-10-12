@@ -359,26 +359,20 @@ const calculateDailyProfits = async () => {
           type: 'profit'
         });
 
-        // ── DISTRIBUTE 21-LEVEL COMMISSIONS via unified service ────────────────────
-        // IMPORTANT: Commissions are based on INVESTMENT AMOUNT, not daily ROI
-        // Applies LEVEL_RATES as percentage of investment amount
-        // Respects income cap rules and level unlock requirements
-        // SKIP LEVEL COMMISSIONS ON SATURDAY/SUNDAY (but ROI credits daily)
-        const dubaiTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
-        const isDubaiWeekend = dubaiTime.getDay() === 0 || dubaiTime.getDay() === 6;
-        
-        if (!isDubaiWeekend && investor.ancestorPath && investor.ancestorPath.length > 0) {
+        // ── DISTRIBUTE DAILY COMMISSIONS TO DIRECT REFERRER ────────────────────
+        // Pay daily commission based on the investor's investment
+        // Commission goes to direct referrer (L1) only, at their commission level rate
+        if (investor.ancestorPath && investor.ancestorPath.length > 0) {
           try {
-            // Call unified commission distribution service
-            // Base amount is INVESTMENT amount, not daily ROI
-            await commissionService.distributeLevelCommissionsWithChecks(
+            // Call daily commission distribution (direct referral only)
+            await commissionService.distributeDailyDirectReferralCommission(
               investment,
-              investment.amount,  // Use investment amount, not dailyRoiAmount
+              dailyRoiAmount,  // Base it on daily earnings, not total investment
               investor,
               'InvestorInvestment'
             );
           } catch (comErr) {
-            console.error(`Error distributing 21-level commissions for InvestorInvestment ${investment._id}:`, comErr);
+            console.error(`Error distributing daily commissions for InvestorInvestment ${investment._id}:`, comErr);
           }
         }
 

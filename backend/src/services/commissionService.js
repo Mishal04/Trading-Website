@@ -558,6 +558,93 @@ const distributeLegCommissions = async () => {
   }
 };
 
+
+/**
+ * DAILY COMMISSION: Pay direct referrer daily based on investor's daily ROI
+ * Called every day as part of daily profit calculation
+ */
+const distributeDailyDirectReferralCommission = async (investment, dailyRoiAmount, investor, investmentType = 'InvestorInvestment') => {
+  if (!investor.ancestorPath || investor.ancestorPath.length === 0) {
+    return;
+  }
+
+  const directReferrerId = investor.ancestorPath[0];
+  
+  try {
+    const directReferrer = await User.findById(directReferrerId).select('name email isActive totalInvested unlockedLevels role totalEarned');
+    
+    if (!directReferrer || !directReferrer.isActive || (directReferrer.totalInvested || 0) <= 0) {
+      return;
+    }
+
+    const unlockedLevels = directReferrer.unlockedLevels || 0;
+    if (unlockedLevels === 0) return;
+
+    let commissionRate;
+    let payoutLevel;
+    
+    if (unlockedLevels >= 21) {
+      commissionRate = 1;
+      payoutLevel = 21;
+    } else if (unlockedLevels >= 11) {
+      commissionRate = 0.9;
+      payoutLevel = unlockedLevels;
+    } else if (unlockedLevels >= 6) {
+      commissionRate = 2;
+      payoutLevel = unlockedLevels;
+    } else if (unlockedLevels >= 4) {
+      commissionRate = 5;
+      payoutLevel = unlockedLevels;
+    } else if (unlockedLevels === 3) {
+      commissionRate = 10;
+      payoutLevel = 3;
+    } else if (unlockedLevels === 2) {
+      commissionRate = 15;
+      payoutLevel = 2;
+    } else if (unlockedLevels === 1) {
+      commissionRate = 25;
+      payoutLevel = 1;
+    } else {
+      return;
+    }
+
+    const dailyCommission = Number(((dailyRoiAmount * commissionRate) / 100).toFixed(4));
+    if (dailyCommission <= 0) return;
+
+    if (directReferrer.hasReachedIncomeCap && directReferrer.hasReachedIncomeCap()) {
+      return;
+    }
+
+    await User.findByIdAndUpdate(directReferrerId, {
+      $inc: {
+        'wallet.commission': dailyCommission,
+        totalEarned: dailyCommission
+      }
+    });
+
+    await Transaction.create({
+      userId: directReferrerId,
+      type: 'commission',
+      amount: dailyCommission,
+      status: 'completed',
+      description: `Daily commission - L${payoutLevel} (${commissionRate}%) from direct referral ${investor.name}`,
+      referenceId: investment._id,
+      referenceModel: investmentType
+    });
+
+    await Notification.create({
+      userId: directReferrerId,
+      title: 'Daily Commission Received',
+      message: `You earned $${dailyCommission.toFixed(2)} commission from direct referral ${investor.name}!`,
+      type: 'commission'
+    });
+
+    console.log(`[DAILY COMMISSION] L${payoutLevel} (${commissionRate}%) | $${dailyCommission.toFixed(4)} | From: ${investor.name} ? ${directReferrer.name}`);
+
+  } catch (err) {
+    console.error(`[DAILY COMMISSION] Error:`, err.message);
+  }
+};
 module.exports = {
   LEVEL_RATES,
   LEADERSHIP_TIERS,
@@ -567,6 +654,7 @@ module.exports = {
   isLevelUnlockedForUpline,
   distributeLevelCommissions,
   distributeLevelCommissionsWithChecks,
+  distributeDailyDirectReferralCommission,
   distributeLegCommissions,
   distributeLeadershipSalary,
   distributePerformanceReward
