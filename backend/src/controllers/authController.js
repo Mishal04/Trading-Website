@@ -250,15 +250,33 @@ const login = async (req, res) => {
       });
     }
 
-    // Fetch user with password field included
+    // Fetch user with password field included - WITH RETRY LOGIC
     let user;
-    try {
-      user = await User.findOne({ email }).select('+password');
-    } catch (dbErr) {
-      console.error('[LOGIN] Database error during user lookup:', dbErr.message);
-      return res.status(500).json({ 
+    let retries = 3;
+    let lastDbErr;
+    
+    while (retries > 0) {
+      try {
+        user = await User.findOne({ email }).select('+password');
+        break; // Success, exit retry loop
+      } catch (dbErr) {
+        lastDbErr = dbErr;
+        retries--;
+        console.warn(`[LOGIN] Database error for ${email}, retries left: ${retries}`, dbErr.message);
+        
+        // Wait 300ms before retrying
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+    }
+    
+    if (retries === 0) {
+      console.error('[LOGIN] Database connection failed after 3 retries for:', email);
+      console.error('[LOGIN] Last error:', lastDbErr.message);
+      return res.status(503).json({ 
         success: false, 
-        message: 'Server error during login. Please try again.' 
+        message: 'Database unavailable - please try again in a moment' 
       });
     }
 
@@ -316,10 +334,8 @@ const login = async (req, res) => {
         console.log(`[LOGIN] Generated referral code for legacy user ${email}: ${user.referralCode}`);
       } catch (refErr) {
         console.error(`[LOGIN] Failed to generate referral code for ${email}:`, refErr.message);
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Account initialization error - please try again' 
-        });
+        // Don't fail login - just assign null and proceed
+        user.referralCode = null;
       }
     }
 
@@ -327,33 +343,44 @@ const login = async (req, res) => {
     user.lastLogin = Date.now();
     
     // Save user with retry logic for race conditions
-    try {
-      await user.save();
-    } catch (saveErr) {
-      // Handle duplicate key error from referral code race condition
-      if (saveErr.code === 11000 && saveErr.keyPattern && saveErr.keyPattern.referralCode) {
-        console.warn(`[LOGIN] Race condition detected for referralCode during login of ${email} - retrying`);
+    let saveRetries = 2;
+    let lastSaveErr;
+    
+    while (saveRetries > 0) {
+      try {
+        await user.save();
+        break; // Success
+      } catch (saveErr) {
+        lastSaveErr = saveErr;
+        saveRetries--;
         
-        // Clear the referral code and regenerate
-        user.referralCode = null;
-        try {
-          user.referralCode = await generateUniqueReferralCode();
-          await user.save();
-          console.log(`[LOGIN] Successfully recovered from race condition for ${email}`);
-        } catch (retryErr) {
-          console.error(`[LOGIN] Retry failed after race condition for ${email}:`, retryErr.message);
-          return res.status(500).json({ 
-            success: false, 
-            message: 'Account error - please try again' 
-          });
+        // Handle duplicate key error from referral code race condition
+        if (saveErr.code === 11000 && saveErr.keyPattern && saveErr.keyPattern.referralCode) {
+          console.warn(`[LOGIN] Race condition detected for referralCode during login of ${email}`);
+          
+          if (saveRetries > 0) {
+            // Clear and regenerate
+            user.referralCode = null;
+            try {
+              user.referralCode = await generateUniqueReferralCode();
+            } catch (refErr) {
+              user.referralCode = null;
+            }
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        } else {
+          console.error(`[LOGIN] Save error for ${email}:`, saveErr.message, saveErr.code);
+          
+          if (saveRetries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
         }
-      } else {
-        console.error(`[LOGIN] Failed to save user ${email}:`, saveErr.message, saveErr.code);
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Account save error - please try again' 
-        });
       }
+    }
+    
+    if (saveRetries === 0) {
+      console.warn('[LOGIN] Failed to save user after retries, but proceeding with login anyway:', email);
+      // Allow login to proceed - user data save is not critical for login
     }
 
     // Validate JWT_SECRET configuration
@@ -399,10 +426,14 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error('[LOGIN] Unhandled error:', error.message);
+    console.error('[LOGIN] Error type:', error.name);
+    console.error('[LOGIN] Error code:', error.code);
     console.error('[LOGIN] Stack trace:', error.stack);
+    
+    // Return generic message to user but log full details for debugging
     return res.status(500).json({ 
       success: false, 
-      message: 'Server error during login - please try again later' 
+      message: 'Account server error - please try again later or contact support' 
     });
   }
 };
