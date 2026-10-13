@@ -103,11 +103,49 @@ const register = async (req, res) => {
         const referrer = await User.findOne({ referralCode });
         if (referrer) {
           user.referredBy = referrer._id;
-          // FIX: Safe handling of ancestorPath - ensure it's always an array before spread
-          const referrerAncestorPath = Array.isArray(referrer.ancestorPath) ? referrer.ancestorPath : [];
-          user.ancestorPath = [referrer._id, ...referrerAncestorPath].slice(0, 25);
           
-          // Increment directCount and recompute unlocked levels
+          // ═════════════════════════════════════════════════════════════════════════════
+          // CRITICAL FIX: Build ancestorPath safely
+          // ═════════════════════════════════════════════════════════════════════════════
+          
+          // RULE 1: Always include the direct referrer as first element
+          const ancestorArray = [referrer._id];
+          
+          // RULE 2: If referrer has ancestorPath, append it
+          if (referrer.ancestorPath && Array.isArray(referrer.ancestorPath) && referrer.ancestorPath.length > 0) {
+            ancestorArray.push(...referrer.ancestorPath);
+          } else if (referrer.referredBy) {
+            // FALLBACK: If referrer has no ancestorPath but HAS a referrer, fetch from DB
+            console.warn(`[REGISTRATION] Referrer ${referrer.email} has no ancestorPath, fetching...`);
+            const referrerReferrer = await User.findById(referrer.referredBy).select('ancestorPath');
+            if (referrerReferrer && Array.isArray(referrerReferrer.ancestorPath)) {
+              ancestorArray.push(...referrerReferrer.ancestorPath);
+            }
+          }
+          
+          // RULE 3: Trim to max 25 levels
+          user.ancestorPath = ancestorArray.slice(0, 25);
+          
+          // ═════════════════════════════════════════════════════════════════════════════
+          // VALIDATION: Ensure integrity before saving
+          // ═════════════════════════════════════════════════════════════════════════════
+          
+          if (!user.ancestorPath || user.ancestorPath.length === 0) {
+            console.error(`[REGISTRATION] CRITICAL: ancestorPath is EMPTY after building for ${email}`);
+            throw new Error('ancestorPath construction resulted in empty array');
+          }
+          
+          if (user.ancestorPath[0].toString() !== referrer._id.toString()) {
+            console.error(`[REGISTRATION] CRITICAL: ancestorPath[0]=${user.ancestorPath[0]} does NOT match referrer=${referrer._id}`);
+            throw new Error('ancestorPath[0] integrity check failed');
+          }
+          
+          console.log(`[REGISTRATION] ancestorPath built: ${user.ancestorPath.length} levels | ${user.ancestorPath.map(id => id.toString()).join(' → ')}`);
+          
+          // ═════════════════════════════════════════════════════════════════════════════
+          // Update referrer's directCount
+          // ═════════════════════════════════════════════════════════════════════════════
+          
           const referrerDoc = await User.findById(referrer._id);
           if (referrerDoc) {
             referrerDoc.directCount = (referrerDoc.directCount || 0) + 1;

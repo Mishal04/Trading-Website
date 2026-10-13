@@ -56,18 +56,18 @@ module.exports = {
   ],
 
   // Level unlocking based on direct referral count
-  // Levels unlock from L21 downward (highest earning potential last at L1)
+  // Levels unlock from L1 upward (direct commissions first, then deeper levels)
   LEVEL_UNLOCK_RULES: {
-    1: 2,    // 1 direct: 2 levels (L21, L20)
-    2: 4,    // 2 directs: 4 levels (L21, L20, L19, L18)
-    3: 6,    // 3 directs: 6 levels (L21-L16)
-    4: 8,    // 4 directs: 8 levels (L21-L14)
-    5: 10,   // 5 directs: 10 levels (L21-L12)
-    6: 12,   // 6 directs: 12 levels (L21-L10)
-    7: 14,   // 7 directs: 14 levels (L21-L8)
-    8: 16,   // 8 directs: 16 levels (L21-L6)
-    9: 18,   // 9 directs: 18 levels (L21-L4)
-    10: 21   // 10+ directs: all 21 levels (L21-L1)
+    1: 2,    // 1 direct: 2 levels (L1, L2)
+    2: 4,    // 2 directs: 4 levels (L1-L4)
+    3: 6,    // 3 directs: 6 levels (L1-L6)
+    4: 8,    // 4 directs: 8 levels (L1-L8)
+    5: 10,   // 5 directs: 10 levels (L1-L10)
+    6: 12,   // 6 directs: 12 levels (L1-L12)
+    7: 14,   // 7 directs: 14 levels (L1-L14)
+    8: 16,   // 8 directs: 16 levels (L1-L16)
+    9: 18,   // 9 directs: 18 levels (L1-L18)
+    10: 21   // 10+ directs: all 21 levels (L1-L21)
   },
 
   // Income caps (multiples of investment)
@@ -154,12 +154,12 @@ module.exports = {
 
   /**
    * Check if a specific level is unlocked for a given direct count.
-   * Uses REVERSE unlock order: L21 unlocks first, then L20, L19, ... L1 last.
+   * Uses forward unlock order: L1 unlocks first, then L2, L3, ... L21 last.
    * 
    * Example:
-   *   directCount=1 → 2 levels unlocked → L21, L20 are unlocked
-   *   directCount=2 → 4 levels unlocked → L21, L20, L19, L18 are unlocked
-   *   directCount=8 → 16 levels unlocked → L21-L6 are unlocked
+   *   directCount=1 → 2 levels unlocked → L1, L2 are unlocked
+   *   directCount=2 → 4 levels unlocked → L1, L2, L3, L4 are unlocked
+   *   directCount=8 → 16 levels unlocked → L1-L16 are unlocked
    *   directCount=10 → 21 levels unlocked → all L1-L21 are unlocked
    * 
    * @param {number} level - Network level (1-21)
@@ -172,53 +172,51 @@ module.exports = {
     const unlockedCount = this.getUnlockedLevelCount(directCount);
     if (unlockedCount <= 0) return false;
     
-    // Unlock from L21 downward: L21 is index 0, L20 is index 1, ..., L1 is index 20
-    // For a level to be unlocked, its reverse index must be within the unlocked count
-    const reverseIndex = 21 - level;
-    return reverseIndex < unlockedCount;
+    // Unlock from L1 upward: L1 is level 1, L2 is level 2, etc.
+    // For a level to be unlocked, it must be <= unlockedCount
+    return level <= unlockedCount;
   },
 
   /**
    * Get array of actual level numbers that are unlocked for a given direct count.
-   * Returns in order: [L21, L20, L19, ...] down to the lowest unlocked level.
+   * Returns in order: [L1, L2, L3, ...] up to the highest unlocked level.
    * 
    * Example:
-   *   directCount=1 → [21, 20]
-   *   directCount=2 → [21, 20, 19, 18]
-   *   directCount=8 → [21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6]
-   *   directCount=10 → [21, 20, 19, ..., 2, 1]
+   *   directCount=1 → [1, 2]
+   *   directCount=2 → [1, 2, 3, 4]
+   *   directCount=8 → [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+   *   directCount=10 → [1, 2, 3, ..., 20, 21]
    * 
    * @param {number} directCount
-   * @returns {number[]} Array of unlocked level numbers in descending order
+   * @returns {number[]} Array of unlocked level numbers in ascending order
    */
   getUnlockedLevelNumbers(directCount) {
     const count = this.getUnlockedLevelCount(directCount);
     if (count <= 0) return [];
-    // Return levels from 21 down to (21 - count + 1)
-    // Example: count=2 → [21, 20]
-    // Example: count=4 → [21, 20, 19, 18]
-    return Array.from({ length: count }, (_, index) => 21 - index);
+    // Return levels from 1 up to count
+    // Example: count=2 → [1, 2]
+    // Example: count=4 → [1, 2, 3, 4]
+    return Array.from({ length: count }, (_, index) => index + 1);
   },
 
   /**
-   * Get the LOWEST level unlocked (minimum earning potential) for a user.
+   * Get the HIGHEST level unlocked (maximum earning potential) for a user.
    * 
-   * With levels unlocking from L21 → L1, this returns the "frontier" level being approached.
-   * It's used for display purposes (e.g., "Your current level is L18").
+   * With levels unlocking from L1 → L21, this returns the "frontier" level reached.
+   * It's used for display purposes (e.g., "Your current level is L10").
    * 
    * For commissions, use getUnlockedLevelNumbers() instead to get ALL unlocked levels.
    * 
    * Examples:
-   *   directCount=1 → L20 (can earn from L21, L20)
-   *   directCount=2 → L18 (can earn from L21, L20, L19, L18)
-   *   directCount=8 → L6 (can earn from L21, L20, ..., L6)
-   *   directCount=10 → L1 (can earn from all L21-L1)
+   *   directCount=1 → L2 (can earn from L1, L2)
+   *   directCount=2 → L4 (can earn from L1, L2, L3, L4)
+   *   directCount=8 → L16 (can earn from L1, L2, ..., L16)
+   *   directCount=10 → L21 (can earn from all L1-L21)
    * 
-   * Formula: lowestLevel = 21 - (unlockedCount - 1)
-   * OR: lowestLevel = 22 - unlockedCount
+   * Formula: highestLevel = unlockedCount
    * 
    * @param {number} directCount
-   * @returns {number|null} Lowest unlocked level (1-21) or null if no directs
+   * @returns {number|null} Highest unlocked level (1-21) or null if no directs
    */
   getCurrentCommissionLevel(directCount) {
     if (!directCount || directCount <= 0) {
@@ -228,10 +226,10 @@ module.exports = {
     const unlockedCount = this.getUnlockedLevelCount(directCount);
     if (unlockedCount <= 0) return null;
     
-    // Lowest level = 22 - unlockedCount
-    // Example: unlockedCount=2 → 22-2=20 (L21, L20)
-    // Example: unlockedCount=4 → 22-4=18 (L21, L20, L19, L18)
-    return 22 - unlockedCount;
+    // Highest level = unlockedCount
+    // Example: unlockedCount=2 → L2 (L1, L2)
+    // Example: unlockedCount=4 → L4 (L1, L2, L3, L4)
+    return unlockedCount;
   }
 
 };

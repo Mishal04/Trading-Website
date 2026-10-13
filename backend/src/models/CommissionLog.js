@@ -23,7 +23,7 @@ const commissionLogSchema = new mongoose.Schema({
   },
   commissionType: {
     type: String,
-    enum: ['level', 'leadership_salary', 'performance_reward', 'manual_adjustment'],
+    enum: ['level', 'profit_based_level', 'leadership_salary', 'performance_reward', 'manual_adjustment'],
     required: true,
     index: true
   },

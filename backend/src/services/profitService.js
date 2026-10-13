@@ -4,7 +4,7 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
 const CronLock = require('../models/CronLock');
-const commissionService = require('./commissionService');
+const profitBasedCommissionService = require('./profitBasedCommissionService');
 const { getInvestmentPhase, getDailyRateForPhase, getMonthlyRatePhase3 } = require('../../config/investorConstants');
 
 /**
@@ -171,92 +171,13 @@ const calculateDailyProfits = async () => {
   let totalProfitDistributed = 0;
 
   try {
-    // ── PASS 1: Legacy User Portal Investment records (old Tier 1-4 system) ────
-    // MUTUALLY EXCLUSIVE: investorId != null, userId not checked
-    // These investments credit to wallet.profit, distribute 21-level commissions
-    const investments = await Investment.find({
-      isActive: true,
-      status: 'active',
-      lastProfitDate: { $lt: startOfToday }
-    }).populate('userId');
+    // ── ONLY SYSTEM: Profit-based 21-level commissions for InvestorInvestment records ───
+    // Commission = Daily ROI × Level Rate (based on referral depth)
+    // Levels unlock L1→L21 based on direct referral count
 
-    for (const investment of investments) {
-      try {
-        const investor = investment.userId;
-        if (!investor || !investor.isActive) continue;
-
-        const dailyProfitAmount = Number(((investment.amount * investment.dailyRate) / 100).toFixed(4));
-        if (dailyProfitAmount <= 0) continue;
-
-        // Atomic document-level guard: update lastProfitDate only if it still hasn't been updated today
-        const updatedInvestment = await Investment.findOneAndUpdate(
-          {
-            _id: investment._id,
-            isActive: true,
-            status: 'active',
-            lastProfitDate: { $lt: startOfToday }
-          },
-          {
-            $set: { lastProfitDate: now },
-            $inc: { totalProfitEarned: dailyProfitAmount }
-          },
-          { new: true }
-        );
-
-        if (!updatedInvestment) {
-          // Already processed concurrently
-          continue;
-        }
-
-        // Credit investor's profit wallet
-        await User.findByIdAndUpdate(investor._id, {
-          $inc: {
-            'wallet.profit': dailyProfitAmount,
-            totalProfitEarned: dailyProfitAmount
-          }
-        });
-
-        // Record profit transaction
-        await Transaction.create({
-          userId: investor._id,
-          type: 'profit',
-          amount: dailyProfitAmount,
-          status: 'completed',
-          description: `Daily profit (${investment.dailyRate}%) from package ${investment.packageName}`,
-          referenceId: investment._id,
-          referenceModel: 'Investment'
-        });
-
-        // Send profit notification
-        await Notification.create({
-          userId: investor._id,
-          title: 'Daily Profit Credited',
-          message: `You earned $${dailyProfitAmount} daily profit from your $${investment.amount} investment!`,
-          type: 'profit'
-        });
-
-        // Distribute 21-level commissions to uplines
-        // IMPORTANT: Commissions are based on INVESTMENT AMOUNT, not daily profit
-        await commissionService.distributeLevelCommissions(investment, investment.amount, investor);
-
-        processedCount++;
-        totalProfitDistributed += dailyProfitAmount;
-      } catch (err) {
-        console.error(`Error processing profit for investment ${investment._id}:`, err);
-      }
-    }
-
-    // ── PASS 2: Phase-aware Investor Plan A/B records (new unified User model) ───────
-    // MUTUALLY EXCLUSIVE: userId != null, investorId is null or not checked
-    // These investments credit to wallet.roi, NO commission distribution
-    // 
-    // PHASE LOGIC:
-    // Phase 1 (0-6mo): Use Plan A rates (1%, 1%, 1%, 1.25%)
-    // Phase 2 (6-12mo): Use Plan B rates (0.75%, 0.75%, 0.75%, 1%)
-    // Phase 3 (12+mo): Use monthly rate (8-10%) with daily equivalent
-    
+    // Fetch all active investor investments
     const investorInvestments = await InvestorInvestment.find({
-      userId: { $ne: null },  // CRITICAL: Must have userId set (Phase 2 records)
+      userId: { $ne: null },  // Must have userId set
       status: 'active',
       lastRoiDate: { $lt: startOfToday }
     }).populate('userId');
@@ -361,20 +282,29 @@ const calculateDailyProfits = async () => {
 
 
 
-        // ── DISTRIBUTE DAILY COMMISSIONS TO DIRECT REFERRER ────────────────────
-        // Pay daily commission based on the investor's investment
-        // Commission goes to direct referrer (L1) only, at their commission level rate
+        // ── DISTRIBUTE PROFIT-BASED 21-LEVEL COMMISSIONS ─────────────────────────
+        // NEW SYSTEM: Commission = daily ROI profit × level rate
+        // Distributes to all unlocked levels (L1-L21) based on referral depth
+        // Only upline with active investments receive commissions
         if (investor.ancestorPath && investor.ancestorPath.length > 0) {
           try {
-            // Call daily commission distribution (direct referral only)
-            await commissionService.distributeDailyDirectReferralCommission(
-              investment,
-              dailyRoiAmount,  // Base it on daily earnings, not total investment
-              investor,
-              'InvestorInvestment'
-            );
+            // Fetch full investor hierarchy for commission calculation
+            const investorFull = await User.findById(investor._id).populate('ancestorPath');
+            if (investorFull) {
+              const commResult = await profitBasedCommissionService.distributeProfitBasedCommissions(
+                investment,
+                dailyRoiAmount,  // Base it on daily ROI profit, not investment amount
+                investorFull
+              );
+              if (commResult.totalPaid > 0) {
+                console.log(
+                  `[PROFIT-COMMISSION] Processed ${commResult.levelsProcessed} levels | ` +
+                  `Total: $${commResult.totalPaid.toFixed(4)} | Investor: ${investor.name}`
+                );
+              }
+            }
           } catch (comErr) {
-            console.error(`Error distributing daily commissions for InvestorInvestment ${investment._id}:`, comErr);
+            console.error(`Error distributing profit-based commissions for InvestorInvestment ${investment._id}:`, comErr);
           }
         }
 
@@ -393,21 +323,7 @@ const calculateDailyProfits = async () => {
       });
     }
 
-    // ── PASS 3: Leg Commissions (once per week on Monday) ────────────────────────
-    // Distribute commission based on users' strongest downline leg
-    const dubaiTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
-    const isDubaiMonday = dubaiTime.getDay() === 1; // Monday = 1
-
-    if (isDubaiMonday) {
-      try {
-        const legCommissionAmount = await commissionService.distributeLegCommissions();
-        console.log(`[MONDAY] Leg commissions distributed: $${legCommissionAmount.toFixed(2)}`);
-      } catch (legErr) {
-        console.error('[MONDAY] Error distributing leg commissions:', legErr.message);
-      }
-    }
-
-    console.log(`--- Daily Profit Calculation Complete: Processed ${processedCount} investments, total $${totalProfitDistributed.toFixed(2)} distributed ---`);
+    console.log(`--- Daily Profit Calculation Complete: Processed ${processedCount} investments, total $${totalProfitDistributed.toFixed(2)} distributed (NEW PROFIT-BASED SYSTEM) ---`);
     return { processedCount, totalProfitDistributed };
   } catch (outerErr) {
     if (lock) {
