@@ -148,8 +148,19 @@ async function calculateProfitBasedCommissions(investor, dailyRoiProfit) {
       // ── Calculate commission for each member at this level ──────────────
       for (const member of membersAtLevel) {
         try {
+          // Get member's active investments to calculate their daily ROI
+          const memberInvs = await InvestorInvestment.find({ userId: member._id, status: 'active' }).lean();
+          let memberDailyRoi = 0;
+          memberInvs.forEach(inv => {
+            memberDailyRoi += inv.amount * inv.dailyRate;
+          });
+
+          if (memberDailyRoi <= 0) {
+            continue;  // Member has no active profit
+          }
+
           // Commission = member's daily ROI profit × level rate
-          const commissionAmount = Number(((dailyRoiProfit * ratePercent) / 100).toFixed(4));
+          const commissionAmount = Number(((memberDailyRoi * ratePercent) / 100).toFixed(4));
 
           if (commissionAmount <= 0) {
             continue;
@@ -176,9 +187,9 @@ async function calculateProfitBasedCommissions(investor, dailyRoiProfit) {
             level: level,
             commissionType: 'profit_based_level',
             rate: ratePercent,
-            baseAmount: dailyRoiProfit,
+            baseAmount: memberDailyRoi,
             commissionAmount,
-            description: `L${level} profit-based commission (${ratePercent}%) from ${member.name}'s $${dailyRoiProfit.toFixed(2)} daily ROI`
+            description: `L${level} profit-based commission (${ratePercent}%) from ${member.name}'s $${memberDailyRoi.toFixed(2)} daily ROI`
           });
 
           // ── Create audit transaction ──────────────────────────────────
@@ -187,7 +198,7 @@ async function calculateProfitBasedCommissions(investor, dailyRoiProfit) {
             type: 'commission',
             amount: commissionAmount,
             status: 'completed',
-            description: `L${level} profit-based commission (${ratePercent}%) from ${member.name}'s daily ROI`,
+            description: `L${level} profit-based commission (${ratePercent}%) from ${member.name}'s $${memberDailyRoi.toFixed(2)} daily ROI`,
             referenceId: investor._id,
             referenceModel: 'User'
           });
@@ -206,12 +217,12 @@ async function calculateProfitBasedCommissions(investor, dailyRoiProfit) {
             rate: ratePercent,
             upline: upline.name,
             teamMember: member.name,
-            dailyRoiProfit,
+            memberDailyRoi,
             commissionAmount
           });
 
           console.log(
-            `[PROFIT-BASED-COMM] L${level} | Rate=${ratePercent}% | Base=$${dailyRoiProfit.toFixed(2)} | ` +
+            `[PROFIT-BASED-COMM] L${level} | Rate=${ratePercent}% | Base=$${memberDailyRoi.toFixed(2)} | ` +
             `Commission=$${commissionAmount.toFixed(4)} | From: ${member.name} → ${upline.name}`
           );
 
