@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Investment = require('../models/Investment');
+const InvestorInvestment = require('../models/InvestorInvestment');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
 const constants = require('../../config/constants');
@@ -19,8 +20,14 @@ const getDashboardStats = async (req, res) => {
     const userId = req.user._id;
     const user = await User.findById(userId).select('-password');
 
+    // Calculate active investments instead of using totalInvested field
+    const activeInvs = await InvestorInvestment.aggregate([
+      { $match: { userId, status: 'active' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]);
+    const totalInvestments = activeInvs.length > 0 ? activeInvs[0].total : 0;
+
     const activeInvestmentsCount = await Investment.countDocuments({ userId, status: 'active' });
-    const totalInvestments = user.totalInvested || 0;
     const totalProfitEarned = (user.totalProfitEarned || 0) + (user.totalRoiEarned || 0);
 
     const wallet = user.wallet || { capital: 0, profit: 0, commission: 0 };
