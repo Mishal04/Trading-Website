@@ -112,12 +112,6 @@ const getDashboardStats = async (req, res) => {
   GET /api/transactions
   Get logged-in user's full transaction history
  */
-const User = require('../models/User');
-
-/**
-  GET /api/transactions
-  Get logged-in user's full transaction history
- */
 const getUserTransactions = async (req, res) => {
   try {
     // Add cache-busting headers to ensure fresh data is always fetched
