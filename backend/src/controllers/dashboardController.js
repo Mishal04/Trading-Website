@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const User = require('../models/User');
 const Investment = require('../models/Investment');
 const InvestorInvestment = require('../models/InvestorInvestment');
 const Transaction = require('../models/Transaction');
@@ -106,6 +107,12 @@ const getDashboardStats = async (req, res) => {
     });
   }
 };
+
+/**
+  GET /api/transactions
+  Get logged-in user's full transaction history
+ */
+const User = require('../models/User');
 
 /**
   GET /api/transactions
