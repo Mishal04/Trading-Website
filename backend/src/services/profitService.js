@@ -317,8 +317,19 @@ const calculateDailyProfits = async () => {
     if (commissionsProcessedToday && commissionProcessingDate === today) {
       console.log(`⊘ COMMISSION PROCESSING ALREADY COMPLETED FOR ${today}, SKIPPING PHASE 2`);
     } else {
-      commissionsProcessedToday = true;
-      commissionProcessingDate = today;
+      // First check: has ANY investor in this batch already had commissions processed today?
+      const investorIds = Object.values(investorDailyRoiMap).map(x => x.investor._id);
+      const alreadyHasAnyComm = await Transaction.findOne({
+        userId: { $in: investorIds },
+        type: 'commission',
+        createdAt: { $gte: startOfToday }
+      });
+
+      if (alreadyHasAnyComm) {
+        console.log(`⊘ Commissions already exist for an investor today - SKIPPING PHASE 2 to prevent duplicates`);
+      } else {
+        commissionsProcessedToday = true;
+        commissionProcessingDate = today;
 
       for (const investorId in investorDailyRoiMap) {
         try {
@@ -376,6 +387,7 @@ const calculateDailyProfits = async () => {
         } catch (err) {
           console.error(`Error processing investor ${investorId} for commissions:`, err);
         }
+      }
       }
     }
 
