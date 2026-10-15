@@ -137,75 +137,43 @@ const calculateDailyProfits = async () => {
   try {
     console.log('\n--- PHASE 1: Processing ROI Credits ---');
 
-    const investorInvestments = await InvestorInvestment.find({
-      userId: { $ne: null },
-      status: 'active',
-      lastRoiDate: { $lt: startOfToday }
-    }).populate('userId');
+    // Get users with wallet.capital (active invested capital)
+    const usersWithCapital = await User.find({
+      'wallet.capital': { $gt: 0 },
+      isActive: true
+    }).select('_id name email wallet directCount ancestorPath')
+      .populate('ancestorPath', '_id name email wallet directCount');
 
-    for (const investment of investorInvestments) {
+    console.log(`✓ Found ${usersWithCapital.length} users with active invested capital`);
+
+    // Helper function to get daily rate based on investment amount
+    const getDailyRateByAmount = (amount) => {
+      if (amount >= 10000) return 0.0125;  // 1.25% for $10k-$25k
+      if (amount >= 6000) return 0.01;    // 1% for $6k-$9k
+      if (amount >= 1000) return 0.01;    // 1% for $1k-$5k
+      if (amount >= 100) return 0.01;     // 1% for $100-$900
+      return 0;
+    };
+
+    // Process wallet.capital users
+    for (const user of usersWithCapital) {
       try {
-        const investor = investment.userId;
-        if (!investor) continue;
+        if (user.name && user.name.startsWith('Test_Final_')) continue;
+        if (user.email && user.email.endsWith('@test.com')) continue;
 
-        if (investor.name && investor.name.startsWith('Test_Final_')) {
-          continue;
-        }
-        if (investor.email && investor.email.endsWith('@test.com')) {
-          continue;
-        }
+        const capitalAmount = user.wallet?.capital || 0;
+        if (capitalAmount <= 0) continue;
 
-        const phase = getInvestmentPhase(investment.createdAt);
-        let dailyRoiAmount = 0;
-        let rateUsed = 0;
-        let phaseDescription = '';
+        // Get daily rate based on investment tier
+        const dailyRate = getDailyRateByAmount(capitalAmount);
+        if (dailyRate <= 0) continue;
 
-        if (phase === 1 || phase === 2) {
-          const phaseRate = getDailyRateForPhase(investment.packageNumber, investment.createdAt);
-          if (phaseRate && phaseRate > 0) {
-            rateUsed = phaseRate;
-            dailyRoiAmount = Number(((investment.amount * phaseRate) / 100).toFixed(4));
-            phaseDescription = `Phase ${phase} (${phase === 1 ? 'Plan A' : 'Plan B'})`;
-          }
-        } else if (phase === 3) {
-          const monthlyRate = getMonthlyRatePhase3();
-          const dailyEquivalent = monthlyRate / 30.44;
-          rateUsed = dailyEquivalent;
-          dailyRoiAmount = Number(((investment.amount * dailyEquivalent) / 100).toFixed(4));
-          phaseDescription = `Phase 3 (Monthly: ${(monthlyRate * 100).toFixed(1)}% → ${(dailyEquivalent * 100).toFixed(4)}% daily)`;
-        }
+        const dailyRoiAmount = Number((capitalAmount * dailyRate).toFixed(4));
 
         if (dailyRoiAmount <= 0) continue;
-        if (investment.capReached) continue;
 
-        const updatedInvestment = await InvestorInvestment.findOneAndUpdate(
-          {
-            _id: investment._id,
-            userId: investor._id,
-            status: 'active',
-            capReached: false,
-            lastRoiDate: { $lt: startOfToday }
-          },
-          {
-            $set: { lastRoiDate: now },
-            $inc: { totalRoiEarned: dailyRoiAmount }
-          },
-          { new: true }
-        );
-
-        if (!updatedInvestment) {
-          continue;
-        }
-
-        let investmentCapReached = false;
-        if (updatedInvestment.totalRoiEarned >= updatedInvestment.incomeCap) {
-          investmentCapReached = true;
-          await InvestorInvestment.findByIdAndUpdate(investment._id, {
-            $set: { capReached: true, status: 'completed' }
-          });
-        }
-
-        await User.findByIdAndUpdate(investor._id, {
+        // Credit ROI to wallet
+        await User.findByIdAndUpdate(user._id, {
           $inc: {
             'wallet.roi': dailyRoiAmount,
             totalRoiEarned: dailyRoiAmount
@@ -213,100 +181,87 @@ const calculateDailyProfits = async () => {
         });
 
         await Transaction.create({
-          userId: investor._id,
+          userId: user._id,
           type: 'profit',
           amount: dailyRoiAmount,
           status: 'completed',
-          description: `Daily ROI (${(rateUsed * 100).toFixed(4)}%) from ${phaseDescription} investment $${investment.amount}${investmentCapReached ? ' (cap reached)' : ''}`,
-          referenceId: investment._id,
-          referenceModel: 'InvestorInvestment'
+          description: `Daily ROI (${(dailyRate * 100).toFixed(2)}%) from active invested capital $${capitalAmount}`,
+          referenceId: user._id,
+          referenceModel: 'User'
         });
 
         await Notification.create({
-          userId: investor._id,
+          userId: user._id,
           title: 'ROI Credited',
-          message: `You earned $${dailyRoiAmount} ROI from your ${phaseDescription} investment!${investmentCapReached ? ' (Income cap reached)' : ''}`,
+          message: `You earned $${dailyRoiAmount} ROI from your active invested capital!`,
           type: 'profit'
         });
 
-        const investorId = investor._id.toString();
+        const investorId = user._id.toString();
         if (!investorDailyRoiMap[investorId]) {
           investorDailyRoiMap[investorId] = {
             totalRoi: 0,
-            investor: investor,
+            investor: { _id: user._id, name: user.name, email: user.email, ancestorPath: user.ancestorPath },
             investments: []
           };
         }
         investorDailyRoiMap[investorId].totalRoi += dailyRoiAmount;
-        investorDailyRoiMap[investorId].investments.push(investment);
 
         processedCount++;
         totalProfitDistributed += dailyRoiAmount;
 
       } catch (err) {
-        console.error(`Error processing ROI for investor investment ${investment._id}:`, err);
+        console.error(`Error processing wallet.capital for user ${user._id}:`, err);
       }
     }
 
-    console.log(`✓ PHASE 1 Complete: ${processedCount} investments processed, $${totalProfitDistributed.toFixed(2)} ROI distributed`);
+    console.log(`✓ PHASE 1 Complete: ${processedCount} users processed, $${totalProfitDistributed.toFixed(2)} ROI distributed`);
 
-    // ── PHASE 2: BULLETPROOF - Check if ANY commission exists, if so SKIP ENTIRE PHASE ────
+    // ── PHASE 2: Process Commissions ────
     console.log(`\n--- PHASE 2: Processing Commissions (${Object.keys(investorDailyRoiMap).length} investors) ---`);
 
+    // Check if commissions already exist today - if so, skip to prevent duplicates
     const anyCommToday = await Transaction.findOne({
       type: 'commission',
       createdAt: { $gte: startOfToday }
     });
 
     if (anyCommToday) {
-      console.log(`⊘ COMMISSIONS ALREADY EXIST TODAY - SKIPPING PHASE 2 ENTIRELY TO PREVENT DUPLICATES`);
+      console.log(`⊘ COMMISSIONS ALREADY PROCESSED TODAY - SKIPPING TO PREVENT DUPLICATES`);
     } else {
-      // Safe to process - process all commissions
+      let totalCommissionsPaid = 0;
+      let investorsProcessed = 0;
+
+      // For each investor who earned ROI today, process their commission using profitBasedCommissionService
       for (const investorId in investorDailyRoiMap) {
         try {
-          const { totalRoi, investor, investments } = investorDailyRoiMap[investorId];
+          const { totalRoi, investor } = investorDailyRoiMap[investorId];
 
-          if (!investor.ancestorPath || investor.ancestorPath.length === 0) {
+          if (!investor || !investor.ancestorPath || investor.ancestorPath.length === 0) {
             continue;
           }
 
-          const investorFull = await User.findById(investor._id).populate('ancestorPath');
-          if (!investorFull) {
-            continue;
+          // Use profitBasedCommissionService to calculate and distribute commissions
+          // This walks up the ancestor path and pays each upline based on their unlocked levels
+          const commResult = await profitBasedCommissionService.calculateProfitBasedCommissions(
+            investor,
+            totalRoi  // Use AGGREGATED daily ROI
+          );
+
+          if (commResult.totalPaid > 0) {
+            totalCommissionsPaid += commResult.totalPaid;
+            console.log(`  ✓ ${investor.name}: ${commResult.levelsProcessed} levels, $${commResult.totalPaid.toFixed(4)} total`);
           }
 
-          const refInvestment = investments[0];
-
-          try {
-            const commResult = await profitBasedCommissionService.distributeProfitBasedCommissions(
-              refInvestment,
-              totalRoi,
-              investorFull
-            );
-
-            if (commResult.totalPaid > 0) {
-              console.log(
-                `  ✓ ${investor.name}: ${commResult.levelsProcessed} levels, ` +
-                `$${commResult.totalPaid.toFixed(4)} total (base ROI: $${totalRoi.toFixed(4)}, ` +
-                `${investments.length} investment${investments.length > 1 ? 's' : ''})`
-              );
-            } else {
-              console.log(
-                `  - ${investor.name}: no commissions (totalRoi: $${totalRoi.toFixed(4)})`
-              );
-            }
-
-          } catch (comErr) {
-            console.error(`  ✗ ${investor.name}: commission error:`, comErr.message);
-          }
+          investorsProcessed++;
 
         } catch (err) {
-          console.error(`Error processing investor ${investorId} for commissions:`, err);
+          console.error(`Error processing commissions for investor ${investorId}:`, err);
         }
       }
-    }
 
-    console.log(`✓ PHASE 2 Complete: ${Object.keys(investorDailyRoiMap).length} investors processed for commissions`);
+      console.log(`✓ PHASE 2 Complete: ${investorsProcessed} investors processed, $${totalCommissionsPaid.toFixed(2)} total commissions`);
+    }
 
     if (lock) {
       await CronLock.findByIdAndUpdate(lock._id, {
