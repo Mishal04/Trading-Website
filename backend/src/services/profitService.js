@@ -135,12 +135,14 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
  * calculateDailyProfits
  *
  * Cron-driven daily profit run — credits each active investment's daily rate
- * directly to the investor's wallet.profit, then distributes 21-level commissions
- * to all qualifying uplines.
+ * directly to the investor's wallet.roi, then distributes 21-level commissions
+ * to all qualifying uplines ONCE per investor (not per investment).
  *
- * NOTE: This is separate from the admin profit injection flow. Daily profits are
- * based on each investment's individual dailyRate. The injection flow distributes
- * a lump realized-profit amount proportionally across all active investors.
+ * TWO-PHASE ALGORITHM:
+ * 1. PHASE 1: Process all ROI credits per investment, aggregating by investor
+ * 2. PHASE 2: Process commissions ONCE per investor using their total daily ROI
+ *
+ * This prevents duplicate commission calculations when an investor has multiple investments.
  */
 const calculateDailyProfits = async () => {
   console.log('--- Starting Daily Profit Calculation ---');
@@ -169,15 +171,15 @@ const calculateDailyProfits = async () => {
 
   let processedCount = 0;
   let totalProfitDistributed = 0;
+  const investorDailyRoiMap = {}; // Maps investorId → { totalRoi, investor, investments[] }
 
   try {
-    // ── ONLY SYSTEM: Profit-based 21-level commissions for InvestorInvestment records ───
-    // Commission = Daily ROI × Level Rate (based on referral depth)
-    // Levels unlock L1→L21 based on direct referral count
+    // ── PHASE 1: Process all ROI credits ──────────────────────────────────────
+    console.log('\n--- PHASE 1: Processing ROI Credits ---');
 
-    // Fetch all active investor investments
+    // Fetch all active investor investments not yet processed today
     const investorInvestments = await InvestorInvestment.find({
-      userId: { $ne: null },  // Must have userId set
+      userId: { $ne: null },
       status: 'active',
       lastRoiDate: { $lt: startOfToday }
     }).populate('userId');
@@ -195,7 +197,7 @@ const calculateDailyProfits = async () => {
           continue;
         }
 
-        // ── DETECT CURRENT PHASE and calculate correct rate ────────────────────
+        // ── DETECT CURRENT PHASE and calculate correct rate ────────────────
         const phase = getInvestmentPhase(investment.createdAt);
         let dailyRoiAmount = 0;
         let rateUsed = 0;
@@ -280,40 +282,90 @@ const calculateDailyProfits = async () => {
           type: 'profit'
         });
 
-
-
-        // ── DISTRIBUTE PROFIT-BASED 21-LEVEL COMMISSIONS ─────────────────────────
-        // NEW SYSTEM: Commission = daily ROI profit × level rate
-        // Distributes to all unlocked levels (L1-L21) based on referral depth
-        // Only upline with active investments receive commissions
-        if (investor.ancestorPath && investor.ancestorPath.length > 0) {
-          try {
-            // Fetch full investor hierarchy for commission calculation
-            const investorFull = await User.findById(investor._id).populate('ancestorPath');
-            if (investorFull) {
-              const commResult = await profitBasedCommissionService.distributeProfitBasedCommissions(
-                investment,
-                dailyRoiAmount,  // Base it on daily ROI profit, not investment amount
-                investorFull
-              );
-              if (commResult.totalPaid > 0) {
-                console.log(
-                  `[PROFIT-COMMISSION] Processed ${commResult.levelsProcessed} levels | ` +
-                  `Total: $${commResult.totalPaid.toFixed(4)} | Investor: ${investor.name}`
-                );
-              }
-            }
-          } catch (comErr) {
-            console.error(`Error distributing profit-based commissions for InvestorInvestment ${investment._id}:`, comErr);
-          }
+        // Track this investor's daily ROI aggregate for commission calculation
+        const investorId = investor._id.toString();
+        if (!investorDailyRoiMap[investorId]) {
+          investorDailyRoiMap[investorId] = {
+            totalRoi: 0,
+            investor: investor,
+            investments: []
+          };
         }
+        investorDailyRoiMap[investorId].totalRoi += dailyRoiAmount;
+        investorDailyRoiMap[investorId].investments.push(investment);
 
         processedCount++;
         totalProfitDistributed += dailyRoiAmount;
+
       } catch (err) {
         console.error(`Error processing ROI for investor investment ${investment._id}:`, err);
       }
     }
+
+    console.log(`✓ PHASE 1 Complete: ${processedCount} investments processed, $${totalProfitDistributed.toFixed(2)} ROI distributed`);
+
+    // ── PHASE 2: Process commissions ONCE per investor ────────────────────────
+    console.log(`\n--- PHASE 2: Processing Commissions (${Object.keys(investorDailyRoiMap).length} investors) ---`);
+
+    for (const investorId in investorDailyRoiMap) {
+      try {
+        const { totalRoi, investor, investments } = investorDailyRoiMap[investorId];
+
+        // Database guard: check if commissions already processed for this investor today
+        const alreadyProcessedComm = await Transaction.findOne({
+          userId: investor._id,
+          type: 'commission',
+          createdAt: { $gte: startOfToday }
+        });
+
+        if (alreadyProcessedComm) {
+          console.log(`  ⊘ ${investor.name}: already has commission transaction today, skipping`);
+          continue;
+        }
+
+        // Validate investor has upline
+        if (!investor.ancestorPath || investor.ancestorPath.length === 0) {
+          continue;
+        }
+
+        // Fetch full investor hierarchy for commission calculation
+        const investorFull = await User.findById(investor._id).populate('ancestorPath');
+        if (!investorFull) {
+          continue;
+        }
+
+        // Use first processed investment as reference (commissions based on aggregated ROI, not specific investment)
+        const refInvestment = investments[0];
+
+        try {
+          const commResult = await profitBasedCommissionService.distributeProfitBasedCommissions(
+            refInvestment,
+            totalRoi,  // Use AGGREGATED daily ROI across all investor's investments
+            investorFull
+          );
+
+          if (commResult.totalPaid > 0) {
+            console.log(
+              `  ✓ ${investor.name}: ${commResult.levelsProcessed} levels, ` +
+              `$${commResult.totalPaid.toFixed(4)} total (base ROI: $${totalRoi.toFixed(4)}, ` +
+              `${investments.length} investment${investments.length > 1 ? 's' : ''})`
+            );
+          } else {
+            console.log(
+              `  - ${investor.name}: no commissions (totalRoi: $${totalRoi.toFixed(4)})`
+            );
+          }
+
+        } catch (comErr) {
+          console.error(`  ✗ ${investor.name}: commission error:`, comErr.message);
+        }
+
+      } catch (err) {
+        console.error(`Error processing investor ${investorId} for commissions:`, err);
+      }
+    }
+
+    console.log(`✓ PHASE 2 Complete: ${Object.keys(investorDailyRoiMap).length} investors processed for commissions`);
 
     // Mark lock as successfully completed
     if (lock) {
@@ -323,8 +375,18 @@ const calculateDailyProfits = async () => {
       });
     }
 
-    console.log(`--- Daily Profit Calculation Complete: Processed ${processedCount} investments, total $${totalProfitDistributed.toFixed(2)} distributed (NEW PROFIT-BASED SYSTEM) ---`);
-    return { processedCount, totalProfitDistributed };
+    console.log(`\n--- Daily Profit Calculation Complete ---`);
+    console.log(`  Investments: ${processedCount}`);
+    console.log(`  ROI Distributed: $${totalProfitDistributed.toFixed(2)}`);
+    console.log(`  Investors Processed: ${Object.keys(investorDailyRoiMap).length}`);
+    console.log(`\n`);
+
+    return {
+      processedCount,
+      totalProfitDistributed,
+      investorsWithCommissions: Object.keys(investorDailyRoiMap).length
+    };
+
   } catch (outerErr) {
     if (lock) {
       await CronLock.findByIdAndUpdate(lock._id, {
