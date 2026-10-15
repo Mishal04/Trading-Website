@@ -105,7 +105,7 @@ const getDownline = async (req, res) => {
 
     // ── PRIMARY: users who have current user in their ancestorPath ──────────
     const byAncestorPath = await User.find({ ancestorPath: userId })
-      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy directCount')
+      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy directCount wallet')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -117,7 +117,7 @@ const getDownline = async (req, res) => {
       referredBy: userId,
       _id: { $nin: Array.from(foundIds).map((id) => require('mongoose').Types.ObjectId.createFromHexString(id)) },
     })
-      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy directCount')
+      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy directCount wallet')
       .sort({ createdAt: -1 })
       .lean();
 
