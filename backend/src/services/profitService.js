@@ -4,7 +4,7 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
 const CronLock = require('../models/CronLock');
-const profitBasedCommissionService = require('./profitBasedCommissionService');
+
 const { getInvestmentPhase, getDailyRateForPhase, getMonthlyRatePhase3 } = require('../../config/investorConstants');
 
 const distributeInvestorShare = async (investorShareAmount, adminUserId, note = '') => {
@@ -217,7 +217,7 @@ const calculateDailyProfits = async () => {
 
     console.log(`✓ PHASE 1 Complete: ${processedCount} users processed, $${totalProfitDistributed.toFixed(2)} ROI distributed`);
 
-    // ── PHASE 2: Process Commissions ────
+    // ── PHASE 2: Process Commissions (DEPTH-BASED 21-LEVEL) ────
     console.log(`\n--- PHASE 2: Processing Commissions (${Object.keys(investorDailyRoiMap).length} investors) ---`);
 
     // Check if commissions already exist today - if so, skip to prevent duplicates
@@ -232,7 +232,9 @@ const calculateDailyProfits = async () => {
       let totalCommissionsPaid = 0;
       let investorsProcessed = 0;
 
-      // For each investor who earned ROI today, process their commission using profitBasedCommissionService
+      const LEVEL_RATES = require('../../config/constants').LEVEL_RATES;
+
+      // For each investor who earned ROI today
       for (const investorId in investorDailyRoiMap) {
         try {
           const { totalRoi, investor } = investorDailyRoiMap[investorId];
@@ -241,16 +243,87 @@ const calculateDailyProfits = async () => {
             continue;
           }
 
-          // Use profitBasedCommissionService to calculate and distribute commissions
-          // This walks up the ancestor path and pays each upline based on their unlocked levels
-          const commResult = await profitBasedCommissionService.calculateProfitBasedCommissions(
-            investor,
-            totalRoi  // Use AGGREGATED daily ROI
-          );
+          // ── PHASE 2 LOGIC: Pure depth-based 21-level commission ──
+          // Walk up ancestorPath and pay each upline based on NETWORK POSITION (depth)
+          // networkPosition = index + 1 in ancestorPath
+          // rate = LEVEL_RATES[networkPosition - 1]
+          // commission = (dailyRoiAmount * rate) / 100
+          
+          for (let positionIndex = 0; positionIndex < investor.ancestorPath.length; positionIndex++) {
+            try {
+              const networkPosition = positionIndex + 1;  // L1, L2, L3, ...
+              
+              if (networkPosition > 21) break;  // Only up to L21
 
-          if (commResult.totalPaid > 0) {
-            totalCommissionsPaid += commResult.totalPaid;
-            console.log(`  ✓ ${investor.name}: ${commResult.levelsProcessed} levels, $${commResult.totalPaid.toFixed(4)} total`);
+              const uplineId = investor.ancestorPath[positionIndex];
+              const upline = await User.findById(uplineId)
+                .select('_id name email isActive totalInvested wallet');
+
+              if (!upline) {
+                console.log(`    L${networkPosition}: Upline not found (${uplineId})`);
+                continue;
+              }
+
+              if (!upline.isActive) {
+                console.log(`    L${networkPosition}: ${upline.name} inactive`);
+                continue;
+              }
+
+              if ((upline.totalInvested || 0) <= 0) {
+                console.log(`    L${networkPosition}: ${upline.name} no investment`);
+                continue;
+              }
+
+              // Get rate for this network position (depth-based, not upline's personal level)
+              // LEVEL_RATES is 1-indexed: LEVEL_RATES[1] = L1, LEVEL_RATES[21] = L21
+              const ratePercent = LEVEL_RATES[networkPosition];
+              
+              if (!ratePercent || ratePercent <= 0) {
+                console.log(`    L${networkPosition}: Invalid rate`);
+                continue;
+              }
+
+              const commissionAmount = Number(((totalRoi * ratePercent) / 100).toFixed(4));
+              
+              if (commissionAmount <= 0) {
+                continue;
+              }
+
+              // Credit commission to upline wallet
+              await User.findByIdAndUpdate(uplineId, {
+                $inc: {
+                  'wallet.commission': commissionAmount,
+                  totalEarned: commissionAmount
+                }
+              });
+
+              // Create transaction
+              await Transaction.create({
+                userId: uplineId,
+                type: 'commission',
+                amount: commissionAmount,
+                status: 'completed',
+                description: `L${networkPosition} commission (${(ratePercent).toFixed(2)}%) from ${investor.name}'s $${totalRoi.toFixed(4)} daily ROI`,
+                level: networkPosition,
+                referenceId: investor._id,
+                referenceModel: 'User'
+              });
+
+              // Notification
+              await Notification.create({
+                userId: uplineId,
+                title: 'Commission Received',
+                message: `You earned $${commissionAmount.toFixed(2)} in Level ${networkPosition} commission!`,
+                type: 'commission'
+              });
+
+              totalCommissionsPaid += commissionAmount;
+
+              console.log(`    L${networkPosition} → ${upline.name}: $${commissionAmount.toFixed(4)}`);
+
+            } catch (levelErr) {
+              console.error(`Error processing L${positionIndex + 1}:`, levelErr.message);
+            }
           }
 
           investorsProcessed++;
