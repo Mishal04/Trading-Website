@@ -47,7 +47,9 @@ const initCronJobs = () => {
   console.log('   Pattern: Every Mon-Fri at 16:00 (4 PM) Pakistan Time');
   console.log('   Timezone: Asia/Karachi (Pakistan)\n');
 
-  // Check every minute if it's 4 PM Pakistan time on Mon-Fri
+  let lastMinuteChecked = -1; // Track last minute to detect transitions
+
+  // Check every 10 seconds for 4 PM Pakistan time
   setInterval(async () => {
     try {
       // Get current time in Pakistan timezone
@@ -63,12 +65,13 @@ const initCronJobs = () => {
       // Check: Is it 16:00 (4:00 PM) on Monday-Friday?
       const isTargetTime = (hour === 16 && minute === 0);
       const isWeekday = (dayOfWeek >= 1 && dayOfWeek <= 5); // Mon-Fri
+      const minuteJustChanged = (lastMinuteChecked !== minute); // Only true on first check of this minute
       
       // Get today's date to track if job already ran
       const todayDate = pakistanTime.toDateString();
       
-      if (isTargetTime && isWeekday) {
-        // Only run once per day
+      if (isTargetTime && isWeekday && minuteJustChanged) {
+        // Only run once per day, and only when minute transitions to :00
         if (lastExecutedDate !== todayDate) {
           console.log('\n═══════════════════════════════════════════════════════════');
           console.log('✅ TRIGGER: Daily Profit Calculation');
@@ -89,10 +92,12 @@ const initCronJobs = () => {
           lastExecutedDate = todayDate;
         }
       }
+
+      lastMinuteChecked = minute; // Update for next iteration
     } catch (err) {
       console.error('Scheduler check error:', err);
     }
-  }, 60000); // Check every 60 seconds (every minute)
+  }, 10000); // Check every 10 seconds instead of 60 to catch minute transitions faster
 
   // Monthly Leadership & Performance Reward distribution at 01:00 AM UTC on 1st of every month
   // This uses node-cron for monthly (less critical timing)
