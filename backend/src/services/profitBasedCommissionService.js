@@ -147,14 +147,15 @@ async function calculateProfitBasedCommissions(investor, dailyRoiProfit) {
 
           const existingComm = await Transaction.findOne({
             userId: uplineId,
+            referenceId: investor._id,
             type: 'commission',
             amount: commissionAmount,
-            description: { $regex: `L${level}.*from ${member.name}` },
             createdAt: { $gte: startOfToday }
           });
 
           if (existingComm) {
-            // Commission already created for this level from this member today
+            // Commission already created for this exact amount from this source today
+            console.log(`[PROFIT-BASED-COMM-DUP] Skipping duplicate: L${level} from ${member.name} to ${upline.name}`);
             continue;
           }
 
