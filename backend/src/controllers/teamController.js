@@ -138,12 +138,15 @@ const getDownline = async (req, res) => {
           // If not found in ancestorPath but referredBy matches → Level 1
         }
 
-        // Calculate active investments
+        // Calculate active investments (check both InvestorInvestment AND wallet.capital)
         const activeInvs = await InvestorInvestment.aggregate([
           { $match: { userId: user._id, status: 'active' } },
           { $group: { _id: null, total: { $sum: '$amount' } } },
         ]);
         const activeInvested = activeInvs.length > 0 ? activeInvs[0].total : 0;
+        
+        // If no InvestorInvestment records, use wallet.capital as fallback
+        const investmentDisplay = activeInvested > 0 ? activeInvested : (user.wallet?.capital || 0);
 
         // Calculate current commission level based on directCount
         const currentCommissionLevel = constants.getCurrentCommissionLevel(user.directCount || 0);
@@ -153,7 +156,7 @@ const getDownline = async (req, res) => {
           name:            user.name,
           email:           user.email,
           referralCode:    user.referralCode,
-          totalInvested:   activeInvested,
+          totalInvested:   investmentDisplay,
           investmentLevel: user.investmentLevel || 'none',
           isVerified:      user.isVerified,
           isActive:        user.isActive,
