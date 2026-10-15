@@ -46,7 +46,7 @@ const getDashboardStats = async (req, res) => {
     const capProgressPercent = incomeCap > 0 ? Math.min(100, Math.round((totalEarned / incomeCap) * 100)) : 0;
     const capRemaining = Math.max(0, incomeCap - totalEarned);
     const directCount = user.directCount || (user.referrals ? user.referrals.count : 0);
-    const unlockedLevels = user.unlockedLevels || 0;
+    const unlockedLevels = constants.getUnlockedLevelCount(directCount);
 
     return res.json({
       success: true,
