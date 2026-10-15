@@ -15,6 +15,7 @@
  */
 
 const User = require('../models/User');
+const InvestorInvestment = require('../models/InvestorInvestment');
 const CommissionLog = require('../models/CommissionLog');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
