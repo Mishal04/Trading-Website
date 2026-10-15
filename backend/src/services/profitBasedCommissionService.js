@@ -25,52 +25,25 @@ const constants = require('../../config/constants');
 const LEVEL_RATES = constants.LEVEL_RATES;
 
 /**
- * Recursively find all team members at a specific referral depth from an upline.
- * Uses depth-first search to build the referral tree.
- * 
- * DEPTH MAPPING:
- *   depth=1 → L1 members (direct referrals of upline)
- *   depth=2 → L2 members (direct referrals of L1 members)
- *   depth=3 → L3 members (direct referrals of L2 members)
- *   ... and so on up to L21
+ * OPTIMIZED: Find all team members at a specific referral depth from an upline.
+ * Uses ancestorPath to avoid recursive queries (massive performance boost).
  * 
  * @param {ObjectId} uplineId - The upline member (tree root for this calculation)
  * @param {number} targetDepth - Which level to find (1-21)
- * @param {number} currentDepth - Internal: current depth during recursion
  * @returns {Promise<Array>} Array of User documents at targetDepth with active investments
  */
-async function findTeamMembersAtDepth(uplineId, targetDepth, currentDepth = 0) {
-  const membersAtTarget = [];
-
-  // ── STEP 1: Get all direct referrals of this upline ────────────────────
-  const directReferrals = await User.find({ referredBy: uplineId }).select('_id name isActive totalInvested');
-
-  if (directReferrals.length === 0) {
-    return [];  // No downline, no members at any depth
-  }
-
-  const currentDepthValue = currentDepth + 1;  // First level of directs = depth 1 (L1)
-
-  // ── STEP 2: If this is the target depth, add qualifying members ────────
-  if (currentDepthValue === targetDepth) {
-    for (const member of directReferrals) {
-      // Only include active members with active investments
-      if (member.isActive && (member.totalInvested || 0) > 0) {
-        membersAtTarget.push(member);
-      }
-    }
-    return membersAtTarget;
-  }
-
-  // ── STEP 3: If we haven't reached target depth, recurse deeper ────────
-  // Only recurse for active members to avoid searching dead branches
-  for (const member of directReferrals) {
-    if (member.isActive) {
-      const deeperMembers = await findTeamMembersAtDepth(member._id, targetDepth, currentDepthValue);
-      membersAtTarget.push(...deeperMembers);
-    }
-  }
-
+async function findTeamMembersAtDepth(uplineId, targetDepth) {
+  // Use ancestorPath to find members at exact depth
+  // ancestorPath[0] = direct upline, ancestorPath[1] = 2nd level, etc.
+  // So if ancestorPath[targetDepth-1] === uplineId, they're at targetDepth level
+  
+  const query = {
+    isActive: true,
+    totalInvested: { $gt: 0 },
+    [`ancestorPath.${targetDepth - 1}`]: uplineId  // Check if upline is at the correct depth
+  };
+  
+  const membersAtTarget = await User.find(query).select('_id name isActive totalInvested');
   return membersAtTarget;
 }
 
