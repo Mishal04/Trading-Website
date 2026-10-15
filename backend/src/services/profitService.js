@@ -7,25 +7,6 @@ const CronLock = require('../models/CronLock');
 const profitBasedCommissionService = require('./profitBasedCommissionService');
 const { getInvestmentPhase, getDailyRateForPhase, getMonthlyRatePhase3 } = require('../../config/investorConstants');
 
-// Global flag to ensure commission processing runs only once per day per process
-let commissionsProcessedToday = false;
-let commissionProcessingDate = null;
-
-/**
- * distributeInvestorShare
- *
- * Takes the 60% investor pool amount from a profit injection and distributes
- * it pro-rata to every user who has at least one active investment, weighted
- * by their total active capital vs the system-wide total active capital.
- *
- * Formula per user:
- *   userShare = (userActiveCapital / totalActiveCapital) * investorShareAmount
- *
- * @param {number} investorShareAmount  – the 60% slice of the injected gross profit
- * @param {string} adminUserId          – ID of the admin who triggered the injection (for audit)
- * @param {string} note                 – optional label carried into Transaction descriptions
- * @returns {{ distributed: number, userCount: number, skipped: number, details: Array }}
- */
 const distributeInvestorShare = async (investorShareAmount, adminUserId, note = '') => {
   console.log(`--- Starting Investor Share Distribution: $${investorShareAmount} ---`);
 
@@ -34,9 +15,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
     return { distributed: 0, userCount: 0, skipped: 0, details: [] };
   }
 
-  // ── 1. Aggregate active capital per user ─────────────────────────────────
-  // Group all active investments by userId and sum their amounts.
-  // We do this in one aggregation to avoid N+1 queries.
   const activeCapitalByUser = await Investment.aggregate([
     { $match: { status: 'active', isActive: true } },
     {
@@ -52,7 +30,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
     return { distributed: 0, userCount: 0, skipped: 0, details: [] };
   }
 
-  // ── 2. Compute total active capital across all users ──────────────────────
   const totalActiveCapital = activeCapitalByUser.reduce(
     (sum, row) => sum + row.activeCapital, 0
   );
@@ -64,7 +41,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
 
   console.log(`  Active investors: ${activeCapitalByUser.length}, Total capital: $${totalActiveCapital}`);
 
-  // ── 3. Distribute proportionally ─────────────────────────────────────────
   let totalDistributed = 0;
   let userCount        = 0;
   let skipped          = 0;
@@ -74,7 +50,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
     const userId       = row._id;
     const userCapital  = row.activeCapital;
 
-    // Calculate this user's proportional share (4 decimal places)
     const userShare = Number(
       ((userCapital / totalActiveCapital) * investorShareAmount).toFixed(4)
     );
@@ -84,7 +59,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
       continue;
     }
 
-    // Verify the user account is still active before crediting
     const user = await User.findById(userId).select('name email isActive');
     if (!user || !user.isActive) {
       console.log(`  Skipping inactive/missing user ${userId}`);
@@ -92,7 +66,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
       continue;
     }
 
-    // Credit wallet.profit atomically
     await User.findByIdAndUpdate(userId, {
       $inc: {
         'wallet.profit':   userShare,
@@ -100,7 +73,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
       }
     });
 
-    // Create audit transaction
     await Transaction.create({
       userId,
       type:        'profit',
@@ -118,7 +90,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
       }
     });
 
-    // Notify the investor
     await Notification.create({
       userId,
       title:   'Profit Share Credited',
@@ -135,26 +106,12 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
   return { distributed: totalDistributed, userCount, skipped, details };
 };
 
-/**
- * calculateDailyProfits
- *
- * Cron-driven daily profit run — credits each active investment's daily rate
- * directly to the investor's wallet.roi, then distributes 21-level commissions
- * to all qualifying uplines ONCE per investor (not per investment).
- *
- * TWO-PHASE ALGORITHM:
- * 1. PHASE 1: Process all ROI credits per investment, aggregating by investor
- * 2. PHASE 2: Process commissions ONCE per investor using their total daily ROI
- *
- * This prevents duplicate commission calculations when an investor has multiple investments.
- */
 const calculateDailyProfits = async () => {
   console.log('--- Starting Daily Profit Calculation ---');
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-  // ── 1. Acquire Distributed Lock ───────────────────────────────────────────
   let lock;
   try {
     lock = await CronLock.create({
@@ -175,13 +132,11 @@ const calculateDailyProfits = async () => {
 
   let processedCount = 0;
   let totalProfitDistributed = 0;
-  const investorDailyRoiMap = {}; // Maps investorId → { totalRoi, investor, investments[] }
+  const investorDailyRoiMap = {};
 
   try {
-    // ── PHASE 1: Process all ROI credits ──────────────────────────────────────
     console.log('\n--- PHASE 1: Processing ROI Credits ---');
 
-    // Fetch all active investor investments not yet processed today
     const investorInvestments = await InvestorInvestment.find({
       userId: { $ne: null },
       status: 'active',
@@ -193,7 +148,6 @@ const calculateDailyProfits = async () => {
         const investor = investment.userId;
         if (!investor) continue;
 
-        // SKIP TEST USERS: Do not pay users named Test_Final_* or emails ending @test.com
         if (investor.name && investor.name.startsWith('Test_Final_')) {
           continue;
         }
@@ -201,14 +155,12 @@ const calculateDailyProfits = async () => {
           continue;
         }
 
-        // ── DETECT CURRENT PHASE and calculate correct rate ────────────────
         const phase = getInvestmentPhase(investment.createdAt);
         let dailyRoiAmount = 0;
         let rateUsed = 0;
         let phaseDescription = '';
 
         if (phase === 1 || phase === 2) {
-          // Phase 1 or 2: Use daily rate
           const phaseRate = getDailyRateForPhase(investment.packageNumber, investment.createdAt);
           if (phaseRate && phaseRate > 0) {
             rateUsed = phaseRate;
@@ -216,20 +168,16 @@ const calculateDailyProfits = async () => {
             phaseDescription = `Phase ${phase} (${phase === 1 ? 'Plan A' : 'Plan B'})`;
           }
         } else if (phase === 3) {
-          // Phase 3: Convert monthly rate to daily
           const monthlyRate = getMonthlyRatePhase3();
-          const dailyEquivalent = monthlyRate / 30.44; // Average days per month
+          const dailyEquivalent = monthlyRate / 30.44;
           rateUsed = dailyEquivalent;
           dailyRoiAmount = Number(((investment.amount * dailyEquivalent) / 100).toFixed(4));
           phaseDescription = `Phase 3 (Monthly: ${(monthlyRate * 100).toFixed(1)}% → ${(dailyEquivalent * 100).toFixed(4)}% daily)`;
         }
 
         if (dailyRoiAmount <= 0) continue;
-
-        // Check if investment's personal cap already reached
         if (investment.capReached) continue;
 
-        // Atomic guard: update lastRoiDate only if not updated today AND cap not reached
         const updatedInvestment = await InvestorInvestment.findOneAndUpdate(
           {
             _id: investment._id,
@@ -246,11 +194,9 @@ const calculateDailyProfits = async () => {
         );
 
         if (!updatedInvestment) {
-          // Already processed or cap was reached concurrently
           continue;
         }
 
-        // Check if this credit hit the 3x cap on this specific investment
         let investmentCapReached = false;
         if (updatedInvestment.totalRoiEarned >= updatedInvestment.incomeCap) {
           investmentCapReached = true;
@@ -259,7 +205,6 @@ const calculateDailyProfits = async () => {
           });
         }
 
-        // Credit investor's ROI wallet on User model
         await User.findByIdAndUpdate(investor._id, {
           $inc: {
             'wallet.roi': dailyRoiAmount,
@@ -267,7 +212,6 @@ const calculateDailyProfits = async () => {
           }
         });
 
-        // Record ROI transaction
         await Transaction.create({
           userId: investor._id,
           type: 'profit',
@@ -278,7 +222,6 @@ const calculateDailyProfits = async () => {
           referenceModel: 'InvestorInvestment'
         });
 
-        // Send ROI notification
         await Notification.create({
           userId: investor._id,
           title: 'ROI Credited',
@@ -286,7 +229,6 @@ const calculateDailyProfits = async () => {
           type: 'profit'
         });
 
-        // Track this investor's daily ROI aggregate for commission calculation
         const investorId = investor._id.toString();
         if (!investorDailyRoiMap[investorId]) {
           investorDailyRoiMap[investorId] = {
@@ -308,63 +250,37 @@ const calculateDailyProfits = async () => {
 
     console.log(`✓ PHASE 1 Complete: ${processedCount} investments processed, $${totalProfitDistributed.toFixed(2)} ROI distributed`);
 
-    // ── PHASE 2: Process commissions ONCE per investor ────────────────────────
+    // ── PHASE 2: BULLETPROOF - Check if ANY commission exists, if so SKIP ENTIRE PHASE ────
     console.log(`\n--- PHASE 2: Processing Commissions (${Object.keys(investorDailyRoiMap).length} investors) ---`);
 
-    // Guard: Only process commissions ONCE per calendar day
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    
-    if (commissionsProcessedToday && commissionProcessingDate === today) {
-      console.log(`⊘ COMMISSION PROCESSING ALREADY COMPLETED FOR ${today}, SKIPPING PHASE 2`);
+    const anyCommToday = await Transaction.findOne({
+      type: 'commission',
+      createdAt: { $gte: startOfToday }
+    });
+
+    if (anyCommToday) {
+      console.log(`⊘ COMMISSIONS ALREADY EXIST TODAY - SKIPPING PHASE 2 ENTIRELY TO PREVENT DUPLICATES`);
     } else {
-      // First check: has ANY investor in this batch already had commissions processed today?
-      const investorIds = Object.values(investorDailyRoiMap).map(x => x.investor._id);
-      const alreadyHasAnyComm = await Transaction.findOne({
-        userId: { $in: investorIds },
-        type: 'commission',
-        createdAt: { $gte: startOfToday }
-      });
-
-      if (alreadyHasAnyComm) {
-        console.log(`⊘ Commissions already exist for an investor today - SKIPPING PHASE 2 to prevent duplicates`);
-      } else {
-        commissionsProcessedToday = true;
-        commissionProcessingDate = today;
-
+      // Safe to process - process all commissions
       for (const investorId in investorDailyRoiMap) {
         try {
           const { totalRoi, investor, investments } = investorDailyRoiMap[investorId];
 
-          // Database guard: check if commissions already processed for this investor today
-          const alreadyProcessedComm = await Transaction.findOne({
-            userId: investor._id,
-            type: 'commission',
-            createdAt: { $gte: startOfToday }
-          });
-
-          if (alreadyProcessedComm) {
-            console.log(`  ⊘ ${investor.name}: already has commission transaction today, skipping`);
-            continue;
-          }
-
-          // Validate investor has upline
           if (!investor.ancestorPath || investor.ancestorPath.length === 0) {
             continue;
           }
 
-          // Fetch full investor hierarchy for commission calculation
           const investorFull = await User.findById(investor._id).populate('ancestorPath');
           if (!investorFull) {
             continue;
           }
 
-          // Use first processed investment as reference (commissions based on aggregated ROI, not specific investment)
           const refInvestment = investments[0];
 
           try {
             const commResult = await profitBasedCommissionService.distributeProfitBasedCommissions(
               refInvestment,
-              totalRoi,  // Use AGGREGATED daily ROI across all investor's investments
+              totalRoi,
               investorFull
             );
 
@@ -388,12 +304,10 @@ const calculateDailyProfits = async () => {
           console.error(`Error processing investor ${investorId} for commissions:`, err);
         }
       }
-      }
     }
 
     console.log(`✓ PHASE 2 Complete: ${Object.keys(investorDailyRoiMap).length} investors processed for commissions`);
 
-    // Mark lock as successfully completed
     if (lock) {
       await CronLock.findByIdAndUpdate(lock._id, {
         status: 'completed',
