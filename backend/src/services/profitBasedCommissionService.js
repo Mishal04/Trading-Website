@@ -140,6 +140,24 @@ async function calculateProfitBasedCommissions(investor, dailyRoiProfit) {
             continue;
           }
 
+          // ── CRITICAL: Check if commission already exists for this (upline, member, level) today ────
+          // This prevents duplicates when multiple team members trigger commission calculations
+          const now = new Date();
+          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+          const existingComm = await Transaction.findOne({
+            userId: uplineId,
+            type: 'commission',
+            amount: commissionAmount,
+            description: { $regex: `L${level}.*from ${member.name}` },
+            createdAt: { $gte: startOfToday }
+          });
+
+          if (existingComm) {
+            // Commission already created for this level from this member today
+            continue;
+          }
+
           // ── Check upline's income cap (upline must not be over cap) ────
           if (upline.hasReachedIncomeCap && upline.hasReachedIncomeCap()) {
             console.log(`[PROFIT-BASED-COMM] L${level} Upline ${upline.name} income cap reached, skipping`);
