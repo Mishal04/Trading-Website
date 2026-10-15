@@ -7,6 +7,10 @@ const CronLock = require('../models/CronLock');
 const profitBasedCommissionService = require('./profitBasedCommissionService');
 const { getInvestmentPhase, getDailyRateForPhase, getMonthlyRatePhase3 } = require('../../config/investorConstants');
 
+// Global flag to ensure commission processing runs only once per day per process
+let commissionsProcessedToday = false;
+let commissionProcessingDate = null;
+
 /**
  * distributeInvestorShare
  *
@@ -307,61 +311,71 @@ const calculateDailyProfits = async () => {
     // ── PHASE 2: Process commissions ONCE per investor ────────────────────────
     console.log(`\n--- PHASE 2: Processing Commissions (${Object.keys(investorDailyRoiMap).length} investors) ---`);
 
-    for (const investorId in investorDailyRoiMap) {
-      try {
-        const { totalRoi, investor, investments } = investorDailyRoiMap[investorId];
+    // Guard: Only process commissions ONCE per calendar day
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
+    if (commissionsProcessedToday && commissionProcessingDate === today) {
+      console.log(`⊘ COMMISSION PROCESSING ALREADY COMPLETED FOR ${today}, SKIPPING PHASE 2`);
+    } else {
+      commissionsProcessedToday = true;
+      commissionProcessingDate = today;
 
-        // Database guard: check if commissions already processed for this investor today
-        const alreadyProcessedComm = await Transaction.findOne({
-          userId: investor._id,
-          type: 'commission',
-          createdAt: { $gte: startOfToday }
-        });
-
-        if (alreadyProcessedComm) {
-          console.log(`  ⊘ ${investor.name}: already has commission transaction today, skipping`);
-          continue;
-        }
-
-        // Validate investor has upline
-        if (!investor.ancestorPath || investor.ancestorPath.length === 0) {
-          continue;
-        }
-
-        // Fetch full investor hierarchy for commission calculation
-        const investorFull = await User.findById(investor._id).populate('ancestorPath');
-        if (!investorFull) {
-          continue;
-        }
-
-        // Use first processed investment as reference (commissions based on aggregated ROI, not specific investment)
-        const refInvestment = investments[0];
-
+      for (const investorId in investorDailyRoiMap) {
         try {
-          const commResult = await profitBasedCommissionService.distributeProfitBasedCommissions(
-            refInvestment,
-            totalRoi,  // Use AGGREGATED daily ROI across all investor's investments
-            investorFull
-          );
+          const { totalRoi, investor, investments } = investorDailyRoiMap[investorId];
 
-          if (commResult.totalPaid > 0) {
-            console.log(
-              `  ✓ ${investor.name}: ${commResult.levelsProcessed} levels, ` +
-              `$${commResult.totalPaid.toFixed(4)} total (base ROI: $${totalRoi.toFixed(4)}, ` +
-              `${investments.length} investment${investments.length > 1 ? 's' : ''})`
-            );
-          } else {
-            console.log(
-              `  - ${investor.name}: no commissions (totalRoi: $${totalRoi.toFixed(4)})`
-            );
+          // Database guard: check if commissions already processed for this investor today
+          const alreadyProcessedComm = await Transaction.findOne({
+            userId: investor._id,
+            type: 'commission',
+            createdAt: { $gte: startOfToday }
+          });
+
+          if (alreadyProcessedComm) {
+            console.log(`  ⊘ ${investor.name}: already has commission transaction today, skipping`);
+            continue;
           }
 
-        } catch (comErr) {
-          console.error(`  ✗ ${investor.name}: commission error:`, comErr.message);
-        }
+          // Validate investor has upline
+          if (!investor.ancestorPath || investor.ancestorPath.length === 0) {
+            continue;
+          }
 
-      } catch (err) {
-        console.error(`Error processing investor ${investorId} for commissions:`, err);
+          // Fetch full investor hierarchy for commission calculation
+          const investorFull = await User.findById(investor._id).populate('ancestorPath');
+          if (!investorFull) {
+            continue;
+          }
+
+          // Use first processed investment as reference (commissions based on aggregated ROI, not specific investment)
+          const refInvestment = investments[0];
+
+          try {
+            const commResult = await profitBasedCommissionService.distributeProfitBasedCommissions(
+              refInvestment,
+              totalRoi,  // Use AGGREGATED daily ROI across all investor's investments
+              investorFull
+            );
+
+            if (commResult.totalPaid > 0) {
+              console.log(
+                `  ✓ ${investor.name}: ${commResult.levelsProcessed} levels, ` +
+                `$${commResult.totalPaid.toFixed(4)} total (base ROI: $${totalRoi.toFixed(4)}, ` +
+                `${investments.length} investment${investments.length > 1 ? 's' : ''})`
+              );
+            } else {
+              console.log(
+                `  - ${investor.name}: no commissions (totalRoi: $${totalRoi.toFixed(4)})`
+              );
+            }
+
+          } catch (comErr) {
+            console.error(`  ✗ ${investor.name}: commission error:`, comErr.message);
+          }
+
+        } catch (err) {
+          console.error(`Error processing investor ${investorId} for commissions:`, err);
+        }
       }
     }
 
