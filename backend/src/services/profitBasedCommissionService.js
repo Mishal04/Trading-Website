@@ -141,21 +141,20 @@ async function calculateProfitBasedCommissions(investor, dailyRoiProfit) {
           }
 
           // ── CRITICAL: Check if commission already exists for this (upline, member, level) today ────
-          // This prevents duplicates when multiple team members trigger commission calculations
+          // Match by description content: L{level} from {member}, ignoring timestamps
           const now = new Date();
           const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const descriptionPattern = `L${level}.*from ${member.name}`;
 
           const existingComm = await Transaction.findOne({
             userId: uplineId,
-            referenceId: investor._id,
             type: 'commission',
-            amount: commissionAmount,
+            description: { $regex: descriptionPattern },
             createdAt: { $gte: startOfToday }
           });
 
           if (existingComm) {
-            // Commission already created for this exact amount from this source today
-            console.log(`[PROFIT-BASED-COMM-DUP] Skipping duplicate: L${level} from ${member.name} to ${upline.name}`);
+            // Commission already created for this level from this member today
             continue;
           }
 
