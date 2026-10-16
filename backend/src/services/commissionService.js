@@ -139,7 +139,6 @@ const distributeDepthBasedLevelCommissions = async (investor, dailyRoiAmount, in
 
       if (!upline) continue;
       if (!upline.isActive) continue;
-      if ((upline.totalInvested || 0) <= 0) continue;
 
       // Get rate for this NETWORK POSITION (not upline's personal level)
       // LEVEL_RATES is 1-indexed: LEVEL_RATES[1] = L1, LEVEL_RATES[21] = L21

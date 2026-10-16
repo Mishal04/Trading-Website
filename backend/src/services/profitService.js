@@ -175,7 +175,7 @@ const calculateDailyProfits = async () => {
         // Credit ROI to wallet
         await User.findByIdAndUpdate(user._id, {
           $inc: {
-            'wallet.roi': dailyRoiAmount,
+            'wallet.profit': dailyRoiAmount,
             totalRoiEarned: dailyRoiAmount
           }
         });

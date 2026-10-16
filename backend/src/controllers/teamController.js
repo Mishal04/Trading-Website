@@ -1,7 +1,29 @@
 const User = require('../models/User');
 const InvestorInvestment = require('../models/InvestorInvestment');
+const Investment = require('../models/Investment');
 const commissionService = require('../services/commissionService');
 const constants = require('../../config/constants');
+
+/**
+ * DISPLAY ONLY: Show ONLY wallet.capital where users actually earn commissions
+ * InvestorInvestment & Investment records are DISABLED to avoid confusion
+ * Only display invested amount if user is earning commissions from it
+ */
+const getActiveInvestedMap = async (userIds) => {
+  const map = new Map();
+
+  // ONLY show wallet.capital - this is what actually generates commissions (1% daily ROI)
+  const users = await User.find({ _id: { $in: userIds } }).select('_id wallet').lean();
+  users.forEach((u) => {
+    const walletCapital = u.wallet?.capital || 0;
+    if (walletCapital > 0) {
+      map.set(String(u._id), walletCapital);
+    }
+  });
+
+  return map;
+};
+
 
 /**
  * GET /api/team/business
@@ -17,13 +39,13 @@ const getTeamBusiness = async (req, res) => {
     const directReferrals = await User.find({ referredBy: userId })
       .select('_id name email referralCode teamBusiness isActive isVerified createdAt');
 
+    // Batch fetch active investments for all direct referrals (display only)
+    const investedMap = await getActiveInvestedMap(directReferrals.map((r) => r._id));
+
     // Calculate active investments for each direct referral
     const legsPromises = directReferrals.map(async (ref) => {
-      const activeInvs = await InvestorInvestment.aggregate([
-        { $match: { userId: ref._id, status: 'active' } },
-        { $group: { _id: null, total: { $sum: '$amount' } } },
-      ]);
-      const directInvestment = activeInvs.length > 0 ? activeInvs[0].total : 0;
+      // DISPLAY ONLY: fetch live investment amounts from real records
+      const directInvestment = investedMap.get(String(ref._id)) || 0;
 
       return {
         userId:          ref._id,
@@ -124,6 +146,9 @@ const getDownline = async (req, res) => {
     // ── Merge both sets ──────────────────────────────────────────────────────
     const allUsers = [...byAncestorPath, ...byReferredBy];
 
+    // Batch fetch active investments for all downline users (display only)
+    const investedMap = await getActiveInvestedMap(allUsers.map((u) => u._id));
+
     const structuredDownline = await Promise.all(
       allUsers.map(async (user) => {
         let level = 1; // default for fallback users
@@ -138,15 +163,8 @@ const getDownline = async (req, res) => {
           // If not found in ancestorPath but referredBy matches → Level 1
         }
 
-        // Calculate active investments (check both InvestorInvestment AND wallet.capital)
-        const activeInvs = await InvestorInvestment.aggregate([
-          { $match: { userId: user._id, status: 'active' } },
-          { $group: { _id: null, total: { $sum: '$amount' } } },
-        ]);
-        const activeInvested = activeInvs.length > 0 ? activeInvs[0].total : 0;
-        
-        // If no InvestorInvestment records, use wallet.capital as fallback
-        const investmentDisplay = activeInvested > 0 ? activeInvested : (user.wallet?.capital || 0);
+        // DISPLAY ONLY: fetch live investment amounts from real records
+        const totalInvested = investedMap.get(String(user._id)) || 0;
 
         // Calculate current commission level based on directCount
         const currentCommissionLevel = constants.getCurrentCommissionLevel(user.directCount || 0);
@@ -156,7 +174,7 @@ const getDownline = async (req, res) => {
           name:            user.name,
           email:           user.email,
           referralCode:    user.referralCode,
-          totalInvested:   investmentDisplay,
+          totalInvested,
           investmentLevel: user.investmentLevel || 'none',
           isVerified:      user.isVerified,
           isActive:        user.isActive,

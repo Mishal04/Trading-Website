@@ -39,15 +39,14 @@ const isWithinDubaiTradingWindow = () => {
 };
 
 /**
- * BULLETPROOF SCHEDULER: Check every minute for 4 PM Pakistan time
- * This runs locally without Redis and is 100% reliable
+ * BULLETPROOF SCHEDULER: Check every 10 seconds for 4 PM Pakistan time
+ * CRITICAL: Only trigger once per day using MongoDB atomic lock
  */
 const initCronJobs = () => {
-  console.log('\n🚀 Initializing BULLETPROOF Scheduler (Local Memory)');
+  console.log('\n🚀 Initializing BULLETPROOF Scheduler (Local Memory + MongoDB Lock)');
   console.log('   Pattern: Every Mon-Fri at 16:00 (4 PM) Pakistan Time');
-  console.log('   Timezone: Asia/Karachi (Pakistan)\n');
-
-  let lastMinuteChecked = -1; // Track last minute to detect transitions
+  console.log('   Timezone: Asia/Karachi (Pakistan)');
+  console.log('   GUARD: Atomic MongoDB lock prevents ANY concurrent execution\n');
 
   // Check every 10 seconds for 4 PM Pakistan time
   setInterval(async () => {
@@ -61,43 +60,45 @@ const initCronJobs = () => {
       const hour = pakistanTime.getHours();
       const minute = pakistanTime.getMinutes();
       const dayOfWeek = pakistanTime.getDay(); // 0=Sun, 1=Mon, 5=Fri, 6=Sat
+      const todayDate = `${pakistanTime.getFullYear()}-${String(pakistanTime.getMonth() + 1).padStart(2, '0')}-${String(pakistanTime.getDate()).padStart(2, '0')}`;
       
       // Check: Is it 16:00 (4:00 PM) on Monday-Friday?
       const isTargetTime = (hour === 16 && minute === 0);
       const isWeekday = (dayOfWeek >= 1 && dayOfWeek <= 5); // Mon-Fri
-      const minuteJustChanged = (lastMinuteChecked !== minute); // Only true on first check of this minute
       
-      // Get today's date to track if job already ran
-      const todayDate = pakistanTime.toDateString();
-      
-      if (isTargetTime && isWeekday && minuteJustChanged) {
-        // Only run once per day, and only when minute transitions to :00
-        if (lastExecutedDate !== todayDate) {
-          console.log('\n═══════════════════════════════════════════════════════════');
-          console.log('✅ TRIGGER: Daily Profit Calculation');
-          console.log('   Time: 16:00 (4:00 PM) Pakistan Time');
-          console.log(`   Date: ${todayDate}`);
-          console.log('═══════════════════════════════════════════════════════════');
-          
-          try {
-            const result = await profitService.calculateDailyProfits();
-            console.log(`✅ Daily ROI job completed:`);
-            console.log(`   • Processed: ${result?.processedCount || 0} investments`);
-            console.log(`   • Distributed: $${result?.totalProfitDistributed || 0}`);
-            console.log('═══════════════════════════════════════════════════════════\n');
-          } catch (err) {
-            console.error('❌ Daily ROI job failed:', err.message);
-          }
-          
-          lastExecutedDate = todayDate;
+      if (isTargetTime && isWeekday) {
+        // Check if cron already ran today in MongoDB (atomic lock)
+        const CronLock = require('../models/CronLock');
+        const existingLock = await CronLock.findOne({
+          jobName: 'dailyProfits',
+          dateKey: todayDate
+        });
+
+        // If lock exists with completed or running status, skip
+        if (existingLock && (existingLock.status === 'completed' || existingLock.status === 'running')) {
+          return;  // Already running or completed, skip
+        }
+
+        console.log('\n═══════════════════════════════════════════════════════════');
+        console.log('✅ TRIGGER: Daily Profit Calculation');
+        console.log('   Time: 16:00 (4:00 PM) Pakistan Time');
+        console.log(`   Date: ${todayDate}`);
+        console.log('═══════════════════════════════════════════════════════════');
+        
+        try {
+          const result = await profitService.calculateDailyProfits();
+          console.log(`✅ Daily ROI job completed:`);
+          console.log(`   • Processed: ${result?.processedCount || 0} investments`);
+          console.log(`   • Distributed: $${result?.totalProfitDistributed || 0}`);
+          console.log('═══════════════════════════════════════════════════════════\n');
+        } catch (err) {
+          console.error('❌ Daily ROI job failed:', err.message);
         }
       }
-
-      lastMinuteChecked = minute; // Update for next iteration
     } catch (err) {
       console.error('Scheduler check error:', err);
     }
-  }, 10000); // Check every 10 seconds instead of 60 to catch minute transitions faster
+  }, 10000); // Check every 10 seconds
 
   // Monthly Leadership & Performance Reward distribution at 01:00 AM UTC on 1st of every month
   // This uses node-cron for monthly (less critical timing)
