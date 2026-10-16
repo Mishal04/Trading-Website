@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
 const CronLock = require('../models/CronLock');
+const constants = require('../../config/constants');
 
 const { getInvestmentPhase, getDailyRateForPhase, getMonthlyRatePhase3 } = require('../../config/investorConstants');
 
@@ -248,6 +249,7 @@ const calculateDailyProfits = async () => {
           // networkPosition = index + 1 in ancestorPath
           // rate = LEVEL_RATES[networkPosition - 1]
           // commission = (dailyRoiAmount * rate) / 100
+          // BUT: Only pay if upline has unlocked that level based on their directCount
           
           for (let positionIndex = 0; positionIndex < investor.ancestorPath.length; positionIndex++) {
             try {
@@ -257,7 +259,7 @@ const calculateDailyProfits = async () => {
 
               const uplineId = investor.ancestorPath[positionIndex];
               const upline = await User.findById(uplineId)
-                .select('_id name email isActive totalInvested wallet');
+                .select('_id name email isActive totalInvested wallet directCount');
 
               if (!upline) {
                 console.log(`    L${networkPosition}: Upline not found (${uplineId})`);
@@ -266,6 +268,13 @@ const calculateDailyProfits = async () => {
 
               if (!upline.isActive) {
                 console.log(`    L${networkPosition}: ${upline.name} inactive`);
+                continue;
+              }
+
+              // Check if upline has this level unlocked based on their directCount
+              const isLevelUnlocked = constants.isLevelUnlocked(networkPosition, upline.directCount || 0);
+              if (!isLevelUnlocked) {
+                console.log(`    L${networkPosition}: ${upline.name} level not unlocked (has ${upline.directCount || 0} directs)`);
                 continue;
               }
 
