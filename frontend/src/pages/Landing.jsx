@@ -315,6 +315,28 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* 21-Level Team Profit Sharing Visual */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-extrabold text-white mb-2">
+              How Our <span className="gradient-text">21-Level System Works</span>
+            </h2>
+            <p className="text-gray-400 text-sm max-w-2xl mx-auto">
+              Simple example showing how your $1,000 investment generates daily profit and team commissions across all 21 levels.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-6 backdrop-blur-xl overflow-hidden">
+            <img 
+              src="/images/21-level-profit-sharing.jpeg" 
+              alt="21-Level Team Profit Sharing Example - $1,000 Investment" 
+              className="w-full h-auto rounded-xl"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Terms & Conditions Section */}
       <section id="terms" className="py-16 bg-dark-900/40 border-b border-dark-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
