@@ -44,7 +44,9 @@ require('dotenv').config();
       {
         $set: {
           'wallet.profit': 0,
-          'wallet.commission': 0
+          'wallet.commission': 0,
+          'totalRoiEarned': 0,
+          'totalInvested': 0
         }
       }
     );
