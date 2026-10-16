@@ -1,47 +1,63 @@
+#!/usr/bin/env node
+
 const mongoose = require('mongoose');
-require('dotenv').config();
 const Transaction = require('./src/models/Transaction');
+require('dotenv').config();
 
 (async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/trading');
+    await mongoose.connect(process.env.MONGODB_URI);
     
-    console.log('🔍 Transactions Created Today (Oct 15)\n');
+    const startOfToday = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
     
-    // Get today's transactions for commission type
-    const today = new Date('2026-10-15');
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    const txs = await Transaction.find({
-      date: { $gte: today, $lt: tomorrow },
+    const profitTx = await Transaction.countDocuments({
+      type: 'profit',
+      createdAt: { $gte: startOfToday }
+    });
+
+    const commissionTx = await Transaction.countDocuments({
       type: 'commission',
-      description: { $regex: 'profit' }  // profit-based commissions
-    }).sort({ date: -1 });
-    
-    console.log(`Found ${txs.length} profit-based commission transactions\n`);
-    
-    if (txs.length === 0) {
-      console.log('❌ No profit-based transactions found');
-      console.log('\nChecking ALL transactions from today:');
-      
-      const allTxs = await Transaction.find({
-        date: { $gte: today, $lt: tomorrow }
-      }).sort({ date: -1 }).limit(10);
-      
-      allTxs.forEach((tx, i) => {
-        console.log(`${i+1}. Type: ${tx.type}, Amount: $${tx.amount}, User: ${tx.userId}`);
+      createdAt: { $gte: startOfToday }
+    });
+
+    console.log(`ROI Transactions: ${profitTx}`);
+    console.log(`Commission Transactions: ${commissionTx}`);
+    console.log(`Total: ${profitTx + commissionTx}`);
+
+    // Sample some to see levels
+    if (commissionTx > 0) {
+      const sample = await Transaction.find({
+        type: 'commission',
+        createdAt: { $gte: startOfToday }
+      }).limit(20);
+
+      console.log('\nSample Commissions:');
+      sample.forEach(tx => {
+        const match = tx.description.match(/L(\d+)/);
+        const level = match ? match[1] : '?';
+        console.log(`  L${level}: $${tx.amount.toFixed(2)} - ${tx.description.substring(0, 60)}`);
       });
-    } else {
-      txs.forEach((tx, i) => {
-        console.log(`${i+1}. User: ${tx.userId}`);
-        console.log(`   Amount: $${tx.amount}`);
-        console.log(`   Description: ${tx.description}\n`);
+
+      // Check max level
+      const allComm = await Transaction.find({
+        type: 'commission',
+        createdAt: { $gte: startOfToday }
       });
+
+      const levels = new Set();
+      allComm.forEach(tx => {
+        const match = tx.description.match(/L(\d+)/);
+        if (match) levels.add(parseInt(match[1]));
+      });
+
+      const maxLevel = Math.max(...levels);
+      console.log(`\nMax level reached: L${maxLevel}`);
+      console.log(`${maxLevel >= 5 ? '✅ L5+' : '❌ Only up to L4'}`);
     }
-    
-    await mongoose.connection.close();
-  } catch (err) {
-    console.error('Error:', err.message);
+
+    mongoose.connection.close();
+  } catch(e) {
+    console.error('Error:', e.message);
+    process.exit(1);
   }
 })();

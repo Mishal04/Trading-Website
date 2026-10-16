@@ -25,190 +25,188 @@ const constants = require('../../config/constants');
 const LEVEL_RATES = constants.LEVEL_RATES;
 
 /**
- * OPTIMIZED: Find all team members at a specific referral depth from an upline.
- * Uses ancestorPath to avoid recursive queries (massive performance boost).
+ * BATCH OPTIMIZED: Get ALL team members for an upline across ALL levels in ONE query
+ * Then partition them by level in memory (no N queries, just 1)
  * 
- * @param {ObjectId} uplineId - The upline member (tree root for this calculation)
- * @param {number} targetDepth - Which level to find (1-21)
- * @returns {Promise<Array>} Array of User documents at targetDepth with active investments
+ * @param {ObjectId} uplineId - The upline member
+ * @returns {Promise<Object>} { byLevel: { 1: [...], 2: [...], ... }, allMembers: [...] }
  */
-async function findTeamMembersAtDepth(uplineId, targetDepth) {
-  // Use ancestorPath to find members at exact depth
-  // ancestorPath[0] = direct upline, ancestorPath[1] = 2nd level, etc.
-  // So if ancestorPath[targetDepth-1] === uplineId, they're at targetDepth level
-  
-  const query = {
+async function getAllTeamMembersByLevel(uplineId) {
+  // Get ALL descendants of this upline in one query
+  const allDescendants = await User.find({
     isActive: true,
     totalInvested: { $gt: 0 },
-    [`ancestorPath.${targetDepth - 1}`]: uplineId  // Check if upline is at the correct depth
-  };
-  
-  const membersAtTarget = await User.find(query).select('_id name isActive totalInvested');
-  return membersAtTarget;
+    ancestorPath: uplineId  // Any level where uplineId is in the path
+  }).select('_id name isActive totalInvested ancestorPath').lean();
+
+  // Partition by depth
+  const byLevel = {};
+  for (const member of allDescendants) {
+    if (!member.ancestorPath) continue;
+    
+    // Find depth: which position is uplineId in the ancestorPath?
+    const depth = member.ancestorPath.findIndex(id => id.toString() === uplineId.toString()) + 1;
+    if (depth <= 0) continue;  // Not a direct descendant
+    
+    if (!byLevel[depth]) byLevel[depth] = [];
+    byLevel[depth].push(member);
+  }
+
+  return { byLevel, allMembers: allDescendants };
 }
 
 /**
- * Calculate commissions for all unlocked levels for a single investor.
- * This is called after daily ROI is credited to the investor.
+ * Calculate commissions for a single investor's daily ROI profit.
+ * This investor earned dailyRoiProfit today, and we need to distribute it up
+ * the ancestorPath to all their uplines based on unlocked levels and rates.
  * 
- * ALGORITHM:
- * 1. Get investor's upline (direct referrer)
- * 2. For each UNLOCKED level (L1-L21):
- *    a. Find all team members at that depth relative to upline
- *    b. For each member: commission = investor's daily ROI × level rate
- *    c. Credit commission to upline member
+ * LOGIC:
+ * - Investor X earned $10 daily ROI
+ * - Walk up ancestorPath: L1 upline, L2 upline, L3 upline, etc.
+ * - For each upline, check their unlocked levels (based on directCount)
+ * - If upline has L1 unlocked, credit them L1% of investor's ROI
+ * - If upline has L2 unlocked, credit them L2% of investor's ROI
+ * - etc.
  * 
- * @param {Object} investor - User document with ancestorPath and totalInvested
- * @param {number} dailyRoiProfit - Daily ROI amount (e.g., $1.50 from daily calculation)
- * @returns {Promise<Object>} { totalPaid: number, levelsProcessed: number, details: Array }
+ * @param {Object} investor - User document with ancestorPath (the one earning ROI)
+ * @param {number} dailyRoiProfit - Daily ROI profit amount this investor earned
+ * @returns {Promise<Object>} { totalPaid, levelsProcessed, details }
  */
 async function calculateProfitBasedCommissions(investor, dailyRoiProfit) {
   const result = {
     totalPaid: 0,
     levelsProcessed: 0,
-    details: []
+    details: [],
+    error: null
   };
 
   // ── VALIDATION ────────────────────────────────────────────────────────
   if (!investor || !investor._id) {
-    return result;  // Invalid investor
+    console.warn(`[PROFIT-BASED-COMM] Invalid investor:`, investor);
+    result.error = 'Invalid investor';
+    return result;
   }
-
+  
   if (!investor.ancestorPath || investor.ancestorPath.length === 0) {
-    return result;  // No upline, no commissions
+    console.log(`[PROFIT-BASED-COMM] ${investor.name || investor._id} has no uplines (root)`);
+    return result;
+  }
+  
+  if (!dailyRoiProfit || dailyRoiProfit <= 0) {
+    console.log(`[PROFIT-BASED-COMM] Invalid ROI amount: ${dailyRoiProfit} for ${investor.name || investor._id}`);
+    return result;
   }
 
-  if (dailyRoiProfit <= 0) {
-    return result;  // No profit, no commissions
-  }
+  console.log(`[PROFIT-BASED-COMM] Processing commissions for ${investor.name} (ROI: $${dailyRoiProfit.toFixed(2)}, ancestors: ${investor.ancestorPath.length})`);
 
-  if ((investor.totalInvested || 0) <= 0) {
-    return result;  // No active investment, no commissions
-  }
-
-  // ── STEP 1: Get the direct upline (investor's referrer) ────────────────
-  const uplineId = investor.ancestorPath[0];
-  const upline = await User.findById(uplineId).select('name email isActive totalInvested directCount role');
-
-  if (!upline || !upline.isActive || (upline.totalInvested || 0) <= 0) {
-    return result;  // Upline not active or has no investment, no commissions
-  }
-
-  // ── STEP 2: Determine upline's unlocked levels ─────────────────────────
-  // Levels unlock from L21 downward based on upline's direct referral count
-  const unlockedLevelNumbers = constants.getUnlockedLevelNumbers(upline.directCount || 0);
-
-  if (unlockedLevelNumbers.length === 0) {
-    return result;  // Upline has no unlocked levels yet
-  }
-
-  // ── STEP 3: Process each unlocked level ───────────────────────────────
-  for (const level of unlockedLevelNumbers) {
+  // ── Walk up ancestorPath and pay each upline ──────────────────────────
+  for (let levelIndex = 0; levelIndex < investor.ancestorPath.length; levelIndex++) {
     try {
-      // Find all team members at this depth relative to upline
-      const membersAtLevel = await findTeamMembersAtDepth(uplineId, level);
+      const uplineId = investor.ancestorPath[levelIndex];
+      const levelNumber = levelIndex + 1;  // L1, L2, L3, ...
 
-      if (membersAtLevel.length === 0) {
-        continue;  // No members at this level
+      // STOP at L21 maximum
+      if (levelNumber > 21) {
+        console.log(`[PROFIT-BASED-COMM] Stopping at L21 (ancestorPath too deep)`);
+        break;
       }
 
-      // Get the commission rate for this level (LEVEL_RATES is 1-indexed)
-      const ratePercent = LEVEL_RATES[level];
+      const upline = await User.findById(uplineId).select('name email isActive totalInvested directCount role');
+      if (!upline) {
+        console.warn(`[PROFIT-BASED-COMM] Upline not found: ${uplineId}`);
+        continue;
+      }
+      
+      if (!upline.isActive) {
+        console.log(`[PROFIT-BASED-COMM] L${levelNumber} upline inactive: ${upline.name}`);
+        continue;
+      }
+      
+      if ((upline.totalInvested || 0) <= 0) {
+        console.log(`[PROFIT-BASED-COMM] L${levelNumber} upline no investments: ${upline.name}`);
+        continue;
+      }
 
+      // ✅ FIX: DEPTH-BASED commissions do NOT check unlock levels
+      // The network position (L1, L2, ... L21) is based purely on ancestorPath depth.
+      // Each upline receives commission for their position regardless of their directCount.
+      // Unlock-level restrictions only apply to leg commissions, not daily profit commissions.
+
+      const ratePercent = LEVEL_RATES[levelNumber];
       if (!ratePercent || ratePercent <= 0) {
-        continue;  // Invalid rate for this level
+        console.warn(`[PROFIT-BASED-COMM] Invalid rate for L${levelNumber}: ${ratePercent}`);
+        continue;
       }
 
-      // ── Calculate commission for each member at this level ──────────────
-      for (const member of membersAtLevel) {
-        try {
-          // Get member's active investments to calculate their daily ROI
-          const memberInvs = await InvestorInvestment.find({ userId: member._id, status: 'active' }).lean();
-          let memberDailyRoi = 0;
-          memberInvs.forEach(inv => {
-            memberDailyRoi += inv.amount * inv.dailyRate;
-          });
+      const commissionAmount = Number(((dailyRoiProfit * ratePercent) / 100).toFixed(4));
+      if (commissionAmount <= 0) {
+        console.log(`[PROFIT-BASED-COMM] Zero commission for L${levelNumber}`);
+        continue;
+      }
 
-          if (memberDailyRoi <= 0) {
-            continue;  // Member has no active profit
-          }
+      console.log(`[PROFIT-BASED-COMM] Creating commission: L${levelNumber} | ${upline.name} | $${commissionAmount}`);
 
-          // Commission = member's daily ROI profit × level rate
-          const commissionAmount = Number(((memberDailyRoi * ratePercent) / 100).toFixed(4));
-
-          if (commissionAmount <= 0) {
-            continue;
-          }
-
-          // ── Check upline's income cap (upline must not be over cap) ────
-          if (upline.hasReachedIncomeCap && upline.hasReachedIncomeCap()) {
-            console.log(`[PROFIT-BASED-COMM] L${level} Upline ${upline.name} income cap reached, skipping`);
-            continue;
-          }
-
-          // ── Credit commission to upline ───────────────────────────────
-          await User.findByIdAndUpdate(uplineId, {
-            $inc: {
-              'wallet.commission': commissionAmount,
-              totalEarned: commissionAmount
-            }
-          });
-
-          // ── Log commission transaction ────────────────────────────────
-          await CommissionLog.create({
-            recipientId: uplineId,
-            sourceUserId: investor._id,
-            level: level,
-            commissionType: 'profit_based_level',
-            rate: ratePercent,
-            baseAmount: memberDailyRoi,
-            commissionAmount,
-            description: `L${level} profit-based commission (${ratePercent}%) from ${member.name}'s $${memberDailyRoi.toFixed(2)} daily ROI`
-          });
-
-          // ── Create audit transaction ──────────────────────────────────
-          await Transaction.create({
-            userId: uplineId,
-            type: 'commission',
-            amount: commissionAmount,
-            status: 'completed',
-            description: `L${level} profit-based commission (${ratePercent}%) from ${member.name}'s $${memberDailyRoi.toFixed(2)} daily ROI`,
-            referenceId: investor._id,
-            referenceModel: 'User'
-          });
-
-          // ── Send notification ─────────────────────────────────────────
-          await Notification.create({
-            userId: uplineId,
-            title: 'Commission Received',
-            message: `You earned $${commissionAmount.toFixed(2)} in Level ${level} commission from ${member.name}'s daily ROI!`,
-            type: 'commission'
-          });
-
-          result.totalPaid += commissionAmount;
-          result.details.push({
-            level,
-            rate: ratePercent,
-            upline: upline.name,
-            teamMember: member.name,
-            memberDailyRoi,
-            commissionAmount
-          });
-
-          console.log(
-            `[PROFIT-BASED-COMM] L${level} | Rate=${ratePercent}% | Base=$${memberDailyRoi.toFixed(2)} | ` +
-            `Commission=$${commissionAmount.toFixed(4)} | From: ${member.name} → ${upline.name}`
-          );
-
-        } catch (memberErr) {
-          console.error(`[PROFIT-BASED-COMM] Error processing L${level} member ${member._id}:`, memberErr.message);
+      // ── Credit commission to upline ───────────────────────────────────
+      const userUpdate = await User.findByIdAndUpdate(uplineId, {
+        $inc: {
+          'wallet.commission': commissionAmount,
+          totalEarned: commissionAmount
         }
-      }
+      });
+      console.log(`[PROFIT-BASED-COMM] Updated user wallet: ${userUpdate ? 'OK' : 'FAILED'}`);
 
+      // ── Log transaction ──────────────────────────────────────────────
+      const commLog = await CommissionLog.create({
+        recipientId: uplineId,
+        sourceUserId: investor._id,
+        level: levelNumber,
+        commissionType: 'profit_based_level',
+        rate: ratePercent,
+        baseAmount: dailyRoiProfit,
+        commissionAmount,
+        description: `L${levelNumber} profit-based commission (${ratePercent}%) from ${investor.name}'s $${dailyRoiProfit.toFixed(2)} daily ROI`
+      });
+      console.log(`[PROFIT-BASED-COMM] Created commission log: ${commLog._id}`);
+
+      // ── Create transaction ──────────────────────────────────────────
+      const txn = await Transaction.create({
+        userId: uplineId,
+        type: 'commission',
+        amount: commissionAmount,
+        status: 'completed',
+        description: `L${levelNumber} profit-based commission (${ratePercent}%) from ${investor.name}'s $${dailyRoiProfit.toFixed(2)} daily ROI`,
+        referenceId: investor._id,
+        referenceModel: 'User'
+      });
+      console.log(`[PROFIT-BASED-COMM] Created transaction: ${txn._id}`);
+
+      // ── Notification ────────────────────────────────────────────────
+      const notif = await Notification.create({
+        userId: uplineId,
+        title: 'Commission Received',
+        message: `You earned $${commissionAmount.toFixed(2)} in Level ${levelNumber} commission from ${investor.name}'s daily ROI!`,
+        type: 'commission'
+      });
+      console.log(`[PROFIT-BASED-COMM] Created notification: ${notif._id}`);
+
+      result.totalPaid += commissionAmount;
       result.levelsProcessed++;
+      result.details.push({
+        level: levelNumber,
+        rate: ratePercent,
+        uplineName: upline.name,
+        baseAmount: dailyRoiProfit,
+        commissionAmount
+      });
+
+      console.log(
+        `✓ [PROFIT-BASED-COMM] L${levelNumber} | Rate=${ratePercent}% | Base=$${dailyRoiProfit.toFixed(2)} | ` +
+        `Commission=$${commissionAmount.toFixed(4)} | From: ${investor.name} → ${upline.name}`
+      );
 
     } catch (levelErr) {
-      console.error(`[PROFIT-BASED-COMM] Error processing level ${level}:`, levelErr.message);
+      console.error(`✗ [PROFIT-BASED-COMM] Error processing L${levelIndex + 1}:`, levelErr);
+      result.error = levelErr.message;
     }
   }
 
@@ -314,7 +312,7 @@ async function batchRecalculateCommissions() {
 }
 
 module.exports = {
-  findTeamMembersAtDepth,
+  getAllTeamMembersByLevel,
   calculateProfitBasedCommissions,
   distributeProfitBasedCommissions,
   batchRecalculateCommissions
