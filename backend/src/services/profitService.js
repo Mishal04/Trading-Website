@@ -269,11 +269,6 @@ const calculateDailyProfits = async () => {
                 continue;
               }
 
-              if ((upline.totalInvested || 0) <= 0) {
-                console.log(`    L${networkPosition}: ${upline.name} no investment`);
-                continue;
-              }
-
               // Get rate for this network position (depth-based, not upline's personal level)
               // LEVEL_RATES is 1-indexed: LEVEL_RATES[1] = L1, LEVEL_RATES[21] = L21
               const ratePercent = LEVEL_RATES[networkPosition];
