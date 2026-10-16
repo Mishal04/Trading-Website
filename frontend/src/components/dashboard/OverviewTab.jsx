@@ -486,24 +486,6 @@ export default function OverviewTab({ stats, user, onRefresh }) {
         {/* Stats Sidebar */}
         <div className="space-y-4">
           <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-5">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Investment Metrics</h4>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Total Invested</span>
-                <span className="text-sm font-bold text-white">${Number(investments.totalInvested || 0).toLocaleString()}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Active Packages</span>
-                <span className="text-sm font-bold text-gold-400">{investments.activeCount || 0}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Total Profit Earned</span>
-                <span className="text-sm font-bold text-emerald-400">${Number(investments.totalProfitEarned || 0).toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-5">
             <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Network Metrics</h4>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
