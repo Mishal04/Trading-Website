@@ -272,9 +272,19 @@ const calculateDailyProfits = async () => {
               }
 
               // ✅ CHECK: Is this level unlocked for this upline based on directCount?
+              const unlockedCount = constants.getUnlockedLevelCount(upline.directCount || 0);
+              
+              // IMPORTANT: Only pay commissions up to upline's unlocked level
+              // Example: If upline unlocked 8 levels, only pay L1-L8, not L9+
+              if (networkPosition > unlockedCount) {
+                console.log(`    L${networkPosition}: ${upline.name} cannot receive (unlocked only ${unlockedCount} levels)`);
+                continue;
+              }
+              
+              // Verify the level is actually unlocked using proper check
               const isLevelUnlocked = constants.isLevelUnlocked(networkPosition, upline.directCount || 0);
               if (!isLevelUnlocked) {
-                console.log(`    L${networkPosition}: ${upline.name} has not unlocked this level (directCount: ${upline.directCount || 0})`);
+                console.log(`    L${networkPosition}: ${upline.name} has not unlocked this level`);
                 continue;
               }
 
