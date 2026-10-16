@@ -157,6 +157,7 @@ module.exports = {
    * Uses forward unlock order: L1 unlocks first, then L2, L3, ... L21 last.
    * 
    * Example:
+   *   directCount=0 → 1 level unlocked → L1 only
    *   directCount=1 → 2 levels unlocked → L1, L2 are unlocked
    *   directCount=2 → 4 levels unlocked → L1, L2, L3, L4 are unlocked
    *   directCount=8 → 16 levels unlocked → L1-L16 are unlocked
@@ -168,6 +169,11 @@ module.exports = {
    */
   isLevelUnlocked(level, directCount) {
     if (level < 1 || level > 21) return false;
+    
+    // With 0 directs, users can still earn L1 commissions
+    if (!directCount || directCount <= 0) {
+      return level === 1;  // Only L1 unlocked for users with 0 directs
+    }
     
     const unlockedCount = this.getUnlockedLevelCount(directCount);
     if (unlockedCount <= 0) return false;
