@@ -328,7 +328,27 @@ export default function OverviewTab({ stats, user, onRefresh }) {
                   <h3 className="text-sm font-bold text-white">Admin Bank Account</h3>
                   <p className="text-xs text-gray-500">Bank transfer details for deposits</p>
                 </div>
-                <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ACTIVE</span>
+                <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">LIVE</span>
+                <button
+                  onClick={async () => {
+                    setWalletLoading(true);
+                    try {
+                      const res = await adminAPI.getAdminSettings();
+                      if (res.data?.data?.settings) {
+                        setAdminSettings(res.data.data.settings);
+                      }
+                    } catch (err) {
+                      console.log('Failed to refresh settings');
+                    } finally {
+                      setWalletLoading(false);
+                    }
+                  }}
+                  disabled={walletLoading}
+                  className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-emerald-400 transition-colors disabled:opacity-50"
+                  title="Refresh bank details"
+                >
+                  <RefreshCw size={14} className={walletLoading ? 'animate-spin' : ''} />
+                </button>
               </div>
               
               <div className="space-y-3 mt-4">

@@ -147,6 +147,8 @@ export default function InvestTab({ onRefresh }) {
   // Dynamic wallet state
   const [paymentMethods, setPaymentMethods] = useState(PAYMENT_METHODS_BASE);
   const [walletLoading, setWalletLoading] = useState(true);
+  const [adminSettings, setAdminSettings] = useState(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
 
   const copyToClipboard = (text, fieldKey) => {
     navigator.clipboard.writeText(text);
@@ -183,9 +185,25 @@ export default function InvestTab({ onRefresh }) {
     }
   };
 
-  // Fetch wallet on mount
+  // Fetch admin settings (bank details)
+  const fetchAdminSettings = async () => {
+    try {
+      setSettingsLoading(true);
+      const res = await adminAPI.getAdminSettings();
+      if (res.data?.data?.settings) {
+        setAdminSettings(res.data.data.settings);
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin settings:', err);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  // Fetch wallet and settings on mount
   useEffect(() => {
     fetchCurrentWallet();
+    fetchAdminSettings();
   }, []);
 
   const handleAmountChange = (val) => {
@@ -598,7 +616,7 @@ export default function InvestTab({ onRefresh }) {
                 <div className="rounded-2xl border border-gold-500/30 bg-gradient-to-b from-dark-900 via-dark-950 to-dark-900 p-4 sm:p-5 space-y-4 shadow-xl shadow-black/40 relative overflow-hidden">
                   <div className="absolute -top-12 -right-12 w-48 h-48 bg-gold-500/5 rounded-full blur-3xl pointer-events-none" />
 
-                  {/* Top Bar with Bank Info & Copy All */}
+                  {/* Top Bar with Bank Info & Refresh Button */}
                   <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b border-dark-700/80 relative">
                     <div className="flex items-center gap-2.5">
                       <div className="w-10 h-10 rounded-xl bg-gold-400/15 border border-gold-400/30 flex items-center justify-center text-gold-400 shrink-0 shadow-inner">
@@ -608,38 +626,52 @@ export default function InvestTab({ onRefresh }) {
                         <div className="flex items-center gap-1.5">
                           <h5 className="text-sm font-bold text-white tracking-wide">Official Bank Deposit Account</h5>
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                            <ShieldCheck size={10} /> Verified
+                            <ShieldCheck size={10} /> LIVE
                           </span>
                         </div>
                         <p className="text-[11px] text-gray-400 mt-0.5">Deposit via IMPS / NEFT / RTGS / NetBanking</p>
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const fullBankText = method.fields.map(f => `${f.label}: ${f.value}`).join('\n');
-                        copyToClipboard(fullBankText, 'ALL_BANK_DETAILS');
-                      }}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-dark-800 hover:bg-gold-400/10 border border-dark-600 hover:border-gold-400/40 text-gray-200 hover:text-gold-400 transition-all text-xs font-semibold active:scale-95 shadow-sm"
-                    >
-                      {copiedField === 'ALL_BANK_DETAILS' ? (
-                        <>
-                          <CheckIcon size={14} className="text-emerald-400" />
-                          <span className="text-emerald-400 font-bold">All Details Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={14} />
-                          <span>Copy All Bank Details</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const fullBankText = adminSettings?.bankDetails && Object.entries(adminSettings.bankDetails)
+                            .filter(([_, v]) => v)
+                            .map(([k, v]) => `${k}: ${v}`)
+                            .join('\n') || 'No bank details available';
+                          copyToClipboard(fullBankText, 'ALL_BANK_DETAILS');
+                        }}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-dark-800 hover:bg-gold-400/10 border border-dark-600 hover:border-gold-400/40 text-gray-200 hover:text-gold-400 transition-all text-xs font-semibold active:scale-95 shadow-sm"
+                      >
+                        {copiedField === 'ALL_BANK_DETAILS' ? (
+                          <>
+                            <CheckIcon size={14} className="text-emerald-400" />
+                            <span className="text-emerald-400 font-bold">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} />
+                            <span>Copy All</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={fetchAdminSettings}
+                        disabled={settingsLoading}
+                        className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-gold-400 transition-colors disabled:opacity-50"
+                        title="Refresh bank details"
+                      >
+                        <RefreshCw size={14} className={settingsLoading ? 'animate-spin' : ''} />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Prominent Primary Cards: Account Number & IFSC */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative">
-                    {/* Account Number Box */}
+                  {/* Account Number Box */}
                     <div className="rounded-xl p-3.5 bg-dark-800/90 border border-gold-500/30 hover:border-gold-400/60 transition-all shadow-sm">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-gold-400">Account Number</span>
@@ -647,11 +679,11 @@ export default function InvestTab({ onRefresh }) {
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-1.5">
                         <span className="font-mono text-base sm:text-lg font-extrabold text-white tracking-wider select-all">
-                          1603020000000728
+                          {adminSettings?.bankDetails?.accountNumber || '1603020000000728'}
                         </span>
                         <button
                           type="button"
-                          onClick={() => copyToClipboard('1603020000000728', 'Account Number')}
+                          onClick={() => copyToClipboard(adminSettings?.bankDetails?.accountNumber || '1603020000000728', 'Account Number')}
                           className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gold-400/15 hover:bg-gold-400/25 border border-gold-400/40 text-gold-400 text-xs font-bold transition-all active:scale-95"
                           title="Copy Account Number"
                         >
@@ -672,11 +704,11 @@ export default function InvestTab({ onRefresh }) {
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-1.5">
                         <span className="font-mono text-base sm:text-lg font-extrabold text-emerald-400 tracking-wider select-all">
-                          UTKS0001603
+                          {adminSettings?.bankDetails?.ifscCode || 'UTKS0001603'}
                         </span>
                         <button
                           type="button"
-                          onClick={() => copyToClipboard('UTKS0001603', 'IFSC Code')}
+                          onClick={() => copyToClipboard(adminSettings?.bankDetails?.ifscCode || 'UTKS0001603', 'IFSC Code')}
                           className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gold-400/15 hover:bg-gold-400/25 border border-gold-400/40 text-gold-400 text-xs font-bold transition-all active:scale-95"
                           title="Copy IFSC Code"
                         >
@@ -695,10 +727,10 @@ export default function InvestTab({ onRefresh }) {
                     <div className="flex items-center justify-between gap-2 rounded-xl bg-dark-900/90 border border-dark-700/80 px-3.5 py-2.5">
                       <span className="text-xs text-gray-400 font-medium">Bank Name</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white">UTKARSH SFB</span>
+                        <span className="text-xs font-bold text-white">{adminSettings?.bankDetails?.bankName || 'UTKARSH SFB'}</span>
                         <button
                           type="button"
-                          onClick={() => copyToClipboard('UTKARSH SFB', 'Bank Name')}
+                          onClick={() => copyToClipboard(adminSettings?.bankDetails?.bankName || 'UTKARSH SFB', 'Bank Name')}
                           className="p-1 rounded text-gray-400 hover:text-gold-400 hover:bg-dark-700 transition-colors"
                           title="Copy Bank Name"
                         >
@@ -710,10 +742,10 @@ export default function InvestTab({ onRefresh }) {
                     <div className="flex items-center justify-between gap-2 rounded-xl bg-dark-900/90 border border-dark-700/80 px-3.5 py-2.5">
                       <span className="text-xs text-gray-400 font-medium">Account Name</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white">OBO ENTERPRISES</span>
+                        <span className="text-xs font-bold text-white">{adminSettings?.bankDetails?.accountName || 'OBO ENTERPRISES'}</span>
                         <button
                           type="button"
-                          onClick={() => copyToClipboard('OBO ENTERPRISES', 'Account Name')}
+                          onClick={() => copyToClipboard(adminSettings?.bankDetails?.accountName || 'OBO ENTERPRISES', 'Account Name')}
                           className="p-1 rounded text-gray-400 hover:text-gold-400 hover:bg-dark-700 transition-colors"
                           title="Copy Account Name"
                         >
@@ -725,10 +757,10 @@ export default function InvestTab({ onRefresh }) {
                     <div className="flex items-center justify-between gap-2 rounded-xl bg-dark-900/90 border border-dark-700/80 px-3.5 py-2.5">
                       <span className="text-xs text-gray-400 font-medium">Branch</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white">Kharghar</span>
+                        <span className="text-xs font-bold text-white">{adminSettings?.bankDetails?.branch || 'Kharghar'}</span>
                         <button
                           type="button"
-                          onClick={() => copyToClipboard('Kharghar', 'Branch')}
+                          onClick={() => copyToClipboard(adminSettings?.bankDetails?.branch || 'Kharghar', 'Branch')}
                           className="p-1 rounded text-gray-400 hover:text-gold-400 hover:bg-dark-700 transition-colors"
                           title="Copy Branch"
                         >
