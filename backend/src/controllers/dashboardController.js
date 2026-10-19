@@ -48,6 +48,41 @@ const getDashboardStats = async (req, res) => {
     const directCount = user.directCount || (user.referrals ? user.referrals.count : 0);
     const unlockedLevels = constants.getUnlockedLevelCount(directCount);
 
+    // ── RECALCULATE TEAM BUSINESS DYNAMICALLY ──
+    // Get all downline users and their wallet.capital
+    const downlineUsers = await User.find({ ancestorPath: userId })
+      .select('_id wallet')
+      .lean();
+
+    let totalTeamCapital = 0;
+    for (const downlineUser of downlineUsers) {
+      totalTeamCapital += downlineUser.wallet?.capital || 0;
+    }
+
+    // For 60/40 calculation, get direct referrals
+    const directReferrals = await User.find({ referredBy: userId })
+      .select('_id wallet teamBusiness')
+      .lean();
+
+    let strongTeamVolume = 0;
+    let otherTeamVolume = 0;
+
+    if (directReferrals.length > 0) {
+      // Calculate volume for each leg = direct investment + their team business
+      const legVolumes = directReferrals.map(ref => {
+        const directCapital = ref.wallet?.capital || 0;
+        const teamVolume = (ref.teamBusiness?.total || 0) + directCapital;
+        return teamVolume;
+      });
+
+      // Sort to identify strongest leg
+      legVolumes.sort((a, b) => b - a);
+      strongTeamVolume = legVolumes[0] || 0;
+      otherTeamVolume = legVolumes.slice(1).reduce((sum, v) => sum + v, 0);
+    }
+
+    const totalTeamVolume = strongTeamVolume + otherTeamVolume;
+
     return res.json({
       success: true,
       data: {
@@ -82,7 +117,11 @@ const getDashboardStats = async (req, res) => {
         team: {
           directCount,
           unlockedLevels,
-          teamBusiness: user.teamBusiness || { strongTeam: 0, otherTeam: 0, total: 0 }
+          teamBusiness: { 
+            strongTeam: strongTeamVolume, 
+            otherTeam: otherTeamVolume, 
+            total: totalTeamVolume 
+          }
         },
         incomeCap: {
           role,
