@@ -489,7 +489,18 @@ export default function InvestTab({ onRefresh }) {
                 <label className="text-xs font-semibold text-gray-200 flex items-center gap-1">
                   Select Payment Method <span className="text-red-400">*</span>
                 </label>
-                <span className="text-[11px] text-gray-400">Choose preferred transfer mode</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-gray-400">Choose preferred transfer mode</span>
+                  <button
+                    type="button"
+                    onClick={fetchCurrentWallet}
+                    disabled={walletLoading}
+                    className="p-1.5 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-gold-400 transition-colors disabled:opacity-50"
+                    title="Refresh payment methods"
+                  >
+                    <RefreshCw size={14} className={walletLoading ? 'animate-spin' : ''} />
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -547,13 +558,14 @@ export default function InvestTab({ onRefresh }) {
               if (method.type === 'crypto') {
                 return (
                   <div className="rounded-2xl border border-gold-500/30 bg-gradient-to-b from-dark-900 via-dark-950 to-dark-900 p-4 sm:p-5 space-y-4 shadow-xl shadow-black/40 relative overflow-hidden">
-                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-dark-700/80">
-                      <div className="flex items-center gap-2 text-xs font-bold text-gray-200 uppercase tracking-wider">
-                        <Coins size={15} className="text-gold-400" />
-                        Send {method.label} Deposit
-                      </div>
-                      <span className="text-[11px] text-gray-400 font-mono">Network: {method.sub}</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-dark-700/80">
+                    <div className="flex items-center gap-2 text-xs font-bold text-gray-200 uppercase tracking-wider">
+                      <Coins size={15} className="text-gold-400" />
+                      Send {method.label} Deposit
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-400/20 text-emerald-400 border border-emerald-400/30">LIVE</span>
                     </div>
+                    <span className="text-[11px] text-gray-400 font-mono">Network: {method.sub}</span>
+                  </div>
 
                     <div>
                       <span className="text-[11px] text-gray-400 block mb-1.5 font-medium">Deposit Address (Click to copy)</span>

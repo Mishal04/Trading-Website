@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'; 
 import { 
   Wallet, 
   TrendingUp, 
@@ -11,7 +11,8 @@ import {
   ShieldCheck,
   Clock,
   Coins,
-  Building2
+  Building2,
+  RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
@@ -246,7 +247,27 @@ export default function OverviewTab({ stats, user, onRefresh }) {
                   <h3 className="text-sm font-bold text-white">Current Deposit Wallet</h3>
                   <p className="text-xs text-gray-500">Send cryptocurrency here for deposits</p>
                 </div>
-                <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold bg-gold-500/20 text-gold-400 border border-gold-500/30">ACTIVE</span>
+                <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold bg-gold-500/20 text-gold-400 border border-gold-500/30">LIVE</span>
+                <button
+                  onClick={async () => {
+                    setWalletLoading(true);
+                    try {
+                      const res = await adminAPI.getCurrentWallet();
+                      if (res.data?.data?.wallet) {
+                        setCurrentWallet(res.data.data.wallet);
+                      }
+                    } catch (err) {
+                      console.log('Failed to refresh wallet');
+                    } finally {
+                      setWalletLoading(false);
+                    }
+                  }}
+                  disabled={walletLoading}
+                  className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-gold-400 transition-colors disabled:opacity-50"
+                  title="Refresh wallet details"
+                >
+                  <RefreshCw size={14} className={walletLoading ? 'animate-spin' : ''} />
+                </button>
               </div>
               
               <div className="space-y-3 mt-4">
