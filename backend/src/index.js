@@ -282,6 +282,16 @@ const startServer = async () => {
     process.exit(1);
   }
 
+  // ── Verify email configuration at startup ──
+  console.log('\n🔧 Verifying email configuration...');
+  const { verifyEmailConfig } = require('./services/emailService');
+  const emailReady = await verifyEmailConfig();
+  if (!emailReady) {
+    console.warn('⚠️  Email service is not ready. Password reset and verification emails will not be sent.');
+  } else {
+    console.log('✅ Email service verified and ready\n');
+  }
+
   await connectDB();
   const { initCronJobs } = require('./config/cronJobs');
   console.log('\n🚀 Initializing cron jobs...');

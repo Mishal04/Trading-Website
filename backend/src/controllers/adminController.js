@@ -2181,6 +2181,85 @@ const updateAdminSettings = async (req, res) => {
   }
 };
 
+/**
+ * PATCH /api/admin/users/:id/reset-password
+ * Admin resets a user's password to a temporary password
+ * User can then change it themselves after logging in
+ */
+const adminResetUserPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { temporaryPassword } = req.body;
+
+    if (!temporaryPassword || typeof temporaryPassword !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Temporary password is required'
+      });
+    }
+
+    if (temporaryPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Temporary password must be at least 6 characters'
+      });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update password (will be hashed by pre-save hook)
+    user.password = temporaryPassword;
+    await user.save();
+
+    // Create audit log
+    await User.collection.updateOne(
+      { _id: user._id },
+      {
+        $push: {
+          passwordResets: {
+            resetBy: req.user._id,
+            resetAt: new Date(),
+            note: 'Admin password reset'
+          }
+        }
+      }
+    );
+
+    // Send notification to user
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      userId: user._id,
+      title: '🔐 Password Reset by Admin',
+      message: `Your password has been reset by an administrator. Please log in with your temporary password and change it immediately.`,
+      type: 'alert'
+    });
+
+    return res.json({
+      success: true,
+      message: `Password reset successfully for ${user.name}`,
+      data: {
+        userId: user._id,
+        name: user.name,
+        email: user.email,
+        temporaryPassword: temporaryPassword,
+        resetAt: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('Admin reset password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error resetting user password'
+    });
+  }
+};
+
 module.exports = {
   getSystemStats,
   getSystemPools,
@@ -2219,5 +2298,6 @@ module.exports = {
   updateWallet,
   deleteWallet,
   getAdminSettings,
-  updateAdminSettings
+  updateAdminSettings,
+  adminResetUserPassword
 };

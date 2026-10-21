@@ -6,6 +6,8 @@ import Footer from './components/Footer';
 import Landing from './pages/Landing';
 import Register from './pages/Register';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import VerifyEmail from './pages/VerifyEmail';
 
@@ -84,6 +86,8 @@ export default function App() {
           <Route path="/"                     element={<Landing />} />
           <Route path="/register"             element={<PublicOnly><Register /></PublicOnly>} />
           <Route path="/login"                element={<PublicOnly><Login /></PublicOnly>} />
+          <Route path="/forgot-password"      element={<PublicOnly><ForgotPassword /></PublicOnly>} />
+          <Route path="/reset-password"       element={<ResetPassword />} />
           <Route path="/verify-email/:token"  element={<VerifyEmail />} />
           <Route
             path="/dashboard/*"

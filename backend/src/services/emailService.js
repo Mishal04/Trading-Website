@@ -30,28 +30,43 @@ const verifyEmailConfig = async () => {
   if (!validateEmailConfig()) {
     console.error('[EMAIL] Configuration is incomplete. Email service will not work.');
     console.error('[EMAIL] Please ensure EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, CLIENT_URL are set.');
+    console.error('[EMAIL] Current config:');
+    console.error('[EMAIL]   EMAIL_HOST:', process.env.EMAIL_HOST);
+    console.error('[EMAIL]   EMAIL_PORT:', process.env.EMAIL_PORT);
+    console.error('[EMAIL]   EMAIL_USER:', process.env.EMAIL_USER);
+    console.error('[EMAIL]   EMAIL_PASS: [' + (process.env.EMAIL_PASS ? 'SET' : 'MISSING') + ']');
+    console.error('[EMAIL]   CLIENT_URL:', process.env.CLIENT_URL);
     return false;
   }
 
   try {
+    console.log('[EMAIL] Testing SMTP connection with:');
+    console.log('[EMAIL]   Host:', process.env.EMAIL_HOST);
+    console.log('[EMAIL]   Port:', process.env.EMAIL_PORT);
+    console.log('[EMAIL]   User:', process.env.EMAIL_USER);
+    console.log('[EMAIL]   Secure:', parseInt(process.env.EMAIL_PORT, 10) === 465);
+    
     await transporter.verify();
-    console.log('[EMAIL] Service configured successfully');
+    console.log('[EMAIL] ✅ SMTP connection successful');
     return true;
   } catch (error) {
-    console.error('[EMAIL] Verification failed:', error.message);
+    console.error('[EMAIL] ❌ Verification failed:', error.message);
     if (error.code === 'EAUTH') {
       console.error('[EMAIL] SMTP authentication failed. Check your EMAIL_USER and EMAIL_PASS.');
       console.error('[EMAIL] If using Gmail:');
-      console.error('  1. Enable 2-Factor Authentication');
-      console.error('  2. Create an App Password (not account password): https://myaccount.google.com/apppasswords');
-      console.error('  3. Use the 16-character App Password as EMAIL_PASS');
+      console.error('[EMAIL]   1. Enable 2-Factor Authentication');
+      console.error('[EMAIL]   2. Create an App Password (not account password): https://myaccount.google.com/apppasswords');
+      console.error('[EMAIL]   3. Use the 16-character App Password as EMAIL_PASS');
     }
     return false;
   }
 };
 
 const sendVerificationEmail = async (email, name, verificationToken) => {
+  console.log('[EMAIL-SERVICE] sendVerificationEmail called with email:', email);
+  
   const verificationLink = process.env.CLIENT_URL + '/verify-email?token=' + verificationToken;
+  console.log('[EMAIL-SERVICE] Verification link:', verificationLink);
   
   const mailOptions = {
     from: '"Trading Platform" <' + process.env.EMAIL_USER + '>',
@@ -94,16 +109,23 @@ const sendVerificationEmail = async (email, name, verificationToken) => {
   };
   
   try {
-    await transporter.sendMail(mailOptions);
-    return { success: true };
+    console.log('[EMAIL-SERVICE] Attempting to send email...');
+    const result = await transporter.sendMail(mailOptions);
+    console.log('[EMAIL-SERVICE] Email sent successfully. MessageId:', result.messageId);
+    return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error('Email sending error:', error);
+    console.error('[EMAIL-SERVICE] Email sending error:', error.message);
+    console.error('[EMAIL-SERVICE] Error code:', error.code);
+    console.error('[EMAIL-SERVICE] Stack:', error.stack);
     return { success: false, error: error.message };
   }
 };
 
 const sendPasswordResetEmail = async (email, name, resetToken) => {
+  console.log('[EMAIL-SERVICE] sendPasswordResetEmail called with email:', email);
+  
   const resetLink = process.env.CLIENT_URL + '/reset-password?token=' + resetToken;
+  console.log('[EMAIL-SERVICE] Reset link:', resetLink);
   
   const mailOptions = {
     from: '"Trading Platform" <' + process.env.EMAIL_USER + '>',
@@ -142,10 +164,14 @@ const sendPasswordResetEmail = async (email, name, resetToken) => {
   };
   
   try {
-    await transporter.sendMail(mailOptions);
-    return { success: true };
+    console.log('[EMAIL-SERVICE] Attempting to send email...');
+    const result = await transporter.sendMail(mailOptions);
+    console.log('[EMAIL-SERVICE] Email sent successfully. MessageId:', result.messageId);
+    return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error('Email sending error:', error);
+    console.error('[EMAIL-SERVICE] Email sending error:', error.message);
+    console.error('[EMAIL-SERVICE] Error code:', error.code);
+    console.error('[EMAIL-SERVICE] Stack:', error.stack);
     return { success: false, error: error.message };
   }
 };

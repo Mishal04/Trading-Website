@@ -70,6 +70,8 @@ export const authAPI = {
   verifyEmail: (token) => api.get(`/auth/verify/${token}`),
   me: () => api.get('/auth/me'),
   resendVerification: (email) => api.post('/auth/resend-verification', { email }),
+  forgotPassword: (data) => api.post('/auth/forgot-password', data),
+  resetPassword: (data) => api.post('/auth/reset-password', data),
 };
 
 // Investment endpoints

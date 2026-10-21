@@ -562,7 +562,12 @@ const resendVerification = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    // ── STEP 1: Extract and normalize email ──
+    const emailFromBody = req.body.email;
+    console.log('[FORGOT-PASSWORD] 1. Email from req.body:', emailFromBody);
+    
+    const normalizedEmail = (emailFromBody || '').trim().toLowerCase();
+    console.log('[FORGOT-PASSWORD] 2. Normalized email:', normalizedEmail);
 
     // #4 — same response regardless of whether email exists, to prevent enumeration
     const SAFE_RESPONSE = {
@@ -570,26 +575,43 @@ const forgotPassword = async (req, res) => {
       message: 'If that email is registered, a password reset link has been sent.'
     };
 
-    const user = await User.findOne({ email });
+    // ── STEP 2: Find user by normalized email ──
+    const user = await User.findOne({ email: normalizedEmail });
+    console.log('[FORGOT-PASSWORD] 3. User found in DB:', !!user, user ? `(${user.name})` : '');
+    
     if (!user) {
       // Return 200 — attacker cannot distinguish "found" from "not found"
+      console.log('[FORGOT-PASSWORD] User not found, returning safe response');
       return res.json(SAFE_RESPONSE);
     }
 
+    // ── STEP 3: Generate reset token and save to user ──
     const rawResetToken = generateResetToken();
     user.resetPasswordToken   = hashToken(rawResetToken); // store hash (#7)
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
     await user.save();
+    console.log('[FORGOT-PASSWORD] 4. Reset token generated and saved to user');
 
+    // ── STEP 4: Send password reset email ──
     try {
-      await sendPasswordResetEmail(user.email, user.name, rawResetToken);
+      const emailResult = await sendPasswordResetEmail(user.email, user.name, rawResetToken);
+      console.log('[FORGOT-PASSWORD] 5. Email send result:', emailResult);
+      
+      if (!emailResult.success) {
+        console.error('[FORGOT-PASSWORD] Email send failed:', emailResult.error);
+      } else {
+        console.log('[FORGOT-PASSWORD] Email sent successfully to:', user.email);
+      }
     } catch (emailErr) {
-      console.warn('Password reset email failed:', emailErr.message);
+      console.error('[FORGOT-PASSWORD] Exception during email send:', emailErr.message);
+      console.error('[FORGOT-PASSWORD] Stack:', emailErr.stack);
     }
 
+    console.log('[FORGOT-PASSWORD] Returning safe response');
     return res.json(SAFE_RESPONSE);
   } catch (error) {
-    console.error('Forgot password error:', error);
+    console.error('[FORGOT-PASSWORD] Error:', error.message);
+    console.error('[FORGOT-PASSWORD] Stack:', error.stack);
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
