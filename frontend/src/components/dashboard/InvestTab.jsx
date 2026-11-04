@@ -338,7 +338,7 @@ export default function InvestTab({ onRefresh }) {
           toast.success('Investment submitted with proof! Awaiting admin approval.');
         } catch (uploadErr) {
           console.error('File upload failed:', uploadErr);
-          toast.warning('Investment created but file upload failed. You can upload proof later.');
+          toast.success('Investment created! File upload failed, but you can upload proof later.');
         }
       } else {
         toast.success(res.data.message || 'Investment submitted! Awaiting admin approval.');
