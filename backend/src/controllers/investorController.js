@@ -231,10 +231,11 @@ const getInvestorDashboard = async (req, res) => {
     const investor = req.investor;
 
     // Fetch investments from BOTH Phase 1 (investorId) and Phase 2 (userId)
+    // Include all statuses EXCEPT archived/deleted to show rejected investments to users
     // Phase 1: Legacy Investor-based records
     const phase1Investments = await InvestorInvestment.find({
       investorId: investor._id,
-      status: { $in: ['active', 'pending', 'completed'] }
+      status: { $in: ['active', 'pending', 'completed', 'rejected'] }
     }).sort({ createdAt: -1 });
 
     // Phase 2: New User-based records (if investor also has a User account)
@@ -242,7 +243,7 @@ const getInvestorDashboard = async (req, res) => {
     if (investor.userId) {
       phase2Investments = await InvestorInvestment.find({
         userId: investor.userId,
-        status: { $in: ['active', 'pending', 'completed'] }
+        status: { $in: ['active', 'pending', 'completed', 'rejected'] }
       }).sort({ createdAt: -1 });
     }
 
