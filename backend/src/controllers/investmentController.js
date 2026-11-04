@@ -365,8 +365,22 @@ const uploadProof = async (req, res) => {
       });
     }
 
+    console.log('Upload proof - Investment found:', {
+      investmentId,
+      investmentUserId: investment.userId?.toString(),
+      investmentInvestorId: investment.investorId?.toString(),
+      reqUserId: req.user._id.toString(),
+      reqUserRole: req.user.role,
+      model
+    });
+
     // Only owner or admin can upload proof
-    if (investment.userId?.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    // Investment.userId is required to match
+    const isOwner = investment.userId?.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      console.log('Permission denied for upload proof');
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to upload proof for this investment'
@@ -376,6 +390,12 @@ const uploadProof = async (req, res) => {
     // Build file path for storage
     const filePath = `/uploads/${req.file.filename}`;
 
+    console.log('Uploading proof:', {
+      investmentId,
+      filePath,
+      fileName: req.file.filename
+    });
+
     // Update investment with proof
     const updateData = {
       paymentProof: filePath,
@@ -383,11 +403,16 @@ const uploadProof = async (req, res) => {
       paymentNote: (paymentNote || '').trim()
     };
 
-    await (model === 'InvestorInvestment' ? InvestorInvestment : Investment).findByIdAndUpdate(
+    const updatedInvestment = await (model === 'InvestorInvestment' ? InvestorInvestment : Investment).findByIdAndUpdate(
       investmentId,
       updateData,
       { new: true }
     );
+
+    console.log('Proof uploaded successfully:', {
+      investmentId,
+      paymentProof: updatedInvestment.paymentProof
+    });
 
     return res.status(200).json({
       success: true,

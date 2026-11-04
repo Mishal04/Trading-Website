@@ -81,6 +81,9 @@ export const investmentAPI = {
   getMy:  (params)  => api.get('/investments/my', { params }),
   getById: (id)     => api.get(`/investments/${id}`),
   withdraw: (investmentId) => api.post('/investments/withdraw', { investmentId }),
+  uploadProof: (formData) => api.post('/investments/upload-proof', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 
 // Withdrawal endpoints
