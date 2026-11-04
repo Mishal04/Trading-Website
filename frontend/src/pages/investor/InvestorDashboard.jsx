@@ -105,12 +105,53 @@ export default function InvestorDashboard() {
   const [txId, setTxId] = useState('');
   const [payNote, setPayNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const copyToClipboard = (text, fieldKey) => {
     navigator.clipboard.writeText(text);
     setCopiedField(fieldKey);
     toast.success('Copied to clipboard!');
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Only JPG, PNG, GIF, WebP, and PDF are allowed.');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    setSelectedFile(file);
+
+    // Create preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFilePreview(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setFilePreview(null);
+    }
+
+    toast.success('File selected successfully!');
+  };
+
+  const clearFileSelection = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
   };
 
   const fetchDashboard = useCallback(async () => {
@@ -132,13 +173,35 @@ export default function InvestorDashboard() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await investorAPI.createInvestment({
+      // First, create the investment
+      const investmentRes = await investorAPI.createInvestment({
         amount: Number(invAmount),
         transactionId: txId,
         paymentNote: payNote
       });
-      toast.success('Investment submitted! Awaiting admin approval.');
-      setInvAmount(''); setTxId(''); setPayNote('');
+
+      // If file is selected, upload it
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('investmentId', investmentRes.data?.data?._id);
+
+        try {
+          await investorAPI.uploadProof(formData);
+          toast.success('Investment submitted with proof! Awaiting admin approval.');
+        } catch (uploadErr) {
+          console.error('File upload failed:', uploadErr);
+          toast.warning('Investment created but file upload failed. You can upload proof later.');
+        }
+      } else {
+        toast.success('Investment submitted! Awaiting admin approval.');
+      }
+
+      // Clear form
+      setInvAmount('');
+      setTxId('');
+      setPayNote('');
+      clearFileSelection();
       fetchDashboard();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Submission failed');
@@ -629,6 +692,56 @@ export default function InvestorDashboard() {
                 <textarea id="inv-note" rows={2} placeholder="Additional details…"
                           value={payNote} onChange={e => setPayNote(e.target.value)}
                           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-600 focus:outline-none focus:border-amber-500 transition text-sm resize-none" />
+              </div>
+
+              {/* ── Transaction Proof Upload ── */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+                  Transaction Proof (optional)
+                </label>
+                <p className="text-[11px] text-gray-500 mb-3">Upload transaction proof (JPG, PNG, GIF, WebP, or PDF). Max 5MB.</p>
+
+                {selectedFile ? (
+                  <div className="rounded-xl border border-white/10 p-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {filePreview ? (
+                          <img src={filePreview} alt="Preview" className="w-12 h-12 rounded-lg object-cover" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center">
+                            <PlusCircle size={20} className="text-amber-400" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{selectedFile.name}</p>
+                          <p className="text-xs text-gray-500">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={clearFileSelection}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-400 border border-red-400/30 hover:bg-red-400/10 transition"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer block">
+                    <div className="rounded-xl border-2 border-dashed border-white/20 hover:border-amber-500/50 p-6 text-center transition"
+                         style={{ background: 'rgba(255,255,255,0.02)' }}>
+                      <PlusCircle size={24} className="mx-auto mb-2 text-amber-400" />
+                      <p className="text-sm font-semibold text-white">Click to upload or drag and drop</p>
+                      <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF, WebP or PDF</p>
+                    </div>
+                    <input
+                      type="file"
+                      onChange={handleFileSelect}
+                      accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
 
               <button id="inv-submit-btn" type="submit" disabled={submitting}

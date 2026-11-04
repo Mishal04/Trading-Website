@@ -325,3 +325,93 @@ module.exports = {
   withdrawInvestment,
   createPlanInvestment
 };
+
+
+/**
+ * POST /api/investments/upload-proof
+ * Upload transaction proof for an investment
+ */
+const uploadProof = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const { investmentId, transactionId, paymentNote } = req.body;
+
+    if (!investmentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Investment ID is required'
+      });
+    }
+
+    // Find investment (can be Investment or InvestorInvestment)
+    let investment = await InvestorInvestment.findById(investmentId);
+    let model = 'InvestorInvestment';
+
+    if (!investment) {
+      investment = await Investment.findById(investmentId);
+      model = 'Investment';
+    }
+
+    if (!investment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Investment not found'
+      });
+    }
+
+    // Only owner or admin can upload proof
+    if (investment.userId?.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to upload proof for this investment'
+      });
+    }
+
+    // Build file path for storage
+    const filePath = `/uploads/${req.file.filename}`;
+
+    // Update investment with proof
+    const updateData = {
+      paymentProof: filePath,
+      transactionId: (transactionId || '').trim(),
+      paymentNote: (paymentNote || '').trim()
+    };
+
+    await (model === 'InvestorInvestment' ? InvestorInvestment : Investment).findByIdAndUpdate(
+      investmentId,
+      updateData,
+      { new: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Payment proof uploaded successfully',
+      data: {
+        proofUrl: filePath,
+        filename: req.file.filename,
+        originalname: req.file.originalname
+      }
+    });
+  } catch (error) {
+    console.error('Upload proof error:', error);
+    
+    // Clean up uploaded file if error occurs
+    if (req.file && require('fs').existsSync(req.file.path)) {
+      require('fs').unlinkSync(req.file.path);
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server error while uploading proof'
+    });
+  }
+};
+
+// Update exports to include uploadProof
+module.exports.uploadProof = uploadProof;

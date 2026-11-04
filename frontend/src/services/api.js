@@ -200,4 +200,7 @@ export const investorAPI = {
   getMyInvestments: ()     => investorApiInstance.get('/investors/investments/my'),
   withdrawPrincipal:(data) => investorApiInstance.post('/investors/investments/withdraw-principal', data),
   withdrawRoi:      (data) => investorApiInstance.post('/investors/investments/withdraw-roi', data),
+  uploadProof:      (formData) => investorApiInstance.post('/investments/upload-proof', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
