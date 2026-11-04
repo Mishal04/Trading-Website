@@ -330,9 +330,16 @@ export default function InvestTab({ onRefresh }) {
       // If file is selected, upload it
       if (selectedFile) {
         try {
+          const investmentId = res.data?.data?.investment?._id;
+          console.log('Investment ID for file upload:', investmentId);
+          
+          if (!investmentId) {
+            throw new Error('Investment ID not found in response');
+          }
+          
           const formData = new FormData();
           formData.append('file', selectedFile);
-          formData.append('investmentId', res.data?.data?._id);
+          formData.append('investmentId', investmentId);
 
           await investmentAPI.uploadProof(formData);
           toast.success('Investment submitted with proof! Awaiting admin approval.');
