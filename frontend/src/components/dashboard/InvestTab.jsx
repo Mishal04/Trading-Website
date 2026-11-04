@@ -143,6 +143,9 @@ export default function InvestTab({ onRefresh }) {
   const [paymentProof, setPaymentProof] = useState('');
   const [paymentNote, setPaymentNote]   = useState('');
   const [loading, setLoading]           = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [filePreview, setFilePreview]   = useState(null);
+  const [uploading, setUploading]       = useState(false);
   
   // Dynamic wallet state
   const [paymentMethods, setPaymentMethods] = useState(PAYMENT_METHODS_BASE);
@@ -153,6 +156,44 @@ export default function InvestTab({ onRefresh }) {
     setCopiedField(fieldKey);
     toast.success('Copied to clipboard!');
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Only JPG, PNG, GIF, WebP, and PDF are allowed.');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    setSelectedFile(file);
+
+    // Create preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFilePreview(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setFilePreview(null);
+    }
+
+    toast.success('File selected successfully!');
+  };
+
+  const clearFileSelection = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
   };
 
   // Fetch current wallet from backend
@@ -285,11 +326,29 @@ export default function InvestTab({ onRefresh }) {
         paymentNote:   fullNote,
       });
       console.log('API response received:', res);
-      toast.success(res.data.message || 'Investment submitted! Awaiting admin approval.');
+      
+      // If file is selected, upload it
+      if (selectedFile) {
+        try {
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          formData.append('investmentId', res.data?.data?._id);
+
+          await investmentAPI.uploadProof(formData);
+          toast.success('Investment submitted with proof! Awaiting admin approval.');
+        } catch (uploadErr) {
+          console.error('File upload failed:', uploadErr);
+          toast.warning('Investment created but file upload failed. You can upload proof later.');
+        }
+      } else {
+        toast.success(res.data.message || 'Investment submitted! Awaiting admin approval.');
+      }
+      
       // Reset proof fields after submit
       setTransactionId('');
       setPaymentProof('');
       setPaymentNote('');
+      clearFileSelection();
       fetchInvestments();
       if (onRefresh) onRefresh();
     } catch (err) {
@@ -782,19 +841,65 @@ export default function InvestTab({ onRefresh }) {
             <div>
               <label className="text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
                 <FileText size={12} className="text-gold-400" />
-                Payment Proof URL or Screenshot Link
+                Payment Proof (optional)
                 <span className="text-gray-500 ml-1">(optional but recommended)</span>
               </label>
+              <p className="text-[11px] text-gray-500 mb-3">Upload transaction proof (JPG, PNG, GIF, WebP, or PDF). Max 5MB. Or paste a link below.</p>
+
+              {/* File Upload UI */}
+              {selectedFile ? (
+                <div className="rounded-xl border border-dark-500 p-4 mb-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {filePreview ? (
+                        <img src={filePreview} alt="Preview" className="w-12 h-12 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-dark-700 flex items-center justify-center">
+                          <FileText size={20} className="text-gold-400" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{selectedFile.name}</p>
+                        <p className="text-xs text-gray-500">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearFileSelection}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-400 border border-red-400/30 hover:bg-red-400/10 transition"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="cursor-pointer block mb-3">
+                  <div className="rounded-xl border-2 border-dashed border-dark-500 hover:border-gold-400/50 p-6 text-center transition"
+                       style={{ background: 'rgba(255,255,255,0.02)' }}>
+                    <FileText size={24} className="mx-auto mb-2 text-gold-400" />
+                    <p className="text-sm font-semibold text-white">Click to upload or drag and drop</p>
+                    <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF, WebP or PDF</p>
+                  </div>
+                  <input
+                    type="file"
+                    onChange={handleFileSelect}
+                    accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"
+                    className="hidden"
+                  />
+                </label>
+              )}
+
+              {/* Fallback: URL input */}
               <input
                 type="text"
                 value={paymentProof}
                 onChange={(e) => setPaymentProof(e.target.value)}
-                placeholder="e.g. https://i.imgur.com/abc.png or Google Drive link…"
+                placeholder="Or paste a link here: https://i.imgur.com/abc.png or Google Drive link…"
                 maxLength={500}
                 className="w-full bg-dark-800 text-white rounded-xl px-4 py-2.5 border border-dark-500 focus:border-gold-400 focus:outline-none text-sm placeholder-gray-600 transition-colors"
               />
               <p className="text-[11px] text-gray-500 mt-1">
-                Upload your screenshot to Imgur, Google Drive, or any image host and paste the link here.
+                Upload your screenshot to Imgur, Google Drive, or any image host and paste the link here (if not using file upload above).
               </p>
             </div>
 

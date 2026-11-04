@@ -99,6 +99,32 @@ function ProofDetailRow({ inv }) {
                 >
                   View Proof <ExternalLink size={13} />
                 </a>
+              ) : inv.paymentProof.startsWith('/uploads/') ? (
+                // Local file upload - show preview
+                <div className="space-y-2">
+                  <a
+                    href={`http://localhost:5000${inv.paymentProof}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-gold-400 hover:underline"
+                  >
+                    View Proof <ExternalLink size={13} />
+                  </a>
+                  <div className="mt-2">
+                    {inv.paymentProof.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                      <img 
+                        src={`http://localhost:5000${inv.paymentProof}`}
+                        alt="Payment proof" 
+                        className="max-w-[150px] max-h-[150px] rounded-lg border border-dark-500 cursor-pointer hover:border-gold-400 transition"
+                        onClick={() => window.open(`http://localhost:5000${inv.paymentProof}`, '_blank')}
+                      />
+                    ) : (
+                      <div className="text-xs text-gray-500 italic">
+                        PDF file - click View Proof to open
+                      </div>
+                    )}
+                  </div>
+                </div>
               ) : (
                 <span className="text-sm text-gray-300 break-all">{inv.paymentProof}</span>
               )
