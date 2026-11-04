@@ -41,7 +41,7 @@ router.use(protect); // Protect all investment routes
 
 router.post('/create', validateCreateInvestment, createInvestment);
 router.post('/plan', validateCreateInvestment, createPlanInvestment);  // NEW: Plan A/B endpoint
-router.post('/upload-proof', upload.single('file'), uploadProof);  // NEW: File upload endpoint
+router.post('/upload-proof', upload.single('file'), uploadProof);  // File upload endpoint (multer processes file to base64)
 router.get('/my', getMyInvestments);
 router.post('/withdraw', withdrawInvestment);
 router.get('/:id', getInvestmentById);

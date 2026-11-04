@@ -329,10 +329,12 @@ module.exports = {
 
 /**
  * POST /api/investments/upload-proof
- * Upload transaction proof for an investment
+ * Upload transaction proof for an investment (stored as base64 in database)
  */
 const uploadProof = async (req, res) => {
   try {
+    const fs = require('fs');
+    
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -375,30 +377,37 @@ const uploadProof = async (req, res) => {
     });
 
     // Only owner or admin can upload proof
-    // Investment.userId is required to match
     const isOwner = investment.userId?.toString() === req.user._id.toString();
     const isAdmin = req.user.role === 'admin';
 
     if (!isOwner && !isAdmin) {
       console.log('Permission denied for upload proof');
+      // Clean up file
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to upload proof for this investment'
       });
     }
 
-    // Build file path for storage
-    const filePath = `/uploads/${req.file.filename}`;
+    // Convert file to base64
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const base64String = fileBuffer.toString('base64');
+    const mimeType = req.file.mimetype;
+    const paymentProofData = `data:${mimeType};base64,${base64String}`;
 
-    console.log('Uploading proof:', {
+    console.log('Uploading proof as base64:', {
       investmentId,
-      filePath,
-      fileName: req.file.filename
+      fileName: req.file.filename,
+      mimeType,
+      size: fileBuffer.length
     });
 
-    // Update investment with proof
+    // Update investment with base64 proof
     const updateData = {
-      paymentProof: filePath,
+      paymentProof: paymentProofData,
       transactionId: (transactionId || '').trim(),
       paymentNote: (paymentNote || '').trim()
     };
@@ -409,16 +418,21 @@ const uploadProof = async (req, res) => {
       { new: true }
     );
 
-    console.log('Proof uploaded successfully:', {
+    console.log('Proof uploaded successfully as base64:', {
       investmentId,
-      paymentProof: updatedInvestment.paymentProof
+      dataLength: paymentProofData.length
     });
+
+    // Delete file from disk
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
 
     return res.status(200).json({
       success: true,
       message: 'Payment proof uploaded successfully',
       data: {
-        proofUrl: filePath,
+        proofStored: true,
         filename: req.file.filename,
         originalname: req.file.originalname
       }

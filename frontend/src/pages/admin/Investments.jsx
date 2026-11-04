@@ -99,48 +99,37 @@ function ProofDetailRow({ inv }) {
                 >
                   View Proof <ExternalLink size={13} />
                 </a>
-              ) : inv.paymentProof.startsWith('/uploads/') ? (
-                // Local file upload - show preview
+              ) : inv.paymentProof.startsWith('data:') ? (
+                // Base64 image - show preview directly
                 <div className="space-y-2">
-                  {inv.paymentProof.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                    // Image file - show thumbnail with link
+                  {inv.paymentProof.includes('image/') ? (
+                    // Image file - show thumbnail
                     <div className="flex flex-col gap-2">
                       <div className="relative group">
                         <img 
-                          src={`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '')}${inv.paymentProof}`}
+                          src={inv.paymentProof}
                           alt="Payment proof" 
                           className="w-[100px] h-[100px] rounded-lg border border-gold-500/40 object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextElementSibling.style.display = 'flex';
-                          }}
                         />
-                        <div 
-                          className="hidden w-[100px] h-[100px] rounded-lg border border-gold-500/40 bg-dark-700 items-center justify-center"
-                        >
-                          <FileText size={28} className="text-gold-400" />
-                        </div>
                       </div>
                       <a
-                        href={`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '')}${inv.paymentProof}`}
-                        target="_blank"
-                        rel="noreferrer"
+                        href={inv.paymentProof}
+                        download="payment-proof.jpg"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-400 hover:text-gold-300 transition"
                       >
                         <ExternalLink size={12} /> Download
                       </a>
                     </div>
                   ) : (
-                    // PDF file - show icon and link
+                    // PDF file - show icon
                     <div className="flex flex-col gap-2 items-start">
                       <div className="w-[100px] h-[100px] rounded-lg border border-gold-500/40 bg-dark-700 flex flex-col items-center justify-center p-2">
                         <FileText size={32} className="text-gold-400 mb-1" />
                         <span className="text-[10px] text-gray-400 text-center mt-1">PDF</span>
                       </div>
                       <a
-                        href={`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '')}${inv.paymentProof}`}
-                        target="_blank"
-                        rel="noreferrer"
+                        href={inv.paymentProof}
+                        download="payment-proof.pdf"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-400 hover:text-gold-300 transition"
                       >
                         <ExternalLink size={12} /> Download
