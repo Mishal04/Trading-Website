@@ -107,7 +107,7 @@ function ProofDetailRow({ inv }) {
                     <div className="flex flex-col gap-2">
                       <div className="relative group">
                         <img 
-                          src={inv.paymentProof}
+                          src={`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '')}${inv.paymentProof}`}
                           alt="Payment proof" 
                           className="w-[100px] h-[100px] rounded-lg border border-gold-500/40 object-cover"
                           onError={(e) => {
@@ -122,7 +122,7 @@ function ProofDetailRow({ inv }) {
                         </div>
                       </div>
                       <a
-                        href={inv.paymentProof}
+                        href={`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '')}${inv.paymentProof}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-400 hover:text-gold-300 transition"
@@ -138,7 +138,7 @@ function ProofDetailRow({ inv }) {
                         <span className="text-[10px] text-gray-400 text-center mt-1">PDF</span>
                       </div>
                       <a
-                        href={inv.paymentProof}
+                        href={`${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '')}${inv.paymentProof}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-400 hover:text-gold-300 transition"
