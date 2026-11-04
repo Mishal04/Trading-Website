@@ -105,26 +105,35 @@ function ProofDetailRow({ inv }) {
                   {inv.paymentProof.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                     // Image file - show thumbnail with link
                     <div className="flex flex-col gap-2">
-                      <img 
-                        src={`http://localhost:5000${inv.paymentProof}`}
-                        alt="Payment proof" 
-                        className="w-[120px] h-[120px] rounded-lg border-2 border-gold-500/30 object-cover cursor-pointer hover:border-gold-400 hover:shadow-lg hover:shadow-gold-500/20 transition-all"
-                        onClick={() => window.open(`http://localhost:5000${inv.paymentProof}`, '_blank')}
-                        title="Click to view full size"
-                      />
+                      <div className="relative group">
+                        <img 
+                          src={`http://localhost:5000${inv.paymentProof}`}
+                          alt="Payment proof" 
+                          className="w-[100px] h-[100px] rounded-lg border border-gold-500/40 object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextElementSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div 
+                          className="hidden w-[100px] h-[100px] rounded-lg border border-gold-500/40 bg-dark-700 items-center justify-center"
+                        >
+                          <FileText size={28} className="text-gold-400" />
+                        </div>
+                      </div>
                       <a
                         href={`http://localhost:5000${inv.paymentProof}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-400 hover:text-gold-300 transition"
                       >
-                        <ExternalLink size={12} /> View Full Size
+                        <ExternalLink size={12} /> Download
                       </a>
                     </div>
                   ) : (
                     // PDF file - show icon and link
                     <div className="flex flex-col gap-2 items-start">
-                      <div className="w-[100px] h-[120px] rounded-lg border-2 border-gold-500/30 bg-dark-700 flex flex-col items-center justify-center p-2">
+                      <div className="w-[100px] h-[100px] rounded-lg border border-gold-500/40 bg-dark-700 flex flex-col items-center justify-center p-2">
                         <FileText size={32} className="text-gold-400 mb-1" />
                         <span className="text-[10px] text-gray-400 text-center mt-1">PDF</span>
                       </div>
@@ -134,7 +143,7 @@ function ProofDetailRow({ inv }) {
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-400 hover:text-gold-300 transition"
                       >
-                        <ExternalLink size={12} /> Open PDF
+                        <ExternalLink size={12} /> Download
                       </a>
                     </div>
                   )}
