@@ -38,3 +38,8 @@ backups/
 backend/backups/
 *.backup.json
 backend/backups/*.json
+
+# User uploaded files (keep folder, ignore contents)
+backend/uploads/*
+!backend/uploads/.gitkeep
+

@@ -1,0 +1,3 @@
+# This file ensures the uploads directory is tracked by Git
+# Uploaded files are not tracked (see .gitignore)
+# They persist on the server after deployment
