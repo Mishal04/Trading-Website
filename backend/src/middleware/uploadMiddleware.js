@@ -3,14 +3,24 @@ const path = require('path');
 const fs = require('fs');
 
 // Create uploads directory if it doesn't exist
-const uploadDir = path.join(__dirname, '../../uploads');
+// Use absolute path based on project root (backend folder location)
+// __dirname is backend/src/middleware, so ../../ goes to backend/
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
+
+// Ensure upload directory exists
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+  try {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log('✅ Created uploads directory:', uploadDir);
+  } catch (error) {
+    console.error('❌ Failed to create uploads directory:', error);
+  }
 }
 
 // Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    // Use the same uploadDir variable defined above
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {

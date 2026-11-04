@@ -185,7 +185,9 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // ── Static file serving for uploads ───────────────────────────────────────────
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+const uploadsDir = process.env.UPLOAD_DIR || path.join(__dirname, '../uploads');
+console.log('🎬 Serving uploads from:', uploadsDir);
+app.use('/uploads', express.static(uploadsDir));
 
 // ── Disable caching for all API responses ─────────────────────────────────────
 app.use('/api/', (req, res, next) => {
