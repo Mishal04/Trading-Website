@@ -855,37 +855,46 @@ export default function InvestTab({ onRefresh }) {
 
               {/* File Upload UI */}
               {selectedFile ? (
-                <div className="rounded-xl border border-dark-500 p-4 mb-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <div className="rounded-xl border-2 border-gold-500/40 p-4 mb-3" style={{ background: 'rgba(245, 158, 11, 0.08)' }}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
                       {filePreview ? (
-                        <img src={filePreview} alt="Preview" className="w-12 h-12 rounded-lg object-cover" />
+                        <img src={filePreview} alt="Preview" className="w-16 h-16 rounded-lg object-cover border border-gold-500/30" />
                       ) : (
-                        <div className="w-12 h-12 rounded-lg bg-dark-700 flex items-center justify-center">
-                          <FileText size={20} className="text-gold-400" />
+                        <div className="w-16 h-16 rounded-lg bg-dark-700 flex items-center justify-center border border-gold-500/30">
+                          <FileText size={24} className="text-gold-400" />
                         </div>
                       )}
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">{selectedFile.name}</p>
-                        <p className="text-xs text-gray-500">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-white truncate">{selectedFile.name}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                          <span className="text-xs text-emerald-400 font-semibold">Ready to upload</span>
+                        </div>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={clearFileSelection}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-400 border border-red-400/30 hover:bg-red-400/10 transition"
+                      className="px-3 py-2 rounded-lg text-xs font-bold text-red-400 border border-red-400/40 hover:bg-red-400/15 transition hover:border-red-400/60 whitespace-nowrap ml-3"
                     >
-                      Remove
+                      Change
                     </button>
                   </div>
                 </div>
               ) : (
                 <label className="cursor-pointer block mb-3">
-                  <div className="rounded-xl border-2 border-dashed border-dark-500 hover:border-gold-400/50 p-6 text-center transition"
+                  <div className="rounded-xl border-2 border-dashed border-gold-500/40 hover:border-gold-400 hover:bg-gold-500/5 p-8 text-center transition-all"
                        style={{ background: 'rgba(255,255,255,0.02)' }}>
-                    <FileText size={24} className="mx-auto mb-2 text-gold-400" />
-                    <p className="text-sm font-semibold text-white">Click to upload or drag and drop</p>
-                    <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF, WebP or PDF</p>
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-gold-500/15 flex items-center justify-center mb-3">
+                        <FileText size={24} className="text-gold-400" />
+                      </div>
+                      <p className="text-sm font-bold text-white">Upload Transaction Proof</p>
+                      <p className="text-xs text-gray-400 mt-1">Click or drag and drop your file here</p>
+                      <p className="text-[10px] text-gray-500 mt-2">JPG, PNG, GIF, WebP or PDF • Max 5MB</p>
+                    </div>
                   </div>
                   <input
                     type="file"

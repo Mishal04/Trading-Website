@@ -102,28 +102,42 @@ function ProofDetailRow({ inv }) {
               ) : inv.paymentProof.startsWith('/uploads/') ? (
                 // Local file upload - show preview
                 <div className="space-y-2">
-                  <a
-                    href={`http://localhost:5000${inv.paymentProof}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-gold-400 hover:underline"
-                  >
-                    View Proof <ExternalLink size={13} />
-                  </a>
-                  <div className="mt-2">
-                    {inv.paymentProof.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                  {inv.paymentProof.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                    // Image file - show thumbnail with link
+                    <div className="flex flex-col gap-2">
                       <img 
                         src={`http://localhost:5000${inv.paymentProof}`}
                         alt="Payment proof" 
-                        className="max-w-[150px] max-h-[150px] rounded-lg border border-dark-500 cursor-pointer hover:border-gold-400 transition"
+                        className="w-[120px] h-[120px] rounded-lg border-2 border-gold-500/30 object-cover cursor-pointer hover:border-gold-400 hover:shadow-lg hover:shadow-gold-500/20 transition-all"
                         onClick={() => window.open(`http://localhost:5000${inv.paymentProof}`, '_blank')}
+                        title="Click to view full size"
                       />
-                    ) : (
-                      <div className="text-xs text-gray-500 italic">
-                        PDF file - click View Proof to open
+                      <a
+                        href={`http://localhost:5000${inv.paymentProof}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-400 hover:text-gold-300 transition"
+                      >
+                        <ExternalLink size={12} /> View Full Size
+                      </a>
+                    </div>
+                  ) : (
+                    // PDF file - show icon and link
+                    <div className="flex flex-col gap-2 items-start">
+                      <div className="w-[100px] h-[120px] rounded-lg border-2 border-gold-500/30 bg-dark-700 flex flex-col items-center justify-center p-2">
+                        <FileText size={32} className="text-gold-400 mb-1" />
+                        <span className="text-[10px] text-gray-400 text-center mt-1">PDF</span>
                       </div>
-                    )}
-                  </div>
+                      <a
+                        href={`http://localhost:5000${inv.paymentProof}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-400 hover:text-gold-300 transition"
+                      >
+                        <ExternalLink size={12} /> Open PDF
+                      </a>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <span className="text-sm text-gray-300 break-all">{inv.paymentProof}</span>
