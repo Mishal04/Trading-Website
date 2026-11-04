@@ -242,15 +242,20 @@ export default function Investments() {
     setActionLoading(rejectTarget._id);
     try {
       // Route to correct rejection endpoint based on investment model type
+      console.log('Rejecting investment:', { id: rejectTarget._id, model: rejectTarget._model, note });
+      
       if (rejectTarget._model === 'InvestorInvestment') {
+        console.log('Using rejectInvestorInvestment endpoint');
         await adminAPI.rejectInvestorInvestment(rejectTarget._id, note);
       } else {
+        console.log('Using rejectInvestment endpoint');
         await adminAPI.rejectInvestment(rejectTarget._id, note);
       }
       toast.success('Investment rejected');
       setRejectTarget(null);
       fetchData();
     } catch (err) {
+      console.error('Rejection error:', err);
       toast.error(err.response?.data?.message ?? 'Rejection failed');
     } finally {
       setActionLoading('');
