@@ -1,13 +1,48 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, LogOut, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, exitImpersonation } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isDashboard = location.pathname.startsWith('/dashboard');
+
+  // Helper function to handle logout (checks if impersonated)
+  const handleLogout = () => {
+    const token = localStorage.getItem('token');
+    let isImpersonating = false;
+
+    if (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        const decoded = JSON.parse(jsonPayload);
+        if (decoded.impersonated === true) {
+          isImpersonating = true;
+        }
+      } catch (error) {
+        // Silent fail
+      }
+    }
+
+    if (isImpersonating) {
+      exitImpersonation();
+      // Navigate to admin after brief delay to allow state update
+      setTimeout(() => navigate('/admin'), 100);
+    } else {
+      logout();
+      navigate('/login');
+    }
+  };
 
   const navLinks = [
     { label: 'Home', href: '/#home' },
@@ -77,7 +112,7 @@ export default function Navbar() {
                   Dashboard
                 </Link>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-dark-500 hover:border-gold-400 text-gray-300 hover:text-gold-400 transition-colors"
                 >
                   <LogOut size={16} />
@@ -150,7 +185,7 @@ export default function Navbar() {
                 </Link>
                 <button
                   onClick={() => {
-                    logout();
+                    handleLogout();
                     setOpen(false);
                   }}
                   className="block text-sm text-gray-300 hover:text-gold-400"

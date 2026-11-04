@@ -119,7 +119,7 @@ const passwordLimiter = rateLimit({
 // General API limiter — prevents DoS across all other endpoints
 const generalLimiter = rateLimit({
   windowMs:         15 * 60 * 1000,
-  max:              200,
+  max:              1000,              // Increased from 200 to 1000 requests per 15 min
   standardHeaders:  true,
   legacyHeaders:    false,
   message: { success: false, message: 'Too many requests, please slow down.' },
@@ -186,6 +186,15 @@ if (process.env.NODE_ENV === 'development') {
 
 // ── Static file serving for uploads ───────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// ── Disable caching for all API responses ─────────────────────────────────────
+app.use('/api/', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Surrogate-Control', 'no-store');
+  next();
+});
 
 // ── API routes ────────────────────────────────────────────────────────────────
 const { getUserTransactions } = require('./controllers/dashboardController');
@@ -263,9 +272,34 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
+  // Validate critical environment variables
+  const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+  const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  
+  if (missingEnvVars.length > 0) {
+    console.error('\n❌ CRITICAL: Missing required environment variables:');
+    missingEnvVars.forEach(varName => {
+      console.error(`   - ${varName}`);
+    });
+    console.error('\nPlease add these to your .env file\n');
+    process.exit(1);
+  }
+
+  // ── Verify email configuration at startup ──
+  console.log('\n🔧 Verifying email configuration...');
+  const { verifyEmailConfig } = require('./services/emailService');
+  const emailReady = await verifyEmailConfig();
+  if (!emailReady) {
+    console.warn('⚠️  Email service is not ready. Password reset and verification emails will not be sent.');
+  } else {
+    console.log('✅ Email service verified and ready\n');
+  }
+
   await connectDB();
   const { initCronJobs } = require('./config/cronJobs');
+  console.log('\n🚀 Initializing cron jobs...');
   initCronJobs();
+  console.log('✅ Cron jobs initialized and scheduled\n');
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);

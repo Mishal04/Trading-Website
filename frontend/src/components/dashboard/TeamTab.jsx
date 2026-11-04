@@ -81,16 +81,32 @@ export default function TeamTab({ user }) {
   const otherVolume    = business?.otherTeamVolume  ?? 0;
 
   // Calculate user's current commission level
-  // Formula: current level = 21 - (directCount * 2 - 1) for 1-9 directs
-  // With 10+ directs: all 21 levels unlocked → L1 (25%)
+  // Formula: Levels unlock from L1 → L21 (ascending)
+  // directCount → unlocked levels mapping:
+  // 1 direct → 2 levels → L1, L2 (current = L2)
+  // 2 directs → 4 levels → L1-L4 (current = L4)
+  // 7 directs → 14 levels → L1-L14 (current = L14)
+  // 10+ directs → all 21 levels → L1-L21 (current = L21)
+  const LEVEL_UNLOCK_RULES = {
+    1: 2,    // 1 direct: 2 levels
+    2: 4,    // 2 directs: 4 levels
+    3: 6,    // 3 directs: 6 levels
+    4: 8,    // 4 directs: 8 levels
+    5: 10,   // 5 directs: 10 levels
+    6: 12,   // 6 directs: 12 levels
+    7: 14,   // 7 directs: 14 levels
+    8: 16,   // 8 directs: 16 levels
+    9: 18,   // 9 directs: 18 levels
+    10: 21   // 10+ directs: all 21 levels
+  };
+  
   const userCurrentLevel = (() => {
     if (!directCount || directCount <= 0) {
       return null;
     }
-    if (directCount >= 10) {
-      return 1;  // All 21 levels unlocked, current level is L1
-    }
-    return 21 - (directCount * 2 - 1);
+    // Look up unlocked level count from rules
+    const unlockedCount = LEVEL_UNLOCK_RULES[directCount] || (directCount >= 10 ? 21 : 0);
+    return unlockedCount || null;
   })();
 
   return (
@@ -276,8 +292,10 @@ export default function TeamTab({ user }) {
             onChange={(e) => setLevelFilter(e.target.value)}
             className="bg-dark-900 text-gray-300 text-xs rounded-xl px-3 py-2 border border-dark-500 focus:outline-none focus:border-gold-400"
           >
-            <option value="all">All Levels (1–21)</option>
-            {Array.from({ length: 21 }, (_, i) => i + 1).map((lvl) => (
+            <option value="all">
+              {userCurrentLevel ? `Unlocked Levels (1–${userCurrentLevel})` : 'All Levels (1–21)'}
+            </option>
+            {Array.from({ length: userCurrentLevel || 21 }, (_, i) => i + 1).map((lvl) => (
               <option key={lvl} value={String(lvl)}>
                 Level {lvl}{networkLevelCounts[lvl] ? ` (${networkLevelCounts[lvl]})` : ''}
               </option>

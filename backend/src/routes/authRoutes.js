@@ -10,6 +10,7 @@ const {
   resetPassword
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
+const { checkDBHealth } = require('../middleware/dbHealth');
 
 const validateRegister = [
   body().custom((value, { req }) => {
@@ -27,6 +28,9 @@ const validateLogin = [
   body('email').isEmail().withMessage('Please provide a valid email'),
   body('password').notEmpty().withMessage('Password is required')
 ];
+
+// Apply database health check to all auth routes
+router.use(checkDBHealth);
 
 router.post('/register', validateRegister, register);
 router.post('/login', validateLogin, login);

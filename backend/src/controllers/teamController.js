@@ -1,6 +1,29 @@
 const User = require('../models/User');
+const InvestorInvestment = require('../models/InvestorInvestment');
+const Investment = require('../models/Investment');
 const commissionService = require('../services/commissionService');
 const constants = require('../../config/constants');
+
+/**
+ * DISPLAY ONLY: Show ONLY wallet.capital where users actually earn commissions
+ * InvestorInvestment & Investment records are DISABLED to avoid confusion
+ * Only display invested amount if user is earning commissions from it
+ */
+const getActiveInvestedMap = async (userIds) => {
+  const map = new Map();
+
+  // ONLY show wallet.capital - this is what actually generates commissions (1% daily ROI)
+  const users = await User.find({ _id: { $in: userIds } }).select('_id wallet').lean();
+  users.forEach((u) => {
+    const walletCapital = u.wallet?.capital || 0;
+    if (walletCapital > 0) {
+      map.set(String(u._id), walletCapital);
+    }
+  });
+
+  return map;
+};
+
 
 /**
  * GET /api/team/business
@@ -14,20 +37,31 @@ const getTeamBusiness = async (req, res) => {
 
     // Direct referrals: users whose referredBy === current user
     const directReferrals = await User.find({ referredBy: userId })
-      .select('name email referralCode totalInvested teamBusiness isActive isVerified createdAt');
+      .select('_id name email referralCode teamBusiness isActive isVerified createdAt');
 
-    const legs = directReferrals.map((ref) => ({
-      userId:          ref._id,
-      name:            ref.name,
-      email:           ref.email,
-      referralCode:    ref.referralCode,
-      isActive:        ref.isActive,
-      isVerified:      ref.isVerified,
-      joinedAt:        ref.createdAt,
-      directInvestment: ref.totalInvested || 0,
-      // Leg volume = this person's own investment + their entire team below them
-      teamVolume: (ref.teamBusiness?.total || 0) + (ref.totalInvested || 0),
-    }));
+    // Batch fetch active investments for all direct referrals (display only)
+    const investedMap = await getActiveInvestedMap(directReferrals.map((r) => r._id));
+
+    // Calculate active investments for each direct referral
+    const legsPromises = directReferrals.map(async (ref) => {
+      // DISPLAY ONLY: fetch live investment amounts from real records
+      const directInvestment = investedMap.get(String(ref._id)) || 0;
+
+      return {
+        userId:          ref._id,
+        name:            ref.name,
+        email:           ref.email,
+        referralCode:    ref.referralCode,
+        isActive:        ref.isActive,
+        isVerified:      ref.isVerified,
+        joinedAt:        ref.createdAt,
+        directInvestment,
+        // Leg volume = this person's own investment + their entire team below them
+        teamVolume: (ref.teamBusiness?.total || 0) + directInvestment,
+      };
+    });
+
+    const legs = await Promise.all(legsPromises);
 
     // Sort descending to identify Strong vs Other legs
     legs.sort((a, b) => b.teamVolume - a.teamVolume);
@@ -93,7 +127,7 @@ const getDownline = async (req, res) => {
 
     // ── PRIMARY: users who have current user in their ancestorPath ──────────
     const byAncestorPath = await User.find({ ancestorPath: userId })
-      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy directCount')
+      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy directCount wallet')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -105,15 +139,18 @@ const getDownline = async (req, res) => {
       referredBy: userId,
       _id: { $nin: Array.from(foundIds).map((id) => require('mongoose').Types.ObjectId.createFromHexString(id)) },
     })
-      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy directCount')
+      .select('name email referralCode totalInvested investmentLevel isVerified isActive createdAt ancestorPath referredBy directCount wallet')
       .sort({ createdAt: -1 })
       .lean();
 
     // ── Merge both sets ──────────────────────────────────────────────────────
     const allUsers = [...byAncestorPath, ...byReferredBy];
 
-    const structuredDownline = allUsers
-      .map((user) => {
+    // Batch fetch active investments for all downline users (display only)
+    const investedMap = await getActiveInvestedMap(allUsers.map((u) => u._id));
+
+    const structuredDownline = await Promise.all(
+      allUsers.map(async (user) => {
         let level = 1; // default for fallback users
 
         if (user.ancestorPath && user.ancestorPath.length > 0) {
@@ -126,6 +163,9 @@ const getDownline = async (req, res) => {
           // If not found in ancestorPath but referredBy matches → Level 1
         }
 
+        // DISPLAY ONLY: fetch live investment amounts from real records
+        const totalInvested = investedMap.get(String(user._id)) || 0;
+
         // Calculate current commission level based on directCount
         const currentCommissionLevel = constants.getCurrentCommissionLevel(user.directCount || 0);
 
@@ -134,7 +174,7 @@ const getDownline = async (req, res) => {
           name:            user.name,
           email:           user.email,
           referralCode:    user.referralCode,
-          totalInvested:   user.totalInvested || 0,
+          totalInvested,
           investmentLevel: user.investmentLevel || 'none',
           isVerified:      user.isVerified,
           isActive:        user.isActive,
@@ -144,6 +184,10 @@ const getDownline = async (req, res) => {
           currentCommissionLevel,
         };
       })
+    );
+
+    // Filter and sort after all promises resolve
+    const filtered = structuredDownline
       .filter((u) => {
         if (u.level > maxLevel) return false;
         // Note: frontend handles currentCommissionLevel filtering
@@ -154,16 +198,16 @@ const getDownline = async (req, res) => {
 
     // Group count by level for quick stats
     const levelCounts = {};
-    structuredDownline.forEach((u) => {
+    filtered.forEach((u) => {
       levelCounts[u.level] = (levelCounts[u.level] || 0) + 1;
     });
 
     return res.json({
       success: true,
       data: {
-        totalDownlineCount: structuredDownline.length,
+        totalDownlineCount: filtered.length,
         levelCounts,
-        downline: structuredDownline,
+        downline: filtered,
       },
     });
   } catch (error) {

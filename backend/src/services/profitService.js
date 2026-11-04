@@ -4,24 +4,9 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
 const CronLock = require('../models/CronLock');
-const commissionService = require('./commissionService');
+
 const { getInvestmentPhase, getDailyRateForPhase, getMonthlyRatePhase3 } = require('../../config/investorConstants');
 
-/**
- * distributeInvestorShare
- *
- * Takes the 60% investor pool amount from a profit injection and distributes
- * it pro-rata to every user who has at least one active investment, weighted
- * by their total active capital vs the system-wide total active capital.
- *
- * Formula per user:
- *   userShare = (userActiveCapital / totalActiveCapital) * investorShareAmount
- *
- * @param {number} investorShareAmount  – the 60% slice of the injected gross profit
- * @param {string} adminUserId          – ID of the admin who triggered the injection (for audit)
- * @param {string} note                 – optional label carried into Transaction descriptions
- * @returns {{ distributed: number, userCount: number, skipped: number, details: Array }}
- */
 const distributeInvestorShare = async (investorShareAmount, adminUserId, note = '') => {
   console.log(`--- Starting Investor Share Distribution: $${investorShareAmount} ---`);
 
@@ -30,9 +15,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
     return { distributed: 0, userCount: 0, skipped: 0, details: [] };
   }
 
-  // ── 1. Aggregate active capital per user ─────────────────────────────────
-  // Group all active investments by userId and sum their amounts.
-  // We do this in one aggregation to avoid N+1 queries.
   const activeCapitalByUser = await Investment.aggregate([
     { $match: { status: 'active', isActive: true } },
     {
@@ -48,7 +30,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
     return { distributed: 0, userCount: 0, skipped: 0, details: [] };
   }
 
-  // ── 2. Compute total active capital across all users ──────────────────────
   const totalActiveCapital = activeCapitalByUser.reduce(
     (sum, row) => sum + row.activeCapital, 0
   );
@@ -60,7 +41,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
 
   console.log(`  Active investors: ${activeCapitalByUser.length}, Total capital: $${totalActiveCapital}`);
 
-  // ── 3. Distribute proportionally ─────────────────────────────────────────
   let totalDistributed = 0;
   let userCount        = 0;
   let skipped          = 0;
@@ -70,7 +50,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
     const userId       = row._id;
     const userCapital  = row.activeCapital;
 
-    // Calculate this user's proportional share (4 decimal places)
     const userShare = Number(
       ((userCapital / totalActiveCapital) * investorShareAmount).toFixed(4)
     );
@@ -80,7 +59,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
       continue;
     }
 
-    // Verify the user account is still active before crediting
     const user = await User.findById(userId).select('name email isActive');
     if (!user || !user.isActive) {
       console.log(`  Skipping inactive/missing user ${userId}`);
@@ -88,7 +66,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
       continue;
     }
 
-    // Credit wallet.profit atomically
     await User.findByIdAndUpdate(userId, {
       $inc: {
         'wallet.profit':   userShare,
@@ -96,7 +73,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
       }
     });
 
-    // Create audit transaction
     await Transaction.create({
       userId,
       type:        'profit',
@@ -114,7 +90,6 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
       }
     });
 
-    // Notify the investor
     await Notification.create({
       userId,
       title:   'Profit Share Credited',
@@ -131,24 +106,12 @@ const distributeInvestorShare = async (investorShareAmount, adminUserId, note = 
   return { distributed: totalDistributed, userCount, skipped, details };
 };
 
-/**
- * calculateDailyProfits
- *
- * Cron-driven daily profit run — credits each active investment's daily rate
- * directly to the investor's wallet.profit, then distributes 21-level commissions
- * to all qualifying uplines.
- *
- * NOTE: This is separate from the admin profit injection flow. Daily profits are
- * based on each investment's individual dailyRate. The injection flow distributes
- * a lump realized-profit amount proportionally across all active investors.
- */
 const calculateDailyProfits = async () => {
   console.log('--- Starting Daily Profit Calculation ---');
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-  // ── 1. Acquire Distributed Lock ───────────────────────────────────────────
   let lock;
   try {
     lock = await CronLock.create({
@@ -169,227 +132,224 @@ const calculateDailyProfits = async () => {
 
   let processedCount = 0;
   let totalProfitDistributed = 0;
+  const investorDailyRoiMap = {};
 
   try {
-    // ── PASS 1: Legacy User Portal Investment records (old Tier 1-4 system) ────
-    // MUTUALLY EXCLUSIVE: investorId != null, userId not checked
-    // These investments credit to wallet.profit, distribute 21-level commissions
-    const investments = await Investment.find({
-      isActive: true,
-      status: 'active',
-      lastProfitDate: { $lt: startOfToday }
-    }).populate('userId');
+    console.log('\n--- PHASE 1: Processing ROI Credits ---');
 
-    for (const investment of investments) {
+    // Get users with wallet.capital (active invested capital)
+    const usersWithCapital = await User.find({
+      'wallet.capital': { $gt: 0 },
+      isActive: true
+    }).select('_id name email wallet directCount ancestorPath')
+      .populate('ancestorPath', '_id name email wallet directCount');
+
+    console.log(`✓ Found ${usersWithCapital.length} users with active invested capital`);
+
+    // Helper function to get daily rate based on investment amount
+    const getDailyRateByAmount = (amount) => {
+      if (amount >= 10000) return 0.0125;  // 1.25% for $10k-$25k
+      if (amount >= 6000) return 0.01;    // 1% for $6k-$9k
+      if (amount >= 1000) return 0.01;    // 1% for $1k-$5k
+      if (amount >= 100) return 0.01;     // 1% for $100-$900
+      return 0;
+    };
+
+    // Process wallet.capital users
+    for (const user of usersWithCapital) {
       try {
-        const investor = investment.userId;
-        if (!investor || !investor.isActive) continue;
+        if (user.name && user.name.startsWith('Test_Final_')) continue;
+        if (user.email && user.email.endsWith('@test.com')) continue;
 
-        const dailyProfitAmount = Number(((investment.amount * investment.dailyRate) / 100).toFixed(4));
-        if (dailyProfitAmount <= 0) continue;
+        const capitalAmount = user.wallet?.capital || 0;
+        if (capitalAmount <= 0) continue;
 
-        // Atomic document-level guard: update lastProfitDate only if it still hasn't been updated today
-        const updatedInvestment = await Investment.findOneAndUpdate(
-          {
-            _id: investment._id,
-            isActive: true,
-            status: 'active',
-            lastProfitDate: { $lt: startOfToday }
-          },
-          {
-            $set: { lastProfitDate: now },
-            $inc: { totalProfitEarned: dailyProfitAmount }
-          },
-          { new: true }
-        );
+        // Get daily rate based on investment tier
+        const dailyRate = getDailyRateByAmount(capitalAmount);
+        if (dailyRate <= 0) continue;
 
-        if (!updatedInvestment) {
-          // Already processed concurrently
-          continue;
-        }
-
-        // Credit investor's profit wallet
-        await User.findByIdAndUpdate(investor._id, {
-          $inc: {
-            'wallet.profit': dailyProfitAmount,
-            totalProfitEarned: dailyProfitAmount
-          }
-        });
-
-        // Record profit transaction
-        await Transaction.create({
-          userId: investor._id,
-          type: 'profit',
-          amount: dailyProfitAmount,
-          status: 'completed',
-          description: `Daily profit (${investment.dailyRate}%) from package ${investment.packageName}`,
-          referenceId: investment._id,
-          referenceModel: 'Investment'
-        });
-
-        // Send profit notification
-        await Notification.create({
-          userId: investor._id,
-          title: 'Daily Profit Credited',
-          message: `You earned $${dailyProfitAmount} daily profit from your $${investment.amount} investment!`,
-          type: 'profit'
-        });
-
-        // Distribute 21-level commissions to uplines
-        // IMPORTANT: Commissions are based on INVESTMENT AMOUNT, not daily profit
-        await commissionService.distributeLevelCommissions(investment, investment.amount, investor);
-
-        processedCount++;
-        totalProfitDistributed += dailyProfitAmount;
-      } catch (err) {
-        console.error(`Error processing profit for investment ${investment._id}:`, err);
-      }
-    }
-
-    // ── PASS 2: Phase-aware Investor Plan A/B records (new unified User model) ───────
-    // MUTUALLY EXCLUSIVE: userId != null, investorId is null or not checked
-    // These investments credit to wallet.roi, NO commission distribution
-    // 
-    // PHASE LOGIC:
-    // Phase 1 (0-6mo): Use Plan A rates (1%, 1%, 1%, 1.25%)
-    // Phase 2 (6-12mo): Use Plan B rates (0.75%, 0.75%, 0.75%, 1%)
-    // Phase 3 (12+mo): Use monthly rate (8-10%) with daily equivalent
-    
-    const investorInvestments = await InvestorInvestment.find({
-      userId: { $ne: null },  // CRITICAL: Must have userId set (Phase 2 records)
-      status: 'active',
-      lastRoiDate: { $lt: startOfToday }
-    }).populate('userId');
-
-    for (const investment of investorInvestments) {
-      try {
-        const investor = investment.userId;
-        if (!investor) continue;
-
-        // SKIP TEST USERS: Do not pay users named Test_Final_* or emails ending @test.com
-        if (investor.name && investor.name.startsWith('Test_Final_')) {
-          continue;
-        }
-        if (investor.email && investor.email.endsWith('@test.com')) {
-          continue;
-        }
-
-        // ── DETECT CURRENT PHASE and calculate correct rate ────────────────────
-        const phase = getInvestmentPhase(investment.createdAt);
-        let dailyRoiAmount = 0;
-        let rateUsed = 0;
-        let phaseDescription = '';
-
-        if (phase === 1 || phase === 2) {
-          // Phase 1 or 2: Use daily rate
-          const phaseRate = getDailyRateForPhase(investment.packageNumber, investment.createdAt);
-          if (phaseRate && phaseRate > 0) {
-            rateUsed = phaseRate;
-            dailyRoiAmount = Number(((investment.amount * phaseRate) / 100).toFixed(4));
-            phaseDescription = `Phase ${phase} (${phase === 1 ? 'Plan A' : 'Plan B'})`;
-          }
-        } else if (phase === 3) {
-          // Phase 3: Convert monthly rate to daily
-          const monthlyRate = getMonthlyRatePhase3();
-          const dailyEquivalent = monthlyRate / 30.44; // Average days per month
-          rateUsed = dailyEquivalent;
-          dailyRoiAmount = Number(((investment.amount * dailyEquivalent) / 100).toFixed(4));
-          phaseDescription = `Phase 3 (Monthly: ${(monthlyRate * 100).toFixed(1)}% → ${(dailyEquivalent * 100).toFixed(4)}% daily)`;
-        }
+        const dailyRoiAmount = Number((capitalAmount * dailyRate).toFixed(4));
 
         if (dailyRoiAmount <= 0) continue;
 
-        // Check if investment's personal cap already reached
-        if (investment.capReached) continue;
-
-        // Atomic guard: update lastRoiDate only if not updated today AND cap not reached
-        const updatedInvestment = await InvestorInvestment.findOneAndUpdate(
-          {
-            _id: investment._id,
-            userId: investor._id,
-            status: 'active',
-            capReached: false,
-            lastRoiDate: { $lt: startOfToday }
-          },
-          {
-            $set: { lastRoiDate: now },
-            $inc: { totalRoiEarned: dailyRoiAmount }
-          },
-          { new: true }
-        );
-
-        if (!updatedInvestment) {
-          // Already processed or cap was reached concurrently
-          continue;
-        }
-
-        // Check if this credit hit the 3x cap on this specific investment
-        let investmentCapReached = false;
-        if (updatedInvestment.totalRoiEarned >= updatedInvestment.incomeCap) {
-          investmentCapReached = true;
-          await InvestorInvestment.findByIdAndUpdate(investment._id, {
-            $set: { capReached: true, status: 'completed' }
-          });
-        }
-
-        // Credit investor's ROI wallet on User model
-        await User.findByIdAndUpdate(investor._id, {
+        // Credit ROI to wallet
+        await User.findByIdAndUpdate(user._id, {
           $inc: {
-            'wallet.roi': dailyRoiAmount,
+            'wallet.profit': dailyRoiAmount,
             totalRoiEarned: dailyRoiAmount
           }
         });
 
-        // Record ROI transaction
         await Transaction.create({
-          userId: investor._id,
+          userId: user._id,
           type: 'profit',
           amount: dailyRoiAmount,
           status: 'completed',
-          description: `Daily ROI (${(rateUsed * 100).toFixed(4)}%) from ${phaseDescription} investment $${investment.amount}${investmentCapReached ? ' (cap reached)' : ''}`,
-          referenceId: investment._id,
-          referenceModel: 'InvestorInvestment'
+          description: `Daily ROI (${(dailyRate * 100).toFixed(2)}%) from active invested capital $${capitalAmount}`,
+          referenceId: user._id,
+          referenceModel: 'User'
         });
 
-        // Send ROI notification
         await Notification.create({
-          userId: investor._id,
+          userId: user._id,
           title: 'ROI Credited',
-          message: `You earned $${dailyRoiAmount} ROI from your ${phaseDescription} investment!${investmentCapReached ? ' (Income cap reached)' : ''}`,
+          message: `You earned $${dailyRoiAmount} ROI from your active invested capital!`,
           type: 'profit'
         });
 
-        // ── DISTRIBUTE 21-LEVEL COMMISSIONS via unified service ────────────────────
-        // IMPORTANT: Commissions are based on INVESTMENT AMOUNT, not daily ROI
-        // Applies LEVEL_RATES as percentage of investment amount
-        // Respects income cap rules and level unlock requirements
-        // SKIP LEVEL COMMISSIONS ON SATURDAY/SUNDAY (but ROI credits daily)
-        const dubaiTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
-        const isDubaiWeekend = dubaiTime.getDay() === 0 || dubaiTime.getDay() === 6;
-        
-        if (!isDubaiWeekend && investor.ancestorPath && investor.ancestorPath.length > 0) {
-          try {
-            // Call unified commission distribution service
-            // Base amount is INVESTMENT amount, not daily ROI
-            await commissionService.distributeLevelCommissionsWithChecks(
-              investment,
-              investment.amount,  // Use investment amount, not dailyRoiAmount
-              investor,
-              'InvestorInvestment'
-            );
-          } catch (comErr) {
-            console.error(`Error distributing 21-level commissions for InvestorInvestment ${investment._id}:`, comErr);
-          }
+        const investorId = user._id.toString();
+        if (!investorDailyRoiMap[investorId]) {
+          investorDailyRoiMap[investorId] = {
+            totalRoi: 0,
+            investor: { _id: user._id, name: user.name, email: user.email, ancestorPath: user.ancestorPath },
+            investments: []
+          };
         }
+        investorDailyRoiMap[investorId].totalRoi += dailyRoiAmount;
 
         processedCount++;
         totalProfitDistributed += dailyRoiAmount;
+
       } catch (err) {
-        console.error(`Error processing ROI for investor investment ${investment._id}:`, err);
+        console.error(`Error processing wallet.capital for user ${user._id}:`, err);
       }
     }
 
-    // Mark lock as successfully completed
+    console.log(`✓ PHASE 1 Complete: ${processedCount} users processed, $${totalProfitDistributed.toFixed(2)} ROI distributed`);
+
+    // ── PHASE 2: Process Commissions (DEPTH-BASED 21-LEVEL) ────
+    console.log(`\n--- PHASE 2: Processing Commissions (${Object.keys(investorDailyRoiMap).length} investors) ---`);
+
+    // Check if commissions already exist today - if so, skip to prevent duplicates
+    const anyCommToday = await Transaction.findOne({
+      type: 'commission',
+      createdAt: { $gte: startOfToday }
+    });
+
+    if (anyCommToday) {
+      console.log(`⊘ COMMISSIONS ALREADY PROCESSED TODAY - SKIPPING TO PREVENT DUPLICATES`);
+    } else {
+      let totalCommissionsPaid = 0;
+      let investorsProcessed = 0;
+
+      const LEVEL_RATES = require('../../config/constants').LEVEL_RATES;
+      const constants = require('../../config/constants');
+
+      // For each investor who earned ROI today
+      for (const investorId in investorDailyRoiMap) {
+        try {
+          const { totalRoi, investor } = investorDailyRoiMap[investorId];
+
+          if (!investor || !investor.ancestorPath || investor.ancestorPath.length === 0) {
+            continue;
+          }
+
+          // ── PHASE 2 LOGIC: Depth-based 21-level commission WITH UNLOCK CHECK ──
+          // Walk up ancestorPath and pay each upline based on NETWORK POSITION (depth)
+          // BUT only if the upline has unlocked that level based on directCount
+          // networkPosition = index + 1 in ancestorPath
+          // rate = LEVEL_RATES[networkPosition]
+          // commission = (dailyRoiAmount * rate) / 100
+          
+          for (let positionIndex = 0; positionIndex < investor.ancestorPath.length; positionIndex++) {
+            try {
+              const networkPosition = positionIndex + 1;  // L1, L2, L3, ...
+              
+              if (networkPosition > 21) break;  // Only up to L21
+
+              const uplineId = investor.ancestorPath[positionIndex];
+              const upline = await User.findById(uplineId)
+                .select('_id name email isActive totalInvested wallet directCount');
+
+              if (!upline) {
+                console.log(`    L${networkPosition}: Upline not found (${uplineId})`);
+                continue;
+              }
+
+              if (!upline.isActive) {
+                console.log(`    L${networkPosition}: ${upline.name} inactive`);
+                continue;
+              }
+
+              // ✅ CHECK: Is this level unlocked for this upline based on directCount?
+              const unlockedCount = constants.getUnlockedLevelCount(upline.directCount || 0);
+              
+              // IMPORTANT: Only pay commissions up to upline's unlocked level
+              // Example: If upline unlocked 8 levels, only pay L1-L8, not L9+
+              if (networkPosition > unlockedCount) {
+                console.log(`    L${networkPosition}: ${upline.name} cannot receive (unlocked only ${unlockedCount} levels)`);
+                continue;
+              }
+              
+              // Verify the level is actually unlocked using proper check
+              const isLevelUnlocked = constants.isLevelUnlocked(networkPosition, upline.directCount || 0);
+              if (!isLevelUnlocked) {
+                console.log(`    L${networkPosition}: ${upline.name} has not unlocked this level`);
+                continue;
+              }
+
+              // Get rate for this network position (depth-based, not upline's personal level)
+              // LEVEL_RATES is 1-indexed: LEVEL_RATES[1] = L1, LEVEL_RATES[21] = L21
+              const ratePercent = LEVEL_RATES[networkPosition];
+              
+              if (!ratePercent || ratePercent <= 0) {
+                console.log(`    L${networkPosition}: Invalid rate`);
+                continue;
+              }
+
+              const commissionAmount = Number(((totalRoi * ratePercent) / 100).toFixed(4));
+              
+              if (commissionAmount <= 0) {
+                continue;
+              }
+
+              // Credit commission to upline wallet
+              await User.findByIdAndUpdate(uplineId, {
+                $inc: {
+                  'wallet.commission': commissionAmount,
+                  totalEarned: commissionAmount
+                }
+              });
+
+              // Create transaction
+              await Transaction.create({
+                userId: uplineId,
+                type: 'commission',
+                amount: commissionAmount,
+                status: 'completed',
+                description: `L${networkPosition} commission (${(ratePercent).toFixed(2)}%) from ${investor.name}'s $${totalRoi.toFixed(4)} daily ROI`,
+                level: networkPosition,
+                referenceId: investor._id,
+                referenceModel: 'User'
+              });
+
+              // Notification
+              await Notification.create({
+                userId: uplineId,
+                title: 'Commission Received',
+                message: `You earned $${commissionAmount.toFixed(2)} in Level ${networkPosition} commission!`,
+                type: 'commission'
+              });
+
+              totalCommissionsPaid += commissionAmount;
+
+              console.log(`    L${networkPosition} → ${upline.name}: $${commissionAmount.toFixed(4)}`);
+
+            } catch (levelErr) {
+              console.error(`Error processing L${positionIndex + 1}:`, levelErr.message);
+            }
+          }
+
+          investorsProcessed++;
+
+        } catch (err) {
+          console.error(`Error processing commissions for investor ${investorId}:`, err);
+        }
+      }
+
+      console.log(`✓ PHASE 2 Complete: ${investorsProcessed} investors processed, $${totalCommissionsPaid.toFixed(2)} total commissions`);
+    }
+
     if (lock) {
       await CronLock.findByIdAndUpdate(lock._id, {
         status: 'completed',
@@ -397,8 +357,18 @@ const calculateDailyProfits = async () => {
       });
     }
 
-    console.log(`--- Daily Profit Calculation Complete: Processed ${processedCount} investments, total $${totalProfitDistributed.toFixed(2)} distributed ---`);
-    return { processedCount, totalProfitDistributed };
+    console.log(`\n--- Daily Profit Calculation Complete ---`);
+    console.log(`  Investments: ${processedCount}`);
+    console.log(`  ROI Distributed: $${totalProfitDistributed.toFixed(2)}`);
+    console.log(`  Investors Processed: ${Object.keys(investorDailyRoiMap).length}`);
+    console.log(`\n`);
+
+    return {
+      processedCount,
+      totalProfitDistributed,
+      investorsWithCommissions: Object.keys(investorDailyRoiMap).length
+    };
+
   } catch (outerErr) {
     if (lock) {
       await CronLock.findByIdAndUpdate(lock._id, {

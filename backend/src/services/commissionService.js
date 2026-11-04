@@ -98,159 +98,111 @@ const isLevelUnlockedForUpline = (upline, level) => {
 };
 
 /**
-  UNIFIED 21-Level Commission Distribution with PERSONAL COMMISSION LEVEL
-  
-  NEW SYSTEM: Each user earns commissions at their PERSONAL commission level,
-  not based on network position.
-  
-  Example:
-  - Metha has 2 directs → Personal Level L18 → Earns 0.9% from ALL downline at position 1
-  - User with 10 directs → Personal Level L1 → Earns 25% from ALL downline at position 1
-  
-  @param {Object} investment - Investment or InvestorInvestment document
-  @param {number} baseAmount - Daily profit/ROI amount to distribute from
-  @param {Object} investor - User document with ancestorPath
-  @param {string} investmentType - 'Investment' or 'InvestorInvestment' for logging
-  @param {boolean} enforceUnlockedLevels - Ignored (not used in personal level system)
+ * DEPTH-BASED 21-LEVEL COMMISSION DISTRIBUTION
+ * 
+ * Core principle: Commissions are based on NETWORK DEPTH (position in ancestorPath),
+ * NOT on the upline's personal directCount or "personal commission level".
+ * 
+ * For User A with daily ROI of $100:
+ * - L1 upline (direct referrer) gets 25% = $25
+ * - L2 upline (referrer's referrer) gets 15% = $15
+ * - L3 upline gets 10% = $10
+ * - ... and so on up to L21
+ * 
+ * Each upline position in the ancestorPath receives commission based ONLY on their position,
+ * regardless of how many directs they have.
+ * 
+ * @param {Object} investor - User document with ancestorPath
+ * @param {number} dailyRoiAmount - Daily ROI/profit earned by investor
+ * @param {string} investmentType - Reference type for logging
  */
-const distributeLevelCommissionsWithChecks = async (investment, baseAmount, investor, investmentType = 'Investment', enforceUnlockedLevels = true) => {
-  if (!investor.ancestorPath || investor.ancestorPath.length === 0) {
-    return; // No ancestors, no commissions
+const distributeDepthBasedLevelCommissions = async (investor, dailyRoiAmount, investmentType = 'InvestorInvestment') => {
+  if (!investor || !investor.ancestorPath || investor.ancestorPath.length === 0) {
+    return { totalPaid: 0, levelsProcessed: 0 };
   }
 
-  for (let i = 0; i < investor.ancestorPath.length; i++) {
-    const ancestorId = investor.ancestorPath[i];
-    const networkPosition = i + 1; // Position in chain (1-21)
-    
+  if (!dailyRoiAmount || dailyRoiAmount <= 0) {
+    return { totalPaid: 0, levelsProcessed: 0 };
+  }
+
+  let totalPaid = 0;
+  let levelsProcessed = 0;
+
+  // Walk up the ancestorPath and pay each upline based on NETWORK POSITION (depth)
+  for (let positionIndex = 0; positionIndex < Math.min(investor.ancestorPath.length, 21); positionIndex++) {
     try {
-      // Fetch upline
-      const upline = await User.findById(ancestorId).select('name email isActive totalInvested directCount role totalEarned');
+      const networkPosition = positionIndex + 1;  // L1, L2, L3, ..., L21
+      const uplineId = investor.ancestorPath[positionIndex];
+
+      const upline = await User.findById(uplineId)
+        .select('_id name email isActive totalInvested wallet');
+
+      if (!upline) continue;
+      if (!upline.isActive) continue;
+
+      // Get rate for this NETWORK POSITION (not upline's personal level)
+      // LEVEL_RATES is 1-indexed: LEVEL_RATES[1] = L1, LEVEL_RATES[21] = L21
+      const ratePercent = LEVEL_RATES[networkPosition];
       
-      if (!upline) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | Upline not found (${ancestorId})`);
-        continue;
-      }
+      if (!ratePercent || ratePercent <= 0) continue;
 
-      if (!upline.isActive) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | Upline ${upline.name} inactive`);
-        continue;
-      }
-
-      if ((upline.totalInvested || 0) <= 0) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | Upline ${upline.name} no investment`);
-        continue;
-      }
-
-      // Determine payout level and rate based on upline's directCount
-      // Each direct referral unlocks 2 levels, they earn from the LOWER level
-      // Uses STANDARD level rates from LEVEL_RATES array
-      // 
-      // 1 direct: L21+L20 → earn L20 @ 0.9% (L11-L20 rate)
-      // 2 directs: L19+L18 → earn L18 @ 0.9%
-      // 3 directs: L17+L16 → earn L16 @ 0.9%
-      // 4 directs: L15+L14 → earn L14 @ 0.9%
-      // 5 directs: L13+L12 → earn L12 @ 0.9%
-      // 6 directs: L11+L10 → earn L10 @ 2% (L6-L10 rate)
-      // 7 directs: L9+L8 → earn L8 @ 2%
-      // 8 directs: L7+L6 → earn L6 @ 2%
-      // 9 directs: L5+L4 → earn L4 @ 5% (L4-L5 rate)
-      // 10+ directs: all 21 → earn L1 @ 25%
+      const commissionAmount = Number(((dailyRoiAmount * ratePercent) / 100).toFixed(4));
       
-      const directCount = upline.directCount || 0;
-      
-      let payoutLevel;
-      
-      if (directCount === 0) {
-        // No directs, no commission
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} no unlocked levels (0 directs)`);
-        continue;
-      } else if (directCount >= 10) {
-        payoutLevel = 1; // L1: 25%
-      } else {
-        // For 1-9 directs, calculate payout level
-        // Formula: payoutLevel = 22 - (directCount * 2)
-        payoutLevel = 22 - (directCount * 2);
-      }
-
-      // Get the STANDARD rate for this level from LEVEL_RATES
-      const ratePercent = LEVEL_RATES[payoutLevel - 1];
-      
-      if (!ratePercent || ratePercent <= 0) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} invalid rate for L${payoutLevel}`);
-        continue;
-      }
-
-      // Verify upline actually has enough directs to have this level
-      if (directCount < 1 || (directCount < 10 && directCount < Math.ceil((22 - payoutLevel) / 2))) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} insufficient directs (${directCount})`);
-        continue;
-      }
-
-      const commissionAmount = Number(((baseAmount * ratePercent) / 100).toFixed(4));
       if (commissionAmount <= 0) continue;
 
-      // Check income cap
-      if (upline.hasReachedIncomeCap && upline.hasReachedIncomeCap()) {
-        console.log(`[COMMISSION DEBUG] Position ${networkPosition} | ${upline.name} income cap reached`);
-        continue;
-      }
-
-      // Credit commission
-      await User.findByIdAndUpdate(ancestorId, {
+      // Credit commission to upline
+      await User.findByIdAndUpdate(uplineId, {
         $inc: {
           'wallet.commission': commissionAmount,
           totalEarned: commissionAmount
         }
       });
 
-      // Log commission for this specific position/level
-      await CommissionLog.create({
-        recipientId: ancestorId,
-        sourceUserId: investor._id,
-        investmentId: investment._id,
-        level: payoutLevel,
-        commissionType: 'level',
-        rate: ratePercent,
-        baseAmount,
-        commissionAmount,
-        description: `Level ${payoutLevel} commission (${ratePercent}%) from position ${networkPosition} (${investor.name}'s ${investmentType} daily earnings)`
-      });
-
-      // Transaction record
+      // Log transaction
       await Transaction.create({
-        userId: ancestorId,
+        userId: uplineId,
         type: 'commission',
         amount: commissionAmount,
         status: 'completed',
-        description: `Level ${payoutLevel} commission (${ratePercent}%) from position ${networkPosition} (${investor.name}'s ${investmentType} daily earnings)`,
-        referenceId: investment._id,
+        description: `L${networkPosition} commission (${(ratePercent).toFixed(2)}%) from ${investor.name}'s $${dailyRoiAmount.toFixed(4)} daily ROI`,
+        level: networkPosition,
+        referenceId: investor._id,
         referenceModel: investmentType
       });
 
       // Notification
       await Notification.create({
-        userId: ancestorId,
+        userId: uplineId,
         title: 'Commission Received',
-        message: `You earned $${commissionAmount.toFixed(2)} in Level ${payoutLevel} commission from ${investor.name}!`,
+        message: `You earned $${commissionAmount.toFixed(2)} in Level ${networkPosition} commission!`,
         type: 'commission'
       });
 
-      console.log(`[COMMISSION DEBUG] Position ${networkPosition} | L${payoutLevel} | Rate=${ratePercent}% | Base=$${baseAmount.toFixed(4)} | Commission=$${commissionAmount.toFixed(4)} | From: ${upline.name}`);
+      totalPaid += commissionAmount;
+      levelsProcessed++;
 
     } catch (err) {
-      console.error(`Error at position ${networkPosition}:`, err.message);
-      continue;
+      console.error(`[DEPTH-BASED-COMM] Error at L${positionIndex + 1}:`, err.message);
     }
   }
+
+  return { totalPaid, levelsProcessed };
+};
+
+/**
+ * OLD LEGACY WRAPPER - Kept for backward compatibility
+ * Delegates to new depth-based logic
+ */
+const distributeLevelCommissionsWithChecks = async (investment, baseAmount, investor, investmentType = 'Investment', enforceUnlockedLevels = true) => {
+  return distributeDepthBasedLevelCommissions(investor, baseAmount, investmentType);
 };
 
 /**
   Distribute 21-level commissions when profit is generated
-  LEGACY: Used only for PASS 1 (Investment) records. For Phase 2, use distributeLevelCommissionsWithChecks()
+  LEGACY WRAPPER: Delegates to depth-based logic
  */
 const distributeLevelCommissions = async (investment, dailyProfitAmount, investor) => {
-  // DELEGATE TO UNIFIED FUNCTION for legacy Investment records
-  return distributeLevelCommissionsWithChecks(investment, dailyProfitAmount, investor, 'Investment', false);
+  return distributeDepthBasedLevelCommissions(investor, dailyProfitAmount, 'Investment');
 };
 
 /**
@@ -411,6 +363,243 @@ const distributePerformanceReward = async () => {
   return totalDistributed;
 };
 
+/**
+ * Distribute leg commission to users based on total direct downline leg volume
+ * Called once on Monday 4 PM
+ * User earns commission based on unlockedLevels from TOTAL direct referral leg volume
+ * 
+ * Example: Faisal has 6 directs, 2 invested $300 each = $600 total leg
+ * Faisal at Level 10 gets 2% of $600 = $12
+ */
+const distributeLegCommissions = async () => {
+  console.log('[LEG COMMISSION] Starting leg commission distribution...');
+
+  try {
+    // Get all users with downline
+    const users = await User.find(
+      { directCount: { $gt: 0 } },
+      { _id: 1, name: 1, unlockedLevels: 1, directCount: 1, totalInvested: 1 }
+    );
+
+    let totalCommissionPaid = 0;
+
+    for (const user of users) {
+      try {
+        // Skip if no unlocked levels
+        if (!user.unlockedLevels || user.unlockedLevels === 0) {
+          console.log(`[LEG COMMISSION] ${user.name}: Skipped (unlockedLevels = 0)`);
+          continue;
+        }
+
+        // Get ALL DIRECT downline members (ancestorPath length = 1, meaning direct referral)
+        // Use simple query instead of $expr for better performance
+        const allDownline = await User.find({ ancestorPath: user._id });
+        const directDownline = allDownline.filter(d => d.ancestorPath?.length === 1);
+
+        if (directDownline.length === 0) {
+          console.log(`[LEG COMMISSION] ${user.name}: No direct downline members`);
+          continue;
+        }
+
+        // Calculate TOTAL leg volume from all directs (not just strongest)
+        let totalLegVolume = 0;
+        directDownline.forEach(member => {
+          totalLegVolume += (member.totalInvested || 0);
+        });
+
+        if (totalLegVolume <= 0) {
+          console.log(`[LEG COMMISSION] ${user.name}: Total leg volume is 0`);
+          continue;
+        }
+
+        // Determine commission rate from unlockedLevels
+        // unlockedLevels tells how many levels are unlocked (starting from top L21 going down)
+        // Lowest level = 22 - unlockedLevels
+        // Then get the rate for that lowest unlocked level
+        
+        let lowestLevel = 22 - (user.unlockedLevels || 0);
+        let rate = 0;
+
+        if (lowestLevel <= 1) {
+          rate = 25; // L1
+        } else if (lowestLevel <= 2) {
+          rate = 15; // L2
+        } else if (lowestLevel <= 3) {
+          rate = 10; // L3
+        } else if (lowestLevel <= 5) {
+          rate = 5; // L4-5
+        } else if (lowestLevel <= 10) {
+          rate = 2; // L6-10
+        } else if (lowestLevel <= 20) {
+          rate = 0.9; // L11-20
+        } else if (lowestLevel <= 21) {
+          rate = 1; // L21
+        } else {
+          // No levels unlocked
+          rate = 0;
+          lowestLevel = 0;
+        }
+
+        // Calculate commission from TOTAL leg volume
+        const commissionAmount = Number(((totalLegVolume * rate) / 100).toFixed(2));
+
+        if (commissionAmount <= 0) {
+          console.log(`[LEG COMMISSION] ${user.name}: Commission amount is 0`);
+          continue;
+        }
+
+        // Credit commission to user
+        await User.findByIdAndUpdate(user._id, {
+          $inc: {
+            'wallet.commission': commissionAmount,
+            totalEarned: commissionAmount
+          }
+        });
+
+        // Log commission
+        await CommissionLog.create({
+          recipientId: user._id,
+          commissionType: 'level',  // Changed from 'leg' to 'level'
+          rate: rate,
+          baseAmount: totalLegVolume,
+          commissionAmount,
+          description: `Leg commission Level ${lowestLevel} (${rate}%) from total direct leg volume ($${totalLegVolume})`
+        });
+
+        // Transaction record
+        await Transaction.create({
+          userId: user._id,
+          type: 'commission',
+          amount: commissionAmount,
+          status: 'completed',
+          description: `Leg commission Level ${lowestLevel} (${rate}%) from total direct leg volume ($${totalLegVolume})`
+        });
+
+        // Notification
+        await Notification.create({
+          userId: user._id,
+          title: 'Leg Commission Received',
+          message: `You earned $${commissionAmount.toFixed(2)} leg commission (Level ${lowestLevel} @ ${rate}%) from direct referral leg ($${totalLegVolume})!`,
+          type: 'commission'
+        });
+
+        totalCommissionPaid += commissionAmount;
+
+        console.log(`[LEG COMMISSION] ${user.name}: L${lowestLevel} @ ${rate}% | Total Leg: $${totalLegVolume} | Commission: $${commissionAmount.toFixed(2)}`);
+
+      } catch (err) {
+        console.error(`[LEG COMMISSION] Error processing ${user.name}:`, err.message);
+      }
+    }
+
+    console.log(`[LEG COMMISSION] Total leg commissions paid: $${totalCommissionPaid.toFixed(2)}`);
+    return totalCommissionPaid;
+
+  } catch (err) {
+    console.error('[LEG COMMISSION] Fatal error:', err.message);
+    throw err;
+  }
+};
+
+
+/**
+ * DAILY COMMISSION: Pay direct referrer daily based on investor's daily ROI
+ * Called every day as part of daily profit calculation
+ */
+
+
+/**
+ * DAILY COMMISSION - CORRECT LOGIC
+ * Levels unlock from L21 DOWN to L1 in pairs (2 levels per direct)
+ * 1 Direct = L21+L20, use L20 (1%)
+ * 2 Directs = L21+L20+L19+L18, use L18 (0.9%)
+ * 3 Directs = L21-L16, use L16 (0.9%)
+ * ... and so on
+ */
+const distributeDailyDirectReferralCommission = async (investment, dailyRoiAmount, investor, investmentType = 'InvestorInvestment') => {
+  if (!investor.ancestorPath || investor.ancestorPath.length === 0) {
+    return;
+  }
+
+  const directReferrerId = investor.ancestorPath[0];
+  
+  try {
+    const directReferrer = await User.findById(directReferrerId).select('name email isActive totalInvested unlockedLevels role totalEarned');
+    
+    if (!directReferrer || !directReferrer.isActive || (directReferrer.totalInvested || 0) <= 0) {
+      return;
+    }
+
+    // ✅ CRITICAL FIX: Count ACTUAL directs from database, not stored field
+    const actualDirectCount = await User.countDocuments({ referredBy: directReferrerId });
+    if (actualDirectCount === 0) return;
+    
+    // Use actual count for level calculation
+    let payoutLevel;
+    if (actualDirectCount >= 10) {
+      payoutLevel = 1;
+    } else {
+      payoutLevel = Math.max(1, 22 - (actualDirectCount * 2));
+    }
+
+    // Get commission rate for this level
+    let commissionRate;
+    if (payoutLevel === 1) {
+      commissionRate = 25; // L1
+    } else if (payoutLevel === 2) {
+      commissionRate = 15; // L2
+    } else if (payoutLevel === 3) {
+      commissionRate = 10; // L3
+    } else if (payoutLevel >= 4 && payoutLevel <= 5) {
+      commissionRate = 5; // L4-5
+    } else if (payoutLevel >= 6 && payoutLevel <= 10) {
+      commissionRate = 2; // L6-10
+    } else if (payoutLevel >= 11 && payoutLevel <= 20) {
+      commissionRate = 0.9; // L11-20
+    } else if (payoutLevel === 21) {
+      commissionRate = 1; // L21
+    } else {
+      return;
+    }
+
+    // Calculate daily commission = commission rate � investment amount
+    const dailyCommission = Number(((investment.amount * commissionRate) / 100).toFixed(4));
+    if (dailyCommission <= 0) return;
+
+    if (directReferrer.hasReachedIncomeCap && directReferrer.hasReachedIncomeCap()) {
+      return;
+    }
+
+    await User.findByIdAndUpdate(directReferrerId, {
+      $inc: {
+        'wallet.commission': dailyCommission,
+        totalEarned: dailyCommission
+      }
+    });
+
+    await Transaction.create({
+      userId: directReferrerId,
+      type: 'commission',
+      amount: dailyCommission,
+      status: 'completed',
+      description: `Daily commission - L${payoutLevel} (${commissionRate}%) from direct referral ${investor.name}'s $${investment.amount} investment`,
+      referenceId: investment._id,
+      referenceModel: investmentType
+    });
+
+    await Notification.create({
+      userId: directReferrerId,
+      title: 'Daily Commission Received',
+      message: `You earned $${dailyCommission.toFixed(2)} commission from direct referral ${investor.name}!`,
+      type: 'commission'
+    });
+
+    console.log(`[DAILY COMMISSION] L${payoutLevel} (${commissionRate}%) | $${dailyCommission.toFixed(4)} | From: ${investor.name} ? ${directReferrer.name}`);
+
+  } catch (err) {
+    console.error(`[DAILY COMMISSION] Error:`, err.message);
+  }
+};
 module.exports = {
   LEVEL_RATES,
   LEADERSHIP_TIERS,
@@ -418,8 +607,11 @@ module.exports = {
   getInvestmentPackage,
   check6040Qualification,
   isLevelUnlockedForUpline,
-  distributeLevelCommissions,
-  distributeLevelCommissionsWithChecks,
+  distributeDepthBasedLevelCommissions,  // NEW: Depth-based 21-level commission
+  distributeLevelCommissions,  // LEGACY: delegates to depth-based
+  distributeLevelCommissionsWithChecks,  // LEGACY: for backward compatibility
+  distributeDailyDirectReferralCommission,
+  distributeLegCommissions,
   distributeLeadershipSalary,
   distributePerformanceReward
 };

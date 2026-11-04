@@ -97,6 +97,12 @@ export default function Login() {
               'Login'
             )}
           </button>
+
+          <div className="flex items-center justify-between pt-2">
+            <Link to="/forgot-password" className="text-xs text-gold-400 hover:text-gold-300 font-semibold">
+              Forgot Password?
+            </Link>
+          </div>
         </form>
 
         <p className="text-center text-sm text-gray-400 mt-6">

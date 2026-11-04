@@ -30,12 +30,41 @@ const navItems = [
  *   onClose (fn)      – close the mobile drawer
  */
 export default function AdminSidebar({ open, onClose }) {
-  const { user, logout } = useAuth();
+  const { user, logout, exitImpersonation } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
-    navigate('/login');
+    const token = localStorage.getItem('token');
+    let isImpersonating = false;
+
+    if (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        const decoded = JSON.parse(jsonPayload);
+        if (decoded.impersonated === true) {
+          isImpersonating = true;
+        }
+      } catch (error) {
+        // Silent fail
+      }
+    }
+
+    if (isImpersonating) {
+      exitImpersonation();
+      // Don't navigate - exitImpersonation handles the redirect via /admin route
+      // Just close the mobile menu if open
+      onClose?.();
+    } else {
+      logout();
+      navigate('/login');
+    }
   };
 
   const sidebarContent = (

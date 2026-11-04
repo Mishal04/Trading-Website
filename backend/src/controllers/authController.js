@@ -52,7 +52,26 @@ const register = async (req, res) => {
     const phoneNumber = rawPhone ? String(rawPhone).trim() : null;
     const name = req.body.name || req.body.fullName;
 
-    const userExists = await User.findOne({ email });
+    // Input validation
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, and password are required'
+      });
+    }
+
+    // Check if user already exists
+    let userExists;
+    try {
+      userExists = await User.findOne({ email });
+    } catch (dbErr) {
+      console.error('[REGISTRATION] Database error checking existing user:', dbErr.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error during registration. Please try again.'
+      });
+    }
+
     if (userExists) {
       return res.status(400).json({
         success: false,
@@ -60,65 +79,185 @@ const register = async (req, res) => {
       });
     }
 
-    const user = new User({
-      name,
-      email,
-      password,
-      phoneNumber,
-      referralCode: await generateUniqueReferralCode()
-    });
+    // Create new user document
+    let user;
+    try {
+      user = new User({
+        name,
+        email,
+        password,
+        phoneNumber,
+        referralCode: await generateUniqueReferralCode()
+      });
+    } catch (userErr) {
+      console.error('[REGISTRATION] Error creating user document:', userErr.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid input data provided'
+      });
+    }
 
     // Link referral chain if a valid sponsor code was provided
     if (referralCode) {
-      const referrer = await User.findOne({ referralCode });
-      if (referrer) {
-        user.referredBy   = referrer._id;
-        user.ancestorPath = [referrer._id, ...(referrer.ancestorPath || [])].slice(0, 25);
-        // Increment directCount and recompute unlocked levels
-        const referrerDoc = await User.findById(referrer._id);
-        referrerDoc.directCount = (referrerDoc.directCount || 0) + 1;
-        referrerDoc.recomputeUnlockedLevels();
-        await referrerDoc.save();
+      try {
+        const referrer = await User.findOne({ referralCode });
+        if (referrer) {
+          user.referredBy = referrer._id;
+          
+          // ═════════════════════════════════════════════════════════════════════════════
+          // CRITICAL FIX: Build ancestorPath safely
+          // ═════════════════════════════════════════════════════════════════════════════
+          
+          // RULE 1: Always include the direct referrer as first element
+          const ancestorArray = [referrer._id];
+          
+          // RULE 2: If referrer has ancestorPath, append it
+          if (referrer.ancestorPath && Array.isArray(referrer.ancestorPath) && referrer.ancestorPath.length > 0) {
+            ancestorArray.push(...referrer.ancestorPath);
+          } else if (referrer.referredBy) {
+            // FALLBACK: If referrer has no ancestorPath but HAS a referrer, fetch from DB
+            console.warn(`[REGISTRATION] Referrer ${referrer.email} has no ancestorPath, fetching...`);
+            const referrerReferrer = await User.findById(referrer.referredBy).select('ancestorPath');
+            if (referrerReferrer && Array.isArray(referrerReferrer.ancestorPath)) {
+              ancestorArray.push(...referrerReferrer.ancestorPath);
+            }
+          }
+          
+          // RULE 3: Trim to max 25 levels
+          user.ancestorPath = ancestorArray.slice(0, 25);
+          
+          // ═════════════════════════════════════════════════════════════════════════════
+          // VALIDATION: Ensure integrity before saving
+          // ═════════════════════════════════════════════════════════════════════════════
+          
+          if (!user.ancestorPath || user.ancestorPath.length === 0) {
+            console.error(`[REGISTRATION] CRITICAL: ancestorPath is EMPTY after building for ${email}`);
+            throw new Error('ancestorPath construction resulted in empty array');
+          }
+          
+          if (user.ancestorPath[0].toString() !== referrer._id.toString()) {
+            console.error(`[REGISTRATION] CRITICAL: ancestorPath[0]=${user.ancestorPath[0]} does NOT match referrer=${referrer._id}`);
+            throw new Error('ancestorPath[0] integrity check failed');
+          }
+          
+          console.log(`[REGISTRATION] ancestorPath built: ${user.ancestorPath.length} levels | ${user.ancestorPath.map(id => id.toString()).join(' → ')}`);
+          
+          // ═════════════════════════════════════════════════════════════════════════════
+          // Update referrer's directCount
+          // ═════════════════════════════════════════════════════════════════════════════
+          
+          const referrerDoc = await User.findById(referrer._id);
+          if (referrerDoc) {
+            referrerDoc.directCount = (referrerDoc.directCount || 0) + 1;
+            if (typeof referrerDoc.recomputeUnlockedLevels === 'function') {
+              referrerDoc.recomputeUnlockedLevels();
+            }
+            await referrerDoc.save();
+            console.log(`[REGISTRATION] Updated referrer ${referrer.email} directCount to ${referrerDoc.directCount}`);
+          }
+        } else {
+          console.warn(`[REGISTRATION] Invalid referral code provided: ${referralCode}`);
+        }
+      } catch (refErr) {
+        console.error('[REGISTRATION] Error processing referral code:', refErr.message);
+        // Continue with registration anyway - referral is optional
       }
     }
 
-    // Generate raw token, store only the SHA-256 hash (#7)
-    const rawVerificationToken = generateVerificationToken();
-    user.verificationToken        = hashToken(rawVerificationToken);
-    user.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 h
-
-    await user.save();
-
-    // Send the RAW token in the email link
+    // Generate and hash verification token
+    let rawVerificationToken;
     try {
-      await sendVerificationEmail(user.email, user.name, rawVerificationToken);
-    } catch (emailErr) {
-      console.warn('Verification email could not be sent (SMTP warning):', emailErr.message);
+      rawVerificationToken = generateVerificationToken();
+      user.verificationToken = hashToken(rawVerificationToken);
+      user.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    } catch (tokenErr) {
+      console.error('[REGISTRATION] Error generating verification token:', tokenErr.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error during registration. Please try again.'
+      });
     }
 
-    const token = generateToken(user._id);
+    // Save user to database
+    let savedUser;
+    try {
+      savedUser = await user.save();
+      console.log(`[REGISTRATION] User created successfully: ${email} (ID: ${savedUser._id})`);
+    } catch (saveErr) {
+      console.error('[REGISTRATION] Error saving user:', saveErr.message, saveErr.code);
+      
+      // Handle specific database errors
+      if (saveErr.code === 11000) {
+        const field = Object.keys(saveErr.keyPattern || {})[0] || 'field';
+        return res.status(400).json({
+          success: false,
+          message: `An account with this ${field} already exists. Please use a different ${field} or login.`
+        });
+      }
+      
+      if (saveErr.name === 'ValidationError') {
+        const messages = Object.values(saveErr.errors).map(err => err.message);
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error: ' + messages.join(', ')
+        });
+      }
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Server error during registration. Please try again.'
+      });
+    }
 
+    // Send verification email (non-blocking - failures don't affect registration)
+    let emailSent = false;
+    try {
+      await sendVerificationEmail(savedUser.email, savedUser.name, rawVerificationToken);
+      emailSent = true;
+      console.log(`[REGISTRATION] Verification email sent to ${savedUser.email}`);
+    } catch (emailErr) {
+      console.warn('[REGISTRATION] Verification email could not be sent:', emailErr.message);
+      console.warn('[REGISTRATION] User can still login and request resend');
+      // Don't fail registration if email fails
+    }
+
+    // Generate JWT token
+    let token;
+    try {
+      token = generateToken(savedUser._id);
+    } catch (tokenErr) {
+      console.error('[REGISTRATION] Token generation failed:', tokenErr.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Session creation failed - please try again'
+      });
+    }
+
+    // Registration successful
     return res.status(201).json({
       success: true,
       data: {
         user: {
-          id:           user._id,
-          _id:          user._id,
-          name:         user.name,
-          email:        user.email,
-          phoneNumber:  user.phoneNumber || null,
-          referralCode: user.referralCode,
-          isVerified:   user.isVerified,
-          accountType:  user.accountType || 'user',
-          role:         user.role || 'investor'
+          id:           savedUser._id,
+          _id:          savedUser._id,
+          name:         savedUser.name,
+          email:        savedUser.email,
+          phoneNumber:  savedUser.phoneNumber || null,
+          referralCode: savedUser.referralCode,
+          isVerified:   savedUser.isVerified,
+          accountType:  savedUser.accountType || 'user',
+          role:         savedUser.role || 'investor'
         },
         token
       },
-      message: 'Registration successful. Please check your email to verify your account.'
+      message: emailSent 
+        ? 'Registration successful. Please check your email to verify your account.'
+        : 'Registration successful. Email verification is temporarily unavailable - you can still access your account. Please try verification again later.',
+      emailSent
     });
   } catch (error) {
-    // #5 — never leak error.message in production (could expose Mongoose/DB internals)
-    console.error('Registration error:', error);
+    console.error('[REGISTRATION] Unhandled error:', error.message);
+    console.error('[REGISTRATION] Stack trace:', error.stack);
     return res.status(500).json({
       success: false,
       message: 'Server error during registration. Please try again.'
@@ -141,39 +280,169 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select('+password');
-    if (!user) {
-      return res.status(401).json({ success: false, message: 'No account found with this email. Please register first.' });
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email and password are required' 
+      });
     }
 
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
-    }
-
-    if (!user.isActive) {
-      return res.status(401).json({ success: false, message: 'Account is deactivated. Please contact support.' });
-    }
-
-    // Ensure old users (from before Phase 1) have a referral code
-    if (!user.referralCode) {
-      const generateUniqueReferralCode = async () => {
-        let code = new User().generateReferralCode();
-        let exists = await User.findOne({ referralCode: code });
-        while (exists) {
-          code = new User().generateReferralCode();
-          exists = await User.findOne({ referralCode: code });
+    // Fetch user with password field included - WITH RETRY LOGIC
+    let user;
+    let retries = 3;
+    let lastDbErr;
+    
+    while (retries > 0) {
+      try {
+        user = await User.findOne({ email }).select('+password');
+        break; // Success, exit retry loop
+      } catch (dbErr) {
+        lastDbErr = dbErr;
+        retries--;
+        console.warn(`[LOGIN] Database error for ${email}, retries left: ${retries}`, dbErr.message);
+        
+        // Wait 300ms before retrying
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
-        return code;
-      };
-      user.referralCode = await generateUniqueReferralCode();
+      }
+    }
+    
+    if (retries === 0) {
+      console.error('[LOGIN] Database connection failed after 3 retries for:', email);
+      console.error('[LOGIN] Last error:', lastDbErr.message);
+      return res.status(503).json({ 
+        success: false, 
+        message: 'Database unavailable - please try again in a moment' 
+      });
     }
 
+    // User not found
+    if (!user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'No account found with this email. Please register first.' 
+      });
+    }
+
+    // CRITICAL: Validate password field exists before bcrypt comparison
+    // This catches data corruption issues early
+    if (!user.password) {
+      console.error(`[LOGIN] CRITICAL: User ${email} (ID: ${user._id}) has missing password field - data corruption detected`);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Account error: corrupted user data. Please contact support.' 
+      });
+    }
+
+    // Compare password with hash
+    let isMatch;
+    try {
+      isMatch = await user.comparePassword(password);
+    } catch (bcryptErr) {
+      console.error(`[LOGIN] Bcrypt error for ${email}:`, bcryptErr.message);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Authentication error - please try again' 
+      });
+    }
+
+    // Password mismatch
+    if (!isMatch) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid credentials' 
+      });
+    }
+
+    // Account deactivated
+    if (!user.isActive) {
+      console.warn(`[LOGIN] Attempted login to deactivated account: ${email}`);
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Account is deactivated. Please contact support.' 
+      });
+    }
+
+    // Ensure referral code exists (backward compatibility for old users)
+    if (!user.referralCode) {
+      try {
+        user.referralCode = await generateUniqueReferralCode();
+        console.log(`[LOGIN] Generated referral code for legacy user ${email}: ${user.referralCode}`);
+      } catch (refErr) {
+        console.error(`[LOGIN] Failed to generate referral code for ${email}:`, refErr.message);
+        // Don't fail login - just assign null and proceed
+        user.referralCode = null;
+      }
+    }
+
+    // Update last login timestamp
     user.lastLogin = Date.now();
-    await user.save();
+    
+    // Save user with retry logic for race conditions
+    let saveRetries = 2;
+    let lastSaveErr;
+    
+    while (saveRetries > 0) {
+      try {
+        await user.save();
+        break; // Success
+      } catch (saveErr) {
+        lastSaveErr = saveErr;
+        saveRetries--;
+        
+        // Handle duplicate key error from referral code race condition
+        if (saveErr.code === 11000 && saveErr.keyPattern && saveErr.keyPattern.referralCode) {
+          console.warn(`[LOGIN] Race condition detected for referralCode during login of ${email}`);
+          
+          if (saveRetries > 0) {
+            // Clear and regenerate
+            user.referralCode = null;
+            try {
+              user.referralCode = await generateUniqueReferralCode();
+            } catch (refErr) {
+              user.referralCode = null;
+            }
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        } else {
+          console.error(`[LOGIN] Save error for ${email}:`, saveErr.message, saveErr.code);
+          
+          if (saveRetries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        }
+      }
+    }
+    
+    if (saveRetries === 0) {
+      console.warn('[LOGIN] Failed to save user after retries, but proceeding with login anyway:', email);
+      // Allow login to proceed - user data save is not critical for login
+    }
 
-    const token = generateToken(user._id);
+    // Validate JWT_SECRET configuration
+    if (!process.env.JWT_SECRET) {
+      console.error('[LOGIN] CRITICAL: JWT_SECRET is not set in environment');
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Server configuration error - contact support' 
+      });
+    }
 
+    // Generate JWT token
+    let token;
+    try {
+      token = generateToken(user._id);
+    } catch (tokenErr) {
+      console.error(`[LOGIN] Token generation failed:`, tokenErr.message);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Session creation failed - please try again' 
+      });
+    }
+
+    // Successful login
     return res.json({
       success: true,
       data: {
@@ -190,11 +459,20 @@ const login = async (req, res) => {
           wallet:       user.wallet || { capital: 0, profit: 0, commission: 0 }
         },
         token
-      }
+      },
+      message: 'Login successful'
     });
   } catch (error) {
-    console.error('Login error:', error);
-    return res.status(500).json({ success: false, message: 'Server error during login' });
+    console.error('[LOGIN] Unhandled error:', error.message);
+    console.error('[LOGIN] Error type:', error.name);
+    console.error('[LOGIN] Error code:', error.code);
+    console.error('[LOGIN] Stack trace:', error.stack);
+    
+    // Return generic message to user but log full details for debugging
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Account server error - please try again later or contact support' 
+    });
   }
 };
 
@@ -284,7 +562,12 @@ const resendVerification = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    // ── STEP 1: Extract and normalize email ──
+    const emailFromBody = req.body.email;
+    console.log('[FORGOT-PASSWORD] 1. Email from req.body:', emailFromBody);
+    
+    const normalizedEmail = (emailFromBody || '').trim().toLowerCase();
+    console.log('[FORGOT-PASSWORD] 2. Normalized email:', normalizedEmail);
 
     // #4 — same response regardless of whether email exists, to prevent enumeration
     const SAFE_RESPONSE = {
@@ -292,26 +575,43 @@ const forgotPassword = async (req, res) => {
       message: 'If that email is registered, a password reset link has been sent.'
     };
 
-    const user = await User.findOne({ email });
+    // ── STEP 2: Find user by normalized email ──
+    const user = await User.findOne({ email: normalizedEmail });
+    console.log('[FORGOT-PASSWORD] 3. User found in DB:', !!user, user ? `(${user.name})` : '');
+    
     if (!user) {
       // Return 200 — attacker cannot distinguish "found" from "not found"
+      console.log('[FORGOT-PASSWORD] User not found, returning safe response');
       return res.json(SAFE_RESPONSE);
     }
 
+    // ── STEP 3: Generate reset token and save to user ──
     const rawResetToken = generateResetToken();
     user.resetPasswordToken   = hashToken(rawResetToken); // store hash (#7)
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
     await user.save();
+    console.log('[FORGOT-PASSWORD] 4. Reset token generated and saved to user');
 
+    // ── STEP 4: Send password reset email ──
     try {
-      await sendPasswordResetEmail(user.email, user.name, rawResetToken);
+      const emailResult = await sendPasswordResetEmail(user.email, user.name, rawResetToken);
+      console.log('[FORGOT-PASSWORD] 5. Email send result:', emailResult);
+      
+      if (!emailResult.success) {
+        console.error('[FORGOT-PASSWORD] Email send failed:', emailResult.error);
+      } else {
+        console.log('[FORGOT-PASSWORD] Email sent successfully to:', user.email);
+      }
     } catch (emailErr) {
-      console.warn('Password reset email failed:', emailErr.message);
+      console.error('[FORGOT-PASSWORD] Exception during email send:', emailErr.message);
+      console.error('[FORGOT-PASSWORD] Stack:', emailErr.stack);
     }
 
+    console.log('[FORGOT-PASSWORD] Returning safe response');
     return res.json(SAFE_RESPONSE);
   } catch (error) {
-    console.error('Forgot password error:', error);
+    console.error('[FORGOT-PASSWORD] Error:', error.message);
+    console.error('[FORGOT-PASSWORD] Stack:', error.stack);
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };

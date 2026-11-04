@@ -167,7 +167,6 @@ export default function AdminUserTransactions() {
                 <th className="px-4 py-3 text-right">Capital</th>
                 <th className="px-4 py-3 text-right">Profit</th>
                 <th className="px-4 py-3 text-right">Commission</th>
-                <th className="px-4 py-3 text-right">ROI</th>
                 <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
@@ -177,7 +176,7 @@ export default function AdminUserTransactions() {
                   .fill(0)
                   .map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      {Array(8)
+                      {Array(7)
                         .fill(0)
                         .map((_, j) => (
                           <td key={j} className="px-4 py-4">
@@ -188,7 +187,7 @@ export default function AdminUserTransactions() {
                   ))
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-16 text-center text-gray-500">
                     No users found{search ? ` matching "${search}"` : ''}.
                   </td>
                 </tr>
@@ -227,10 +226,6 @@ export default function AdminUserTransactions() {
                     {/* Commission */}
                     <td className="px-4 py-3.5 text-right font-semibold text-blue-400 tabular-nums">
                       {fmt(user.wallet?.commission)}
-                    </td>
-                    {/* ROI */}
-                    <td className="px-4 py-3.5 text-right font-semibold text-purple-400 tabular-nums">
-                      {fmt(user.wallet?.roi)}
                     </td>
                     {/* Actions */}
                     <td className="px-4 py-3.5">

@@ -350,7 +350,11 @@ const approveInvestment = async (req, res) => {
     investment.status    = 'active';
     investment.isActive  = true;
     investment.startDate = new Date();
-    investment.lastProfitDate = new Date();
+    // Set lastProfitDate to yesterday so profit calculation runs TODAY (not tomorrow)
+    // Profit cron checks: lastProfitDate < startOfToday; if set to now(), it will be >= startOfToday
+    const yesterdayForProfit = new Date();
+    yesterdayForProfit.setDate(yesterdayForProfit.getDate() - 1);
+    investment.lastProfitDate = yesterdayForProfit;
     investment.approvedBy = req.user._id;
     investment.approvedAt = new Date();
     await investment.save();
@@ -519,13 +523,21 @@ const approvePlanInvestment = async (req, res) => {
     // 1. Activate investment
     investment.status    = 'active';
     investment.startDate = new Date();
+    // Set lastRoiDate to yesterday so profit calculation runs TODAY (not tomorrow)
+    // Profit cron checks: lastRoiDate < startOfToday; if set to now(), it will be >= startOfToday
+    const yesterdayForRoi = new Date();
+    yesterdayForRoi.setDate(yesterdayForRoi.getDate() - 1);
+    investment.lastRoiDate = yesterdayForRoi;
     investment.approvedBy = req.user._id;
     investment.approvedAt = new Date();
     await investment.save();
 
     // 2. Credit user wallet with investment amount
     await User.findByIdAndUpdate(investment.userId, {
-      $inc: { 'wallet.capital': investment.amount }
+      $inc: { 
+        'wallet.capital': investment.amount,
+        totalInvested: investment.amount  // ← ADD THIS: Update totalInvested for commission calculations
+      }
     });
 
     // 3. Update the pending transaction to completed
@@ -1426,9 +1438,18 @@ const adminDepositToUser = async (req, res) => {
     // Add to wallet
     const previousBalance = user.wallet[walletType] || 0;
     user.wallet[walletType] = (user.wallet[walletType] || 0) + amount;
+    
+    // ── IMPORTANT: Update totalInvested for capital deposits so commission calculations work ────
+    if (walletType === 'capital') {
+      user.totalInvested = (user.totalInvested || 0) + amount;
+    }
+    
     await user.save();
 
     console.log('💰 Wallet updated:', { walletType, previousBalance, newBalance: user.wallet[walletType] });
+    if (walletType === 'capital') {
+      console.log('📊 totalInvested updated:', { previous: (user.totalInvested || 0) - amount, new: user.totalInvested });
+    }
 
     // Create transaction record
     const transaction = new Transaction({
@@ -1481,7 +1502,13 @@ const adminDepositToUser = async (req, res) => {
         incomeCap: amount * 3,  // 3x income cap
         status: 'active',
         startDate: new Date(),
-        lastRoiDate: new Date(),
+        // Set lastRoiDate to yesterday so profit calculation runs TODAY (not tomorrow)
+        // Profit cron checks: lastRoiDate < startOfToday; if set to now(), it will be >= startOfToday
+        lastRoiDate: (() => {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          return yesterday;
+        })(),
         approvedBy: req.user._id,
         approvedAt: new Date(),
         paymentNote: `Admin deposit: ${note || '(no note)'}`,
@@ -1534,6 +1561,15 @@ const adminDepositToUser = async (req, res) => {
         console.log(`✅ Credited $${commissionAmount} commission to ${referrer.name}`);
       }
     }
+    }
+
+    // ── AUTO-UNLOCK: Grant Networker access when capital is deposited ────
+    if (walletType === 'capital') {
+      await User.findByIdAndUpdate(id, {
+        networkerAccessGranted: true,
+        networkerAccessGrantedAt: new Date(),
+        networkerAccessGrantedBy: req.user._id
+      });
     }
 
     return res.json({
@@ -2145,6 +2181,85 @@ const updateAdminSettings = async (req, res) => {
   }
 };
 
+/**
+ * PATCH /api/admin/users/:id/reset-password
+ * Admin resets a user's password to a temporary password
+ * User can then change it themselves after logging in
+ */
+const adminResetUserPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { temporaryPassword } = req.body;
+
+    if (!temporaryPassword || typeof temporaryPassword !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Temporary password is required'
+      });
+    }
+
+    if (temporaryPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Temporary password must be at least 6 characters'
+      });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update password (will be hashed by pre-save hook)
+    user.password = temporaryPassword;
+    await user.save();
+
+    // Create audit log
+    await User.collection.updateOne(
+      { _id: user._id },
+      {
+        $push: {
+          passwordResets: {
+            resetBy: req.user._id,
+            resetAt: new Date(),
+            note: 'Admin password reset'
+          }
+        }
+      }
+    );
+
+    // Send notification to user
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      userId: user._id,
+      title: '🔐 Password Reset by Admin',
+      message: `Your password has been reset by an administrator. Please log in with your temporary password and change it immediately.`,
+      type: 'alert'
+    });
+
+    return res.json({
+      success: true,
+      message: `Password reset successfully for ${user.name}`,
+      data: {
+        userId: user._id,
+        name: user.name,
+        email: user.email,
+        temporaryPassword: temporaryPassword,
+        resetAt: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('Admin reset password error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error resetting user password'
+    });
+  }
+};
+
 module.exports = {
   getSystemStats,
   getSystemPools,
@@ -2183,5 +2298,6 @@ module.exports = {
   updateWallet,
   deleteWallet,
   getAdminSettings,
-  updateAdminSettings
+  updateAdminSettings,
+  adminResetUserPassword
 };

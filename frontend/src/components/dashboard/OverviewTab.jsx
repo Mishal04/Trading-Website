@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'; 
 import { 
   Wallet, 
   TrendingUp, 
@@ -11,7 +11,8 @@ import {
   ShieldCheck,
   Clock,
   Coins,
-  Building2
+  Building2,
+  RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
@@ -212,10 +213,10 @@ export default function OverviewTab({ stats, user, onRefresh }) {
             </div>
           </div>
           <div className="text-3xl font-extrabold text-emerald-400">
-            ${Number((wallet.profit || 0) + (wallet.roi || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${Number((wallet.profit || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            {wallet.roi > 0 ? `Daily returns (${(wallet.roi || 0).toFixed(2)} from investments)` : 'Withdrawable daily returns'}
+            {wallet.profit > 0 ? `Daily returns (${(wallet.profit || 0).toFixed(2)} from investments)` : 'Withdrawable daily returns'}
           </p>
         </div>
 
@@ -246,7 +247,27 @@ export default function OverviewTab({ stats, user, onRefresh }) {
                   <h3 className="text-sm font-bold text-white">Current Deposit Wallet</h3>
                   <p className="text-xs text-gray-500">Send cryptocurrency here for deposits</p>
                 </div>
-                <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold bg-gold-500/20 text-gold-400 border border-gold-500/30">ACTIVE</span>
+                <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold bg-gold-500/20 text-gold-400 border border-gold-500/30">LIVE</span>
+                <button
+                  onClick={async () => {
+                    setWalletLoading(true);
+                    try {
+                      const res = await adminAPI.getCurrentWallet();
+                      if (res.data?.data?.wallet) {
+                        setCurrentWallet(res.data.data.wallet);
+                      }
+                    } catch (err) {
+                      console.log('Failed to refresh wallet');
+                    } finally {
+                      setWalletLoading(false);
+                    }
+                  }}
+                  disabled={walletLoading}
+                  className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-gold-400 transition-colors disabled:opacity-50"
+                  title="Refresh wallet details"
+                >
+                  <RefreshCw size={14} className={walletLoading ? 'animate-spin' : ''} />
+                </button>
               </div>
               
               <div className="space-y-3 mt-4">
@@ -307,7 +328,27 @@ export default function OverviewTab({ stats, user, onRefresh }) {
                   <h3 className="text-sm font-bold text-white">Admin Bank Account</h3>
                   <p className="text-xs text-gray-500">Bank transfer details for deposits</p>
                 </div>
-                <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ACTIVE</span>
+                <span className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">LIVE</span>
+                <button
+                  onClick={async () => {
+                    setWalletLoading(true);
+                    try {
+                      const res = await adminAPI.getAdminSettings();
+                      if (res.data?.data?.settings) {
+                        setAdminSettings(res.data.data.settings);
+                      }
+                    } catch (err) {
+                      console.log('Failed to refresh settings');
+                    } finally {
+                      setWalletLoading(false);
+                    }
+                  }}
+                  disabled={walletLoading}
+                  className="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-gray-400 hover:text-emerald-400 transition-colors disabled:opacity-50"
+                  title="Refresh bank details"
+                >
+                  <RefreshCw size={14} className={walletLoading ? 'animate-spin' : ''} />
+                </button>
               </div>
               
               <div className="space-y-3 mt-4">
@@ -485,24 +526,6 @@ export default function OverviewTab({ stats, user, onRefresh }) {
 
         {/* Stats Sidebar */}
         <div className="space-y-4">
-          <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-5">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Investment Metrics</h4>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Total Invested</span>
-                <span className="text-sm font-bold text-white">${Number(investments.totalInvested || 0).toLocaleString()}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Active Packages</span>
-                <span className="text-sm font-bold text-gold-400">{investments.activeCount || 0}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Total Profit Earned</span>
-                <span className="text-sm font-bold text-emerald-400">${Number(investments.totalProfitEarned || 0).toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-
           <div className="rounded-2xl border border-dark-500 bg-dark-800/60 p-5">
             <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Network Metrics</h4>
             <div className="space-y-4">

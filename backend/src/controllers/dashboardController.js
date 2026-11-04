@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Investment = require('../models/Investment');
+const InvestorInvestment = require('../models/InvestorInvestment');
 const Transaction = require('../models/Transaction');
 const Notification = require('../models/Notification');
 const constants = require('../../config/constants');
@@ -10,11 +11,23 @@ const constants = require('../../config/constants');
  */
 const getDashboardStats = async (req, res) => {
   try {
+    // Add cache-busting headers to ensure fresh data is always fetched
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+    
     const userId = req.user._id;
     const user = await User.findById(userId).select('-password');
 
+    // Calculate active investments instead of using totalInvested field
+    const activeInvs = await InvestorInvestment.aggregate([
+      { $match: { userId, status: 'active' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]);
+    const totalInvestments = activeInvs.length > 0 ? activeInvs[0].total : 0;
+
     const activeInvestmentsCount = await Investment.countDocuments({ userId, status: 'active' });
-    const totalInvestments = user.totalInvested || 0;
     const totalProfitEarned = (user.totalProfitEarned || 0) + (user.totalRoiEarned || 0);
 
     const wallet = user.wallet || { capital: 0, profit: 0, commission: 0 };
@@ -33,7 +46,42 @@ const getDashboardStats = async (req, res) => {
     const capProgressPercent = incomeCap > 0 ? Math.min(100, Math.round((totalEarned / incomeCap) * 100)) : 0;
     const capRemaining = Math.max(0, incomeCap - totalEarned);
     const directCount = user.directCount || (user.referrals ? user.referrals.count : 0);
-    const unlockedLevels = user.unlockedLevels || 0;
+    const unlockedLevels = constants.getUnlockedLevelCount(directCount);
+
+    // ── RECALCULATE TEAM BUSINESS DYNAMICALLY ──
+    // Get all downline users and their wallet.capital
+    const downlineUsers = await User.find({ ancestorPath: userId })
+      .select('_id wallet')
+      .lean();
+
+    let totalTeamCapital = 0;
+    for (const downlineUser of downlineUsers) {
+      totalTeamCapital += downlineUser.wallet?.capital || 0;
+    }
+
+    // For 60/40 calculation, get direct referrals
+    const directReferrals = await User.find({ referredBy: userId })
+      .select('_id wallet teamBusiness')
+      .lean();
+
+    let strongTeamVolume = 0;
+    let otherTeamVolume = 0;
+
+    if (directReferrals.length > 0) {
+      // Calculate volume for each leg = direct investment + their team business
+      const legVolumes = directReferrals.map(ref => {
+        const directCapital = ref.wallet?.capital || 0;
+        const teamVolume = (ref.teamBusiness?.total || 0) + directCapital;
+        return teamVolume;
+      });
+
+      // Sort to identify strongest leg
+      legVolumes.sort((a, b) => b - a);
+      strongTeamVolume = legVolumes[0] || 0;
+      otherTeamVolume = legVolumes.slice(1).reduce((sum, v) => sum + v, 0);
+    }
+
+    const totalTeamVolume = strongTeamVolume + otherTeamVolume;
 
     return res.json({
       success: true,
@@ -69,7 +117,11 @@ const getDashboardStats = async (req, res) => {
         team: {
           directCount,
           unlockedLevels,
-          teamBusiness: user.teamBusiness || { strongTeam: 0, otherTeam: 0, total: 0 }
+          teamBusiness: { 
+            strongTeam: strongTeamVolume, 
+            otherTeam: otherTeamVolume, 
+            total: totalTeamVolume 
+          }
         },
         incomeCap: {
           role,
@@ -100,6 +152,12 @@ const getDashboardStats = async (req, res) => {
  */
 const getUserTransactions = async (req, res) => {
   try {
+    // Add cache-busting headers to ensure fresh data is always fetched
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+    
     const page  = Math.max(1, parseInt(req.query.page,  10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50)); // cap at 100
     const skip  = (page - 1) * limit;
