@@ -4,6 +4,7 @@ import { InvestorAuthProvider } from './context/InvestorAuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Landing from './pages/Landing';
+import MaintenancePage from './pages/MaintenancePage';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
@@ -78,12 +79,23 @@ function PublicLayout() {
 
 // ── App ────────────────────────────────────────────────────────────────────
 export default function App() {
+  // Check if maintenance mode is enabled (read from environment variable)
+  const maintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
+
   return (
     <InvestorAuthProvider>
       <Routes>
+        {/* ── Maintenance Mode: Show maintenance page instead of landing ── */}
+        {maintenanceMode && (
+          <Route path="/" element={<MaintenancePage />} />
+        )}
+
         {/* ── Public / user pages — wrapped in Navbar + Footer ── */}
         <Route element={<PublicLayout />}>
-          <Route path="/"                     element={<Landing />} />
+          {/* ── Landing page (only shown when maintenance mode is off) ── */}
+          {!maintenanceMode && (
+            <Route path="/"                     element={<Landing />} />
+          )}
           <Route path="/register"             element={<PublicOnly><Register /></PublicOnly>} />
           <Route path="/login"                element={<PublicOnly><Login /></PublicOnly>} />
           <Route path="/forgot-password"      element={<PublicOnly><ForgotPassword /></PublicOnly>} />
